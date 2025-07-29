@@ -80,31 +80,96 @@ class FolderMonitorService : Service() {
         return START_STICKY
     }
 
+    // 在类的成员变量部分添加：
+    private var processingFiles = mutableSetOf<String>() // 正在处理的文件
+    private var completedFiles = mutableListOf<String>() // 已完成的文件（按完成顺序）
+    
+    // 修改createNotification方法：
     private fun createNotification(contentText: String): Notification {
         // 创建点击通知时的Intent
         val notificationIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            // 添加额外数据以导航到Home页面
             putExtra("navigate_to", "home")
         }
-
+    
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             notificationIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
+    
+        // 构建详细的通知内容
+        val detailedContent = buildNotificationContent(contentText)
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("LUT图像处理")
             .setContentText(contentText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detailedContent)) // 使用BigTextStyle显示多行
             .setSmallIcon(android.R.drawable.ic_menu_camera)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOngoing(true)
-            .setContentIntent(pendingIntent) // 添加点击处理
+            .setContentIntent(pendingIntent)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
+    }
+    
+    // 新增方法：构建通知内容
+    private fun buildNotificationContent(statusText: String): String {
+        val content = StringBuilder()
+        content.append(statusText)
+        
+        if (processingFiles.isNotEmpty() || completedFiles.isNotEmpty()) {
+            content.append("\n\n")
+            
+            // 显示正在处理的文件
+            if (processingFiles.isNotEmpty()) {
+                content.append("正在处理：\n")
+                processingFiles.forEach { fileName ->
+                    content.append("⏳ $fileName\n")
+                }
+            }
+            
+            // 显示已完成的文件（最近的几个）
+            if (completedFiles.isNotEmpty()) {
+                if (processingFiles.isNotEmpty()) content.append("\n")
+                content.append("已完成：\n")
+                // 只显示最近完成的5个文件，避免通知过长
+                val recentCompleted = completedFiles.takeLast(5)
+                recentCompleted.forEach { fileName ->
+                    content.append("✅ $fileName\n")
+                }
+                if (completedFiles.size > 5) {
+                    content.append("... 及其他 ${completedFiles.size - 5} 个文件\n")
+                }
+            }
+            
+            // 显示统计信息
+            content.append("\n总计：${completedFiles.size} 已完成，${processingFiles.size} 处理中")
+        }
+        
+        return content.toString()
+    }
+    
+    // 新增方法：开始处理文件时调用
+    private fun startProcessingFile(fileName: String) {
+        processingFiles.add(fileName)
+        updateNotification("正在处理文件...")
+    }
+    
+    // 新增方法：完成处理文件时调用
+    private fun completeProcessingFile(fileName: String) {
+        processingFiles.remove(fileName)
+        completedFiles.add(fileName)
+        updateNotification("处理完成")
+    }
+    
+    // 新增方法：更新通知
+    private fun updateNotification(statusText: String) {
+        val notification = createNotification(statusText)
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(NOTIFICATION_ID, notification)
     }
 
     private fun createNotificationChannel() {
@@ -385,9 +450,11 @@ class FolderMonitorService : Service() {
         dither: String,
         lutFilePath: String? = null
     ) {
-        val fileName = documentFile.name ?: "未知文件"
-        Log.d("FolderMonitorService", "开始处理文件: $fileName")
-
+        val fileName = documentFile.name ?: return
+        
+        // 开始处理文件
+        startProcessingFile(fileName)
+        
         try {
             // **增强的重复检查逻辑**
             if (processedFiles.contains(fileName)) {
@@ -478,11 +545,12 @@ class FolderMonitorService : Service() {
                 Log.d("FolderMonitorService", "文件已保存到: ${outputFile.uri}")
             }
 
+            // 在文件处理成功后，替换原来的通知更新代码：
             Log.d("FolderMonitorService", "文件处理完成: $fileName")
-            val completedNotification = createNotification("已完成: $fileName")
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.notify(NOTIFICATION_ID, completedNotification)
-
+            
+            // 完成处理文件
+            completeProcessingFile(fileName)
+            
             // 在成功处理后增加计数并发送广播
             processedCount++
             recordProcessing(fileName, documentFile.uri, outputFile.uri, lutFilePath, strength.toInt(), quality, dither)
@@ -564,9 +632,11 @@ class FolderMonitorService : Service() {
         isMonitoring = false
         monitoringJob?.cancel()
         monitoringJob = null
-        // 重置计数
+        // 重置计数和状态
         processedCount = 0
         processedFiles.clear()
+        processingFiles.clear() // 清空正在处理的文件列表
+        completedFiles.clear() // 清空已完成的文件列表
         stopForeground(true)
         stopSelf()
     }

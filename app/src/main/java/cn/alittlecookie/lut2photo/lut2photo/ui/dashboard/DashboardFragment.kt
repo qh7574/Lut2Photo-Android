@@ -432,10 +432,26 @@ class DashboardFragment : Fragment() {
             try {
                 val lutItems = lutManager.getAllLuts()
                 
-                // 设置适配器
-                val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, lutItems)
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                binding.spinnerLut.adapter = adapter
+                // 使用自定义适配器以只显示文件名（与setupLutSpinner保持一致）
+                lutSpinnerAdapter = object : ArrayAdapter<LutItem>(
+                    requireContext(),
+                    android.R.layout.simple_spinner_item,
+                    lutItems
+                ) {
+                    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                        val view = super.getView(position, convertView, parent)
+                        (view as TextView).text = getItem(position)?.name ?: ""
+                        return view
+                    }
+                    override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                        val view = super.getDropDownView(position, convertView, parent)
+                (view as TextView).text = getItem(position)?.name ?: ""
+                return view
+            }
+        }
+        
+        lutSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerLut.adapter = lutSpinnerAdapter
                 
                 // 恢复保存的LUT选择
                 preferencesManager.dashboardLutUri?.let { savedPath ->
