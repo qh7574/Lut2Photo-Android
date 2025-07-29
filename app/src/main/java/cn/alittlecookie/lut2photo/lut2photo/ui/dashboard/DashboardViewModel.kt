@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
+import androidx.documentfile.provider.DocumentFile
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -16,13 +17,12 @@ import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.model.ImageItem
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
+import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import androidx.documentfile.provider.DocumentFile
-import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -144,8 +144,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
     
     // 添加处理完成回调
-    private val _processingCompleted = MutableLiveData<ProcessingResult>()
-    val processingCompleted: LiveData<ProcessingResult> = _processingCompleted
+    private val _processingCompleted = MutableLiveData<ProcessingResult?>()
+    val processingCompleted: LiveData<ProcessingResult?> = _processingCompleted
     
     data class ProcessingResult(
         val isSuccess: Boolean,
