@@ -19,20 +19,20 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_delete"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_gravity="top|end"
             android:layout_margin="4dp"
-            android:text="×"
-            android:textSize="16sp"
-            android:textColor="@android:color/white"
-            style="@style/Widget.Material3.Button.ElevatedButton"
-            app:backgroundTint="@android:color/holo_red_dark"
-            app:cornerRadius="16dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="0dp"
-            android:minHeight="0dp" />
+            android:minHeight="0dp"
+            android:text="×"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            app:backgroundTint="?android:attr/colorActivatedHighlight"
+            app:cornerRadius="16dp" />
 
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

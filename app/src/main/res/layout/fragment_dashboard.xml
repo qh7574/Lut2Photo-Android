@@ -277,7 +277,7 @@
                             android:id="@+id/radio_random"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="随机抖动"
+                            android:text="Random"
                             android:layout_marginEnd="16dp" />
 
                         <com.google.android.material.radiobutton.MaterialRadioButton
@@ -343,9 +343,9 @@
                     android:id="@+id/recycler_view_images"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@color/material_dynamic_neutral95"
-                    android:nestedScrollingEnabled="false"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="16dp"
+                    android:background="@color/cardview_shadow_end_color"
+                    android:nestedScrollingEnabled="false" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

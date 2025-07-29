@@ -15,9 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.fragment.findNavController
 import cn.alittlecookie.lut2photo.lut2photo.BuildConfig
-import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentNotificationsBinding
 import cn.alittlecookie.lut2photo.lut2photo.utils.ThemeManager
 
@@ -72,17 +70,20 @@ class NotificationsFragment : Fragment() {
             // 应用信息
             textAppVersion.text = "版本: ${BuildConfig.VERSION_NAME}"
             textAppDescription.text = """
-                LUT2Photo 是一款专业的图像色彩处理应用，支持：
-                
+                LUT2Photo 一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。
+                特性：
                 • 实时文件夹监控和自动处理
-                • 批量图片处理
+                • 单个或批量图片处理
                 • 多种抖动算法减少色彩断层
                 • 可调节的效果强度和输出质量
                 • 支持标准CUBE格式LUT文件
                 • Material 3 动态颜色主题
                 
-                基于Python版本的LUT处理算法移植而来，
-                提供与桌面版本相同的处理质量。
+                基于Python版本的LUT处理算法移植而来
+                Pyrhon版本 https://github.com/qh7574/Lut2Photo-Py
+                
+                作者：偷光你的小鱼干
+                    （某些情况下也叫 狸花饺子喵）
             """.trimIndent()
         }
     }
