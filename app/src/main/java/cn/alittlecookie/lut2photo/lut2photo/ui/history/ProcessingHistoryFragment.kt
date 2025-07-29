@@ -1,0 +1,186 @@
+package cn.alittlecookie.lut2photo.lut2photo.ui.history
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import cn.alittlecookie.lut2photo.lut2photo.adapter.ProcessingHistoryAdapter
+import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentProcessingHistoryBinding
+import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
+import java.text.SimpleDateFormat
+import java.util.*
+
+class ProcessingHistoryFragment : Fragment() {
+    
+    private var _binding: FragmentProcessingHistoryBinding? = null
+    private val binding get() = _binding!!
+    
+    private lateinit var historyAdapter: ProcessingHistoryAdapter
+    
+    private val processingUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "cn.alittlecookie.lut2photo.PROCESSING_UPDATE") {
+                // 重新加载处理历史
+                loadProcessingHistory()
+            }
+        }
+    }
+    
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentProcessingHistoryBinding.inflate(inflater, container, false)
+        
+        setupRecyclerView()
+        setupViews()
+        loadProcessingHistory()
+        
+        return binding.root
+    }
+    
+    override fun onStart() {
+        super.onStart()
+        // 在onStart中注册广播接收器，确保Fragment可见时能接收更新
+        val filter = IntentFilter("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            requireContext().registerReceiver(
+                processingUpdateReceiver, 
+                filter, 
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            requireContext().registerReceiver(processingUpdateReceiver, filter)
+        }
+        
+        // 重新加载历史记录
+        loadProcessingHistory()
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        // 在onStop中注销广播接收器，而不是onPause
+        try {
+            requireContext().unregisterReceiver(processingUpdateReceiver)
+        } catch (e: Exception) {
+            // 忽略取消注册时的异常
+        }
+    }
+    
+    // 移除原来的onResume和onPause方法中的注册/注销逻辑
+    override fun onPause() {
+        super.onPause()
+        // 取消注册广播接收器
+        try {
+            requireContext().unregisterReceiver(processingUpdateReceiver)
+        } catch (e: Exception) {
+            // 忽略取消注册时的异常
+        }
+    }
+    
+    private fun setupViews() {
+        // 添加清空记录按钮的点击事件
+        binding.buttonClearHistory.setOnClickListener {
+            clearHistory()
+        }
+    }
+    
+    private fun setupRecyclerView() {
+        historyAdapter = ProcessingHistoryAdapter()
+        binding.recyclerViewHistory.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = historyAdapter
+        }
+    }
+    
+    private fun loadProcessingHistory() {
+        val prefs = requireContext().getSharedPreferences("processing_history", Context.MODE_PRIVATE)
+        val records = prefs.getStringSet("records", emptySet()) ?: emptySet()
+        
+        val processingRecords = records.mapNotNull { recordString ->
+            try {
+                val parts = recordString.split("|")
+                when {
+                    parts.size >= 9 -> {
+                        // 最新格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|strength|quality|ditherType
+                        ProcessingRecord(
+                            timestamp = parts[0].toLong(),
+                            fileName = parts[1],
+                            inputPath = parts[2],
+                            outputPath = parts[3],
+                            status = parts[4],
+                            lutFileName = parts[5],
+                            strength = parts[6].toFloatOrNull() ?: 0f,
+                            quality = parts[7].toIntOrNull() ?: 0,
+                            ditherType = parts[8]
+                        )
+                    }
+                    parts.size >= 6 -> {
+                        // 旧格式：timestamp|fileName|inputPath|outputPath|status|lutFileName
+                        ProcessingRecord(
+                            timestamp = parts[0].toLong(),
+                            fileName = parts[1],
+                            inputPath = parts[2],
+                            outputPath = parts[3],
+                            status = parts[4],
+                            lutFileName = parts[5]
+                        )
+                    }
+                    parts.size >= 5 -> {
+                        // 更旧格式：timestamp|fileName|inputPath|outputPath|status
+                        ProcessingRecord(
+                            timestamp = parts[0].toLong(),
+                            fileName = parts[1],
+                            inputPath = parts[2],
+                            outputPath = parts[3],
+                            status = parts[4],
+                            lutFileName = "未知"
+                        )
+                    }
+                    parts.size >= 4 -> {
+                        // 最旧格式：timestamp|fileName|inputPath|outputPath
+                        ProcessingRecord(
+                            timestamp = parts[0].toLong(),
+                            fileName = parts[1],
+                            inputPath = parts[2],
+                            outputPath = parts[3],
+                            status = "处理完成",
+                            lutFileName = "未知"
+                        )
+                    }
+                    else -> null
+                }
+            } catch (e: Exception) {
+                Log.w("ProcessingHistoryFragment", "解析历史记录失败: $recordString", e)
+                null
+            }
+        }.sortedByDescending { it.timestamp }
+        
+        historyAdapter.submitList(processingRecords)
+        binding.textHistoryCount.text = "共 ${processingRecords.size} 条记录"
+    }
+    
+    private fun clearHistory() {
+        val prefs = requireContext().getSharedPreferences("processing_history", Context.MODE_PRIVATE)
+        prefs.edit().remove("records").apply()
+        
+        historyAdapter.submitList(emptyList())
+        binding.textHistoryCount.text = "共 0 条记录"
+        
+        Toast.makeText(requireContext(), "历史记录已清空", Toast.LENGTH_SHORT).show()
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}

@@ -1,0 +1,94 @@
+14:43:23.465  E  监控过程中发生错误: StandaloneCoroutine was cancelled
+                 kotlinx.coroutines.JobCancellationException: StandaloneCoroutine was cancelled; job=StandaloneCoroutine{Cancelling}@169c11d
+14:43:23.465  W  kotlinx.coroutines.JobCancellationException: StandaloneCoroutine was cancelled; job=StandaloneCoroutine{Cancelling}@169c11d
+14:43:23.465  D  等待2秒后进行下次检查
+14:43:23.465  D  Shutting down VM
+14:43:23.467  W  type=1400 audit(0.0:794141): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+14:43:23.470  E  FATAL EXCEPTION: main
+                 Process: cn.alittlecookie.lut2photo.lut2photo, PID: 16659
+                 android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException: Context.startForegroundService() did not then call Service.startForeground(): ServiceRecord{fbb350d u0 cn.alittlecookie.lut2photo.lut2photo/.service.FolderMonitorService c:cn.alittlecookie.lut2photo.lut2photo}
+                 	at android.app.ActivityThread.generateForegroundServiceDidNotStartInTimeException(ActivityThread.java:2503)
+                 	at android.app.ActivityThread.throwRemoteServiceException(ActivityThread.java:2471)
+                 	at android.app.ActivityThread.-$$Nest$mthrowRemoteServiceException(Unknown Source:0)
+                 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2793)
+                 	at android.os.Handler.dispatchMessage(Handler.java:107)
+                 	at android.os.Looper.loopOnce(Looper.java:249)
+                 	at android.os.Looper.loop(Looper.java:337)
+                 	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                 	at java.lang.reflect.Method.invoke(Native Method)
+                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+                 Caused by: android.app.StackTrace: Last startServiceCommon() call for this service was made here
+                 	at android.app.ContextImpl.startServiceCommon(ContextImpl.java:1992)
+                 	at android.app.ContextImpl.startForegroundService(ContextImpl.java:1946)
+                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
+                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.startMonitoring(HomeFragment.kt:462)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.setupViews$lambda$17$lambda$13(HomeFragment.kt:349)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.$r8$lambda$mcjB88buGlmSrTGZ0AQvRaBlkGw(Unknown Source:0)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment$$ExternalSyntheticLambda11.onClick(D8$$SyntheticClass:0)
+                 	at android.view.View.performClick(View.java:8215)
+                 	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
+                 	at android.view.View.performClickInternal(View.java:8192)
+                 	at android.view.View.-$$Nest$mperformClickInternal(Unknown Source:0)
+                 	at android.view.View$PerformClick.run(View.java:32717)
+                 	at android.os.Handler.handleCallback(Handler.java:959)
+                 	at android.os.Handler.dispatchMessage(Handler.java:100)
+                 	at android.os.Looper.loopOnce(Looper.java:249) 
+                 	at android.os.Looper.loop(Looper.java:337) 
+                 	at android.app.ActivityThread.main(ActivityThread.java:9586) 
+                 	at java.lang.reflect.Method.invoke(Native Method) 
+                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593) 
+                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936) 
+14:43:23.467  W  type=1400 audit(0.0:794142): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+14:43:23.467  W  type=1400 audit(0.0:794143): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+14:43:23.467  W  type=1400 audit(0.0:794144): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+14:43:23.467  W  type=1400 audit(0.0:794145): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+14:43:23.473  W  Failed to mkdir /data/miuilog/stability/hprof/
+14:43:23.478  E  Process: cn.alittlecookie.lut2photo.lut2photo, PID: 16659
+                 android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException: Context.startForegroundService() did not then call Service.startForeground(): ServiceRecord{fbb350d u0 cn.alittlecookie.lut2photo.lut2photo/.service.FolderMonitorService c:cn.alittlecookie.lut2photo.lut2photo}
+                 	at android.app.ActivityThread.generateForegroundServiceDidNotStartInTimeException(ActivityThread.java:2503)
+                 	at android.app.ActivityThread.throwRemoteServiceException(ActivityThread.java:2471)
+                 	at android.app.ActivityThread.-$$Nest$mthrowRemoteServiceException(Unknown Source:0)
+                 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2793)
+                 	at android.os.Handler.dispatchMessage(Handler.java:107)
+                 	at android.os.Looper.loopOnce(Looper.java:249)
+                 	at android.os.Looper.loop(Looper.java:337)
+                 	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                 	at java.lang.reflect.Method.invoke(Native Method)
+                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+                 Caused by: android.app.StackTrace: Last startServiceCommon() call for this service was made here
+                 	at android.app.ContextImpl.startServiceCommon(ContextImpl.java:1992)
+                 	at android.app.ContextImpl.startForegroundService(ContextImpl.java:1946)
+                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
+                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.startMonitoring(HomeFragment.kt:462)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.setupViews$lambda$17$lambda$13(HomeFragment.kt:349)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.$r8$lambda$mcjB88buGlmSrTGZ0AQvRaBlkGw(Unknown Source:0)
+                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment$$ExternalSyntheticLambda11.onClick(D8$$SyntheticClass:0)
+                 	at android.view.View.performClick(View.java:8215)
+                 	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
+                 	at android.view.View.performClickInternal(View.java:8192)
+                 	at android.view.View.-$$Nest$mperformClickInternal(Unknown Source:0)
+                 	at android.view.View$PerformClick.run(View.java:32717)
+                 	at android.os.Handler.handleCallback(Handler.java:959)
+                 	at android.os.Handler.dispatchMessage(Handler.java:100)
+                 	at android.os.Looper.loopOnce(Looper.java:249) 
+                 	at android.os.Looper.loop(Looper.java:337) 
+                 	at android.app.ActivityThread.main(ActivityThread.java:9586) 
+                 	at java.lang.reflect.Method.invoke(Native Method) 
+                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593) 
+                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936) 
+14:43:23.485  I  Process is going to kill itself!
+                 java.lang.Exception
+                 	at android.os.Process.killProcess(Process.java:1495)
+                 	at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:193)
+                 	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1071)
+                 	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1066)
+                 	at java.lang.Thread.dispatchUncaughtException(Thread.java:2306)
+14:43:23.485  I  Sending signal. PID: 16659 SIG: 9
+14:43:23.486  I  kill: send 9 to pid 16659
+---------------------------- PROCESS ENDED (16659) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
+14:43:23.593  E   source = Task{bc83164 #25181 type=standard A=10519:cn.alittlecookie.lut2photo.lut2photo} excludeMiuiNavBar = true excludeMiuiStatusBar = true excludeIme = false excludeNavBar = true miuiNavSurfaceControl = Surface(name=Miui Fake NavBar#51)/@0xf824201 miuiStatusSurfaceControl = Surface(name=Miui Fake StatusBar#50)/@0x672210b
+14:43:24.553  E  setClientVisible ActivityRecord{f0db1b8 u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t25181 f} isExiting} false

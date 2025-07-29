@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LUT2Photo</string>
+    <string name="title_home">文件夹监控</string>
+    <string name="title_dashboard">单文件处理</string>
+    <string name="title_notifications">设置</string>
+    
+    <!-- 通用 -->
+    <string name="select_lut_file">选择LUT文件</string>
+    <string name="lut_file_not_selected">未选择LUT文件</string>
+    <string name="processing">处理中...</string>
+    <string name="processing_complete">处理完成</string>
+    
+    <!-- 文件夹监控 -->
+    <string name="folder_monitoring">文件夹监控</string>
+    <string name="input_folder">输入文件夹</string>
+    <string name="output_folder">输出文件夹</string>
+    <string name="start_monitoring">开始监控</string>
+    <string name="stop_monitoring">停止监控</string>
+    <string name="monitoring_status">监控状态</string>
+    
+    <!-- 单文件处理 -->
+    <string name="single_file_processing">单文件处理</string>
+    <string name="select_images">选择图片</string>
+    <string name="clear_images">清空</string>
+    <string name="start_processing">开始处理</string>
+    <string name="images_selected">已选择: %d 张图片</string>
+    <string name="processed_count">已处理: %d/%d</string>
+    
+    <!-- 参数设置 -->
+    <string name="processing_parameters">处理参数</string>
+    <string name="effect_strength">效果强度</string>
+    <string name="output_quality">输出质量</string>
+    <string name="dither_type">抖动类型</string>
+    <string name="dither_none">无</string>
+    <string name="dither_floyd">Floyd-Steinberg</string>
+    <string name="dither_random">随机</string>
+    
+    <!-- 设置 -->
+    <string name="settings">设置</string>
+    <string name="permission_management">权限管理</string>
+    <string name="app_info">应用信息</string>
+    <string name="request_permissions">请求权限</string>
+    <string name="app_settings">应用设置</string>
+    <string name="permission_status">权限状态: %d/%d 已授权</string>
+    
+    <!-- 权限 -->
+    <string name="permission_read_storage">读取存储</string>
+    <string name="permission_write_storage">写入存储</string>
+    <string name="permission_read_images">读取图片</string>
+    <string name="permission_notifications">发送通知</string>
+    <string name="permission_granted">✓ 已授权</string>
+    <string name="permission_denied">✗ 未授权</string>
+    
+    <!-- 错误信息 -->
+    <string name="error_lut_load_failed">LUT文件加载失败</string>
+    <string name="error_image_load_failed">图片加载失败</string>
+    <string name="error_processing_failed">处理失败</string>
+    <string name="error_permission_required">需要相关权限才能正常使用</string>
+</resources>
