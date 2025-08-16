@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:paddingBottom="100dp"
     android:clipToPadding="false"
-    android:fitsSystemWindows="true"
     tools:context=".ui.home.HomeFragment">
 
     <LinearLayout
@@ -19,7 +18,7 @@
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="文件夹监控"
+            android:text="@string/folder_monitoring"
             android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
             android:layout_marginBottom="24dp" />
 
@@ -49,7 +48,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="监控状态: 未启动"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                     android:layout_marginBottom="12dp" />
                     
                 <LinearLayout
@@ -65,7 +64,7 @@
                         android:layout_marginEnd="8dp"
                         android:text="开始监控"
                         android:textSize="16sp"
-                        style="@style/Widget.Material3.Button.ElevatedButton" />
+                        style="@style/Widget.Material3.Button" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_stop_monitoring"
@@ -76,7 +75,7 @@
                         android:text="停止监控"
                         android:textSize="16sp"
                         android:enabled="false"
-                        style="@style/Widget.Material3.Button.ElevatedButton" />
+                        style="@style/Widget.Material3.Button" />
 
                 </LinearLayout>
 
@@ -101,11 +100,13 @@
                     android:id="@+id/layout_file_settings_header"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
+                    android:gravity="center_vertical"
+                    android:minHeight="24dp"
+                    android:orientation="horizontal"
+                    tools:ignore="TouchTargetSizeCheck">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
@@ -114,12 +115,12 @@
                         android:text="文件设置"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <ImageView
                         android:id="@+id/button_toggle_file_settings"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:text="▼"
-                        style="@style/Widget.Material3.Button.TextButton" />
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/toggle_section"
+                        android:src="@drawable/ic_expand_less" />
 
                 </LinearLayout>
 
@@ -141,7 +142,7 @@
                     <Spinner
                         android:id="@+id/spinner_lut"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_height="48dp"
                         android:layout_marginBottom="16dp"
                         android:padding="12dp" />
 
@@ -172,10 +173,10 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_select_input_folder"
                             android:layout_width="wrap_content"
-                            android:layout_height="56dp"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:text="选择输入文件夹"
-                            android:textSize="16sp"
-                            style="@style/Widget.Material3.Button.ElevatedButton" />
+                            android:layout_height="48dp"
+                            android:textSize="14sp" />
 
                     </LinearLayout>
 
@@ -205,10 +206,10 @@
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_select_output_folder"
                             android:layout_width="wrap_content"
-                            android:layout_height="56dp"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:text="选择输出文件夹"
-                            android:textSize="16sp"
-                            style="@style/Widget.Material3.Button.ElevatedButton" />
+                            android:layout_height="48dp"
+                            android:textSize="14sp" />
 
                     </LinearLayout>
                 </LinearLayout>
@@ -233,11 +234,13 @@
                     android:id="@+id/layout_params_header"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
+                    android:background="?attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
+                    android:gravity="center_vertical"
+                    android:minHeight="24dp"
+                    android:orientation="horizontal"
+                    tools:ignore="TouchTargetSizeCheck">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
@@ -246,12 +249,12 @@
                         android:text="参数设置"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-                    <com.google.android.material.button.MaterialButton
+                    <ImageView
                         android:id="@+id/button_toggle_params"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:text="▼"
-                        style="@style/Widget.Material3.Button.TextButton" />
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/toggle_section"
+                        android:src="@drawable/ic_expand_less" />
 
                 </LinearLayout>
 
@@ -260,44 +263,83 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="16dp">
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="0dp">
 
                     <!-- 强度滑块 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="效果强度"
+                        android:text="@string/effect_strength"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="8dp" />
 
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/slider_strength"
+                    <!-- 在强度滑块后添加显示值的TextView -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:valueFrom="0"
-                        android:valueTo="100"
-                        android:stepSize="1"
-                        android:value="60"
-                        android:layout_marginBottom="16dp" />
+                        android:layout_marginBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <!-- 质量滑块 -->
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_strength"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:contentDescription="@string/strength_slider_desc"
+                            android:stepSize="1"
+                            android:value="60"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/textStrengthValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="60%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    </LinearLayout>
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="输出质量"
+                        android:text="@string/output_quality"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="8dp" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/slider_quality"
+                    <!-- 在质量滑块后添加显示值的TextView -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:valueFrom="1"
-                        android:valueTo="100"
-                        android:stepSize="1"
-                        android:value="90"
-                        android:layout_marginBottom="16dp" />
+                        android:layout_marginBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_quality"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:contentDescription="@string/output_quality"
+                            android:stepSize="1"
+                            android:value="90"
+                            android:valueFrom="50"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/textQualityValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="90"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    </LinearLayout>
                     <!-- 抖动选项 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
@@ -306,35 +348,39 @@
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="8dp" />
 
-                    <RadioGroup
-                        android:id="@+id/radio_group_dither"
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggle_group_dither"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_marginBottom="0dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_floyd"
-                            android:layout_width="wrap_content"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_dither_floyd"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_height="wrap_content"
-                            android:text="Floyd-Steinberg"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="Floyd" />
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_random"
-                            android:layout_width="wrap_content"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_dither_random"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_height="wrap_content"
+                            android:layout_width="0dp"
                             android:text="Random"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_weight="1" />
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_none"
-                            android:layout_width="wrap_content"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_dither_none"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_height="wrap_content"
-                            android:text="无"
-                            android:checked="true" />
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="None" />
 
-                    </RadioGroup>
-
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
                 </LinearLayout>
 
             </LinearLayout>

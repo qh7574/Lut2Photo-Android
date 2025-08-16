@@ -9,7 +9,7 @@
     <item
         android:id="@+id/navigation_dashboard"
         android:icon="@drawable/ic_dashboard_black_24dp"
-        android:title="单文件处理" />
+        android:title="手动处理" />
         
     <item
         android:id="@+id/navigation_processing_history"

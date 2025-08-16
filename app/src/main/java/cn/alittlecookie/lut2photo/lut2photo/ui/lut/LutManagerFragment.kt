@@ -89,10 +89,7 @@ class LutManagerFragment : Fragment() {
                 exportLutLauncher.launch(intent)
             }
             
-            // 删除选中的LUT
-            buttonDeleteSelected.setOnClickListener {
-                deleteSelectedLuts()
-            }
+            // 移除了删除选中按钮的点击事件
         }
     }
     
@@ -180,26 +177,6 @@ class LutManagerFragment : Fragment() {
             } else {
                 Toast.makeText(requireContext(), "LUT文件删除失败", Toast.LENGTH_SHORT).show()
             }
-        }
-    }
-    
-    private fun deleteSelectedLuts() {
-        lifecycleScope.launch {
-            val selectedLuts = lutAdapter.getSelectedLuts()
-            if (selectedLuts.isEmpty()) {
-                Toast.makeText(requireContext(), "请选择要删除的LUT文件", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
-            
-            var successCount = 0
-            selectedLuts.forEach { lutItem ->
-                if (lutManager.deleteLut(lutItem)) {
-                    successCount++
-                }
-            }
-            
-            Toast.makeText(requireContext(), "成功删除 $successCount 个LUT文件", Toast.LENGTH_SHORT).show()
-            loadLutFiles()
         }
     }
     

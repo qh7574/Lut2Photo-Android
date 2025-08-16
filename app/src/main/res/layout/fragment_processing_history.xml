@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="0dp">
 
     <!-- 统一标题样式 -->
     <com.google.android.material.textview.MaterialTextView
@@ -11,6 +11,9 @@
         android:layout_height="wrap_content"
         android:text="处理历史"
         android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="24dp" />
 
     <!-- 操作栏 -->
@@ -19,6 +22,9 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp">
 
         <TextView
@@ -43,6 +49,8 @@
         android:id="@+id/recycler_view_history"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_weight="1" />
 
 </LinearLayout>

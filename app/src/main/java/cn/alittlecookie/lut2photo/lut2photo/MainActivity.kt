@@ -64,21 +64,47 @@ class MainActivity : AppCompatActivity() {
     
     private fun setupSystemBars() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
-        // 设置系统导航栏颜色为透明
-        window.navigationBarColor = ContextCompat.getColor(this, android.R.color.transparent)
-        window.statusBarColor = ContextCompat.getColor(this, android.R.color.transparent)
-        
-        // 根据主题设置导航栏图标颜色
-        val isLightTheme = when (themeManager.getCurrentTheme()) {
-            ThemeManager.THEME_LIGHT -> true
-            ThemeManager.THEME_DARK -> false
-            else -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES
-        }
-        
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightNavigationBars = isLightTheme
-            isAppearanceLightStatusBars = isLightTheme
+
+        // 延迟设置，确保在所有主题应用完成后执行
+        window.decorView.post {
+            try {
+                // 获取底部导航栏的实际背景色
+                val typedValue = android.util.TypedValue()
+                theme.resolveAttribute(android.R.attr.windowBackground, typedValue, true)
+                val windowBackgroundColor =
+                    if (typedValue.type >= android.util.TypedValue.TYPE_FIRST_COLOR_INT &&
+                        typedValue.type <= android.util.TypedValue.TYPE_LAST_COLOR_INT
+                    ) {
+                        typedValue.data
+                    } else {
+                        // 备用方案：使用colorSurface
+                        val surfaceTypedValue = android.util.TypedValue()
+                        theme.resolveAttribute(
+                            com.google.android.material.R.attr.colorSurface,
+                            surfaceTypedValue,
+                            true
+                        )
+                        surfaceTypedValue.data
+                    }
+
+                // 强制设置导航栏颜色
+                window.navigationBarColor = windowBackgroundColor
+                window.statusBarColor = ContextCompat.getColor(this, android.R.color.transparent)
+
+                // 根据主题设置导航栏图标颜色
+                val isLightTheme = when (themeManager.getCurrentTheme()) {
+                    ThemeManager.THEME_LIGHT -> true
+                    ThemeManager.THEME_DARK -> false
+                    else -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) != Configuration.UI_MODE_NIGHT_YES
+                }
+
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightNavigationBars = isLightTheme
+                    isAppearanceLightStatusBars = isLightTheme
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
     

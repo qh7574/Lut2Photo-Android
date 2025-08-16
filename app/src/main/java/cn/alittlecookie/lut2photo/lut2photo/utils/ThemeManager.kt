@@ -18,6 +18,9 @@ class ThemeManager(private val context: Context) {
         const val THEME_DARK = 1
         const val THEME_SYSTEM = 2
         const val THEME_DYNAMIC = 3
+
+        // 添加缺失的常量
+        private const val MODE_NIGHT_DYNAMIC = 4
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -67,14 +70,14 @@ class ThemeManager(private val context: Context) {
             context.setTheme(themeResId)
         }
     }
-    
-    fun getThemeName(themeMode: Int): String {
-        return when (themeMode) {
-            THEME_LIGHT -> "浅色主题"
-            THEME_DARK -> "深色主题"
-            THEME_SYSTEM -> "跟随系统"
-            THEME_DYNAMIC -> "动态颜色"
-            else -> "未知"
+
+    fun getThemeName(theme: Int): String {
+        return when (theme) {
+            THEME_LIGHT -> context.getString(R.string.theme_light)
+            THEME_DARK -> context.getString(R.string.theme_dark)
+            THEME_SYSTEM -> context.getString(R.string.theme_follow_system)
+            THEME_DYNAMIC -> context.getString(R.string.theme_dynamic_color)
+            else -> context.getString(R.string.theme_system)
         }
     }
     

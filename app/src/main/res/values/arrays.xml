@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="dither_types">
+        <item>Floyd-Steinberg</item>
+        <item>Random</item>
+        <item>None</item>
+    </string-array>
+</resources>

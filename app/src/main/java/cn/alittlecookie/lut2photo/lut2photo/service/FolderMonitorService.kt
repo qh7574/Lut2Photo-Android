@@ -15,9 +15,14 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.documentfile.provider.DocumentFile
 import cn.alittlecookie.lut2photo.lut2photo.MainActivity
-import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.io.File
 
 class FolderMonitorService : Service() {
@@ -582,40 +587,74 @@ class FolderMonitorService : Service() {
         quality: Int = 90,
         ditherType: String = "none"
     ) {
-        val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
-        val timestamp = System.currentTimeMillis()
-        
-        // 获取LUT文件名
-        val lutFileName = lutFilePath?.let { File(it).name } ?: "未知"
-        
-        // 使用完整格式存储，包含所有必要字段
-        val strengthFloat = strength / 100f // 转换为0-1的浮点数
-        val ditherTypeFormatted = when (ditherType.lowercase()) {
-            "floyd" -> "Floyd"
-            "random" -> "Random"
-            else -> "None"
+        try {
+            val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
+            val timestamp = System.currentTimeMillis()
+
+            // 获取LUT文件名
+            val lutFileName = lutFilePath?.let { File(it).name } ?: "未知"
+
+            // 使用完整格式存储，包含所有必要字段
+            val strengthFloat = strength / 100f // 转换为0-1的浮点数
+            val ditherTypeFormatted = when (ditherType.lowercase()) {
+                "floyd" -> "Floyd"
+                "random" -> "Random"
+                else -> "None"
+            }
+
+            val record =
+                "$timestamp|$fileName|$inputUri|${outputUri ?: ""}|处理成功|$lutFileName|$strengthFloat|$quality|$ditherTypeFormatted"
+
+            // 修复：创建新的可变集合，避免并发问题
+            val existingRecords = prefs.getStringSet("records", emptySet()) ?: emptySet()
+            val mutableRecords = existingRecords.toMutableSet()
+            mutableRecords.add(record)
+
+            // 按时间戳排序并限制数量，避免无限增长
+            val sortedRecords = mutableRecords.sortedByDescending {
+                it.split("|")[0].toLongOrNull() ?: 0L
+            }.take(100)
+
+            // 使用commit()确保立即写入
+            val success = prefs.edit()
+                .putStringSet("records", sortedRecords.toSet())
+                .commit()
+
+            if (success) {
+                Log.d("FolderMonitorService", "处理记录保存成功: $fileName")
+            } else {
+                Log.e("FolderMonitorService", "处理记录保存失败: $fileName")
+            }
+
+        } catch (e: Exception) {
+            Log.e("FolderMonitorService", "保存处理记录时发生错误: ${e.message}", e)
         }
-        
-        val record = "$timestamp|$fileName|$inputUri|${outputUri ?: ""}|处理成功|$lutFileName|$strengthFloat|$quality|$ditherTypeFormatted"
-        
-        val existingRecords = prefs.getStringSet("records", mutableSetOf()) ?: mutableSetOf()
-        existingRecords.add(record)
-        
-        val sortedRecords = existingRecords.sortedByDescending { 
-            it.split("|")[0].toLongOrNull() ?: 0L 
-        }.take(100)
-        
-        prefs.edit().putStringSet("records", sortedRecords.toSet()).apply()
     }
     
     private fun hasUriPermission(uri: Uri): Boolean {
         return try {
-            contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-            true
+            // 检查是否有持久化权限
+            val persistedUris = contentResolver.persistedUriPermissions
+            val hasPermission = persistedUris.any { permission ->
+                permission.uri == uri &&
+                        permission.isReadPermission &&
+                        permission.isWritePermission
+            }
+
+            if (hasPermission) {
+                Log.d("FolderMonitorService", "URI权限检查通过: $uri")
+                return true
+            }
+
+            // 如果没有持久化权限，尝试直接访问测试
+            val documentFile = DocumentFile.fromTreeUri(this, uri)
+            val canAccess =
+                documentFile?.exists() == true && documentFile.canRead() && documentFile.canWrite()
+
+            Log.d("FolderMonitorService", "URI访问测试结果: $canAccess for $uri")
+            canAccess
         } catch (e: Exception) {
+            Log.e("FolderMonitorService", "权限检查失败: ${e.message}")
             false
         }
     }
@@ -663,6 +702,13 @@ class FolderMonitorService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
+        // 确保在服务销毁前同步所有数据
+        try {
+            val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
+            prefs.edit().commit() // 强制同步
+        } catch (e: Exception) {
+            Log.e("FolderMonitorService", "服务销毁时同步数据失败", e)
+        }
         stopMonitoring()
     }
 }

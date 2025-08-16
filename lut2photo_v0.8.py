@@ -285,7 +285,7 @@ if __name__ == "__main__":
     parser.add_argument('--input-dir', help='监控的输入文件夹路径')
     parser.add_argument('--output-dir', help='处理后的输出文件夹路径')
     
-    # 单文件处理参数
+    # 手动处理参数
     parser.add_argument('--lut', help='LUT文件路径')
     parser.add_argument('--input', help='输入图片路径')
     parser.add_argument('--output', help='输出图片路径')
@@ -320,7 +320,7 @@ if __name__ == "__main__":
                 args.dither
             )
         else:
-            # 单文件处理模式
+            # 手动处理模式
             if not args.input or not args.output or not args.lut:
                 raise ValueError("单文件模式需要指定 --input, --output 和 --lut")
                 

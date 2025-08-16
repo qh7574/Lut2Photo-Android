@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import cn.alittlecookie.lut2photo.lut2photo.BuildConfig
+import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentNotificationsBinding
 import cn.alittlecookie.lut2photo.lut2photo.utils.ThemeManager
 
@@ -68,44 +69,29 @@ class NotificationsFragment : Fragment() {
             }
             
             // 应用信息
-            textAppVersion.text = "版本: ${BuildConfig.VERSION_NAME}"
-            textAppDescription.text = """
-                LUT2Photo 一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。
-                特性：
-                • 实时文件夹监控和自动处理
-                • 单个或批量图片处理
-                • 多种抖动算法减少色彩断层
-                • 可调节的效果强度和输出质量
-                • 支持标准CUBE格式LUT文件
-                • Material 3 动态颜色主题
-                
-                基于Python版本的LUT处理算法移植而来
-                Pyrhon版本 https://github.com/qh7574/Lut2Photo-Py
-                
-                作者：偷光你的小鱼干
-                    （某些情况下也叫 狸花饺子喵）
-            """.trimIndent()
+            textAppVersion.text = getString(R.string.app_version_format, BuildConfig.VERSION_NAME)
+            textAppDescription.text = getString(R.string.app_description)
         }
     }
     
     private fun setupThemeDropdown() {
         val themes = mutableListOf(
-            "浅色主题" to ThemeManager.THEME_LIGHT,
-            "深色主题" to ThemeManager.THEME_DARK,
-            "跟随系统" to ThemeManager.THEME_SYSTEM
+            getString(R.string.theme_light) to ThemeManager.THEME_LIGHT,
+            getString(R.string.theme_dark) to ThemeManager.THEME_DARK,
+            getString(R.string.theme_follow_system) to ThemeManager.THEME_SYSTEM
         )
         
         // 只在支持的设备上显示动态颜色选项
         if (themeManager.isDynamicColorSupported()) {
-            themes.add("动态颜色" to ThemeManager.THEME_DYNAMIC)
+            themes.add(getString(R.string.theme_dynamic_color) to ThemeManager.THEME_DYNAMIC)
         }
         
         val themeNames = themes.map { it.first }
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, themeNames)
         
         binding.dropdownTheme.setAdapter(adapter)
-        
-        // 设置当前主题
+
+        // 设置当前主题 - 修复方法调用
         val currentTheme = themeManager.getCurrentTheme()
         val currentThemeName = themeManager.getThemeName(currentTheme)
         binding.dropdownTheme.setText(currentThemeName, false)
@@ -127,21 +113,38 @@ class NotificationsFragment : Fragment() {
         }
         
         binding.apply {
-            textPermissionStatus.text = "权限状态: ${grantedPermissions.size}/${permissions.size} 已授权"
+            textPermissionStatus.text = getString(
+                R.string.permission_status_format,
+                grantedPermissions.size,
+                permissions.size
+            )
             
             // 显示具体权限状态
             val statusText = StringBuilder()
             permissions.forEach { permission ->
                 val isGranted = ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED
                 val permissionName = getPermissionDisplayName(permission)
-                statusText.append("$permissionName: ${if (isGranted) "✓ 已授权" else "✗ 未授权"}\n")
+                val status =
+                    if (isGranted) getString(R.string.permission_granted) else getString(R.string.permission_denied)
+                statusText.append("$permissionName: $status\n")
             }
             textPermissionDetails.text = statusText.toString().trim()
             
             // 更新按钮状态
             val allGranted = grantedPermissions.size == permissions.size
-            buttonCheckPermissions.text = if (allGranted) "权限检查通过" else "请求权限"
+            buttonCheckPermissions.text =
+                if (allGranted) getString(R.string.permission_check_passed) else getString(R.string.request_permissions)
             buttonCheckPermissions.isEnabled = !allGranted
+        }
+    }
+
+    private fun getPermissionDisplayName(permission: String): String {
+        return when (permission) {
+            Manifest.permission.READ_EXTERNAL_STORAGE -> getString(R.string.permission_read_storage)
+            Manifest.permission.WRITE_EXTERNAL_STORAGE -> getString(R.string.permission_write_storage)
+            Manifest.permission.READ_MEDIA_IMAGES -> getString(R.string.permission_read_images)
+            Manifest.permission.POST_NOTIFICATIONS -> getString(R.string.permission_post_notifications)
+            else -> permission
         }
     }
     
@@ -157,16 +160,6 @@ class NotificationsFragment : Fragment() {
         }
         
         return permissions
-    }
-    
-    private fun getPermissionDisplayName(permission: String): String {
-        return when (permission) {
-            Manifest.permission.READ_EXTERNAL_STORAGE -> "读取存储"
-            Manifest.permission.WRITE_EXTERNAL_STORAGE -> "写入存储"
-            Manifest.permission.READ_MEDIA_IMAGES -> "读取图片"
-            Manifest.permission.POST_NOTIFICATIONS -> "发送通知"
-            else -> permission
-        }
     }
     
     private fun checkAndRequestPermissions() {
@@ -197,4 +190,5 @@ class NotificationsFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
 }

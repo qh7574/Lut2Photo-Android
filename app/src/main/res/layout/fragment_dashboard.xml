@@ -1,355 +1,464 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:paddingBottom="100dp"
-    android:clipToPadding="false"
-    android:fitsSystemWindows="true"
     tools:context=".ui.dashboard.DashboardFragment">
 
-    <LinearLayout
+    <!-- 主内容区域 -->
+    <ScrollView
+        android:id="@+id/scroll_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="match_parent"
+        android:layout_marginBottom="80dp"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- 标题 -->
-        <com.google.android.material.textview.MaterialTextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="单文件处理"
-            android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="20dp"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <!-- 1. 处理控制卡片（新增） -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.CardView.Outlined"
-            app:cardElevation="0dp">
-
-            <LinearLayout
+            <!-- 标题 -->
+            <com.google.android.material.textview.MaterialTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginBottom="24dp"
+                android:text="@string/single_file_processing"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
 
-                <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="处理控制"
-                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                    android:layout_marginBottom="16dp" />
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_image_count"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="已选择: 0 张图片"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                    android:layout_marginBottom="16dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/button_start_processing"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:text="开始处理"
-                    android:textSize="16sp"
-                    style="@style/Widget.Material3.Button.ElevatedButton" />
-
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/progress_bar"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:visibility="gone" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 2. 文件设置（可折叠） -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.CardView.Outlined"
-            app:cardElevation="0dp">
-
-            <LinearLayout
+            <!-- 1. 处理控制卡片 -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
 
                 <LinearLayout
-                    android:id="@+id/layout_file_settings_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="文件设置"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_toggle_file_settings"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:text="▼"
-                        style="@style/Widget.Material3.Button.TextButton" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/layout_file_settings_content"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="16dp">
+                    android:padding="16dp">
 
-                    <!-- LUT文件选择 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="LUT文件"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="4dp" />
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/processing_control"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-                    <Spinner
-                        android:id="@+id/spinner_lut"
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_image_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/images_selected_zero"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <!-- 文件选择按钮 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_select_images"
+                        style="@style/Widget.Material3.Button"
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
                         android:layout_marginBottom="16dp"
-                        android:padding="12dp" />
+                        android:text="@string/select_images_from_gallery"
+                        android:textSize="16sp" />
 
-                    <!-- 输出文件夹选择 -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="输出文件夹"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="4dp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/text_output_folder"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="未设置文件夹"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                            android:layout_marginEnd="16dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/button_select_output_folder"
-                            android:layout_width="wrap_content"
-                            android:layout_height="56dp"
-                            android:text="选择输出文件夹"
-                            android:textSize="16sp"
-                            style="@style/Widget.Material3.Button.ElevatedButton" />
-
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 3. 参数设置（可折叠） -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.CardView.Outlined"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:id="@+id/layout_params_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="参数设置"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_toggle_params"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:text="▼"
-                        style="@style/Widget.Material3.Button.TextButton" />
+                        android:id="@+id/button_start_processing"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="@string/start_processing"
+                        android:textSize="16sp" />
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress_bar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:visibility="gone" />
+
+                    <!-- 在处理控制卡片中添加缺失的元素 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_processing_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/ready"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_processed_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="已处理: 0 / 0"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_stop_processing"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="停止处理"
+                        android:visibility="gone" />
 
                 </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 2. 文件设置（可折叠） -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
 
                 <LinearLayout
-                    android:id="@+id/layout_params_content"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="16dp">
+                    android:padding="16dp">
 
-                    <!-- 强度滑块 -->
-                    <com.google.android.material.textview.MaterialTextView
+                    <LinearLayout
+                        android:id="@+id/layout_file_settings_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="效果强度"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="8dp" />
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="24dp"
+                        android:orientation="horizontal"
+                        tools:ignore="TouchTargetSizeCheck">
 
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/slider_strength"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:valueFrom="0"
-                        android:valueTo="100"
-                        android:stepSize="1"
-                        android:value="60"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- 质量滑块 -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="输出质量"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="8dp" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/slider_quality"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:valueFrom="1"
-                        android:valueTo="100"
-                        android:stepSize="1"
-                        android:value="90"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- 抖动选项 -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="抖动类型"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="8dp" />
-
-                    <RadioGroup
-                        android:id="@+id/radio_group_dither"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_floyd"
-                            android:layout_width="wrap_content"
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Floyd-Steinberg"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_weight="1"
+                            android:text="@string/file_settings"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_random"
-                            android:layout_width="wrap_content"
+                        <ImageView
+                            android:id="@+id/button_toggle_file_settings"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@string/toggle_section"
+                            android:src="@drawable/ic_expand_less" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layout_file_settings_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical">
+
+                        <!-- LUT选择 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Random"
-                            android:layout_marginEnd="16dp" />
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/select_lut_file"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_none"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="无"
-                            android:checked="true" />
+                            android:layout_marginBottom="16dp"
+                            android:orientation="horizontal">
 
-                    </RadioGroup>
+                            <Spinner
+                                android:id="@+id/spinner_lut"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:padding="12dp" />
+
+                        </LinearLayout>
+
+                        <!-- 输出文件夹选择 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/output_folder"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="0dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_output_folder"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/folder_not_set"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_select_output_folder"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:text="@string/select_output_folder"
+                                android:textSize="14sp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
 
                 </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.card.MaterialCardView>
 
-        <!-- 4. 图片选择（自动延长高度） -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.CardView.Outlined"
-            app:cardElevation="0dp">
-
-            <LinearLayout
+            <!-- 3. 参数设置（可折叠） -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="16dp">
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
+                    <LinearLayout
+                        android:id="@+id/layout_params_header"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="图片选择"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="24dp"
+                        android:orientation="horizontal"
+                        tools:ignore="TouchTargetSizeCheck">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_select_images"
-                        android:layout_width="wrap_content"
-                        android:layout_height="48dp"
-                        android:text="选择图片"
-                        android:layout_marginEnd="8dp"
-                        style="@style/Widget.Material3.Button.ElevatedButton" />
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/parameter_settings"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_clear_images"
-                        android:layout_width="wrap_content"
-                        android:layout_height="48dp"
-                        android:text="清空"
-                        style="@style/Widget.Material3.Button.ElevatedButton" />
+                        <ImageView
+                            android:id="@+id/button_toggle_params"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@string/toggle_section"
+                            android:src="@drawable/ic_expand_less" />
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:id="@+id/layout_params_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical">
+
+                        <!-- 强度设置 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/effect_strength"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="0dp"
+                            android:gravity="center_vertical"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="16dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.slider.Slider
+                                    android:id="@+id/slider_strength"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="16dp"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/effect_strength"
+                                    android:stepSize="1"
+                                    android:value="60"
+                                    android:valueFrom="0"
+                                    android:valueTo="100" />
+
+                                <TextView
+                                    android:id="@+id/textStrengthValue"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:minWidth="48dp"
+                                    android:text="60%"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                            </LinearLayout>
+
+                            <!-- 在质量滑块后添加显示值的TextView -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="16dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.slider.Slider
+                                    android:id="@+id/slider_quality"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="16dp"
+                                    android:layout_weight="1"
+                                    android:contentDescription="@string/output_quality"
+                                    android:stepSize="1"
+                                    android:value="95"
+                                    android:valueFrom="50"
+                                    android:valueTo="100" />
+
+                                <TextView
+                                    android:id="@+id/textQualityValue"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:minWidth="48dp"
+                                    android:text="95"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                            </LinearLayout>
+
+                            <!-- 抖动类型 -->
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="8dp"
+                                android:text="@string/dither_type"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/toggle_group_dither"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="0dp"
+                                app:selectionRequired="true"
+                                app:singleSelection="true">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/button_dither_floyd"
+                                    style="@style/Widget.Material3.Button.OutlinedButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Floyd" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/button_dither_random"
+                                    style="@style/Widget.Material3.Button.OutlinedButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Random" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/button_dither_none"
+                                    style="@style/Widget.Material3.Button.OutlinedButton"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="None" />
+
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+                        </LinearLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
-                <!-- RecyclerView 现在会根据内容自动调整高度 -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recycler_view_images"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:background="@color/cardview_shadow_end_color"
-                    android:nestedScrollingEnabled="false" />
+    </ScrollView>
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+    <!-- BottomSheet -->
+    <LinearLayout
+        android:id="@+id/bottom_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bottom_sheet_background"
+        android:orientation="vertical"
+        app:behavior_hideable="false"
+        app:behavior_peekHeight="80dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+        <!-- BottomSheet 拖拽指示器 -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bottom_sheet_drag_handle" />
+
+        <!-- BottomSheet 标题栏 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:paddingTop="8dp">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/image_gallery"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_clear_images"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/clear_images" />
+
+        </LinearLayout>
+
+        <!-- 图片网格 - 修复滑动冲突和支持全屏 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_images"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="16dp"
+            android:layout_weight="1"
+            android:nestedScrollingEnabled="true"
+            android:overScrollMode="never" />
 
     </LinearLayout>
 
-</ScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

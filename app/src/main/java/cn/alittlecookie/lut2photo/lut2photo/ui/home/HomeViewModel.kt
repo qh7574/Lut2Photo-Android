@@ -1,5 +1,6 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.home
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Application
 import android.content.BroadcastReceiver
@@ -9,10 +10,12 @@ import android.content.IntentFilter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 
+@SuppressLint("UnspecifiedRegisterReceiverFlag")
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isMonitoring = MutableLiveData<Boolean>().apply {
@@ -21,7 +24,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val isMonitoring: LiveData<Boolean> = _isMonitoring
     
     private val _statusText = MutableLiveData<String>().apply {
-        value = "准备就绪"
+        value = getApplication<Application>().getString(R.string.status_ready)
     }
     val statusText: LiveData<String> = _statusText
     
@@ -44,7 +47,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
                 _processedCount.value = processedCount
                 if (_isMonitoring.value == true) {
-                    _statusText.value = "监控中..."
+                    _statusText.value =
+                        getApplication<Application>().getString(R.string.status_monitoring)
                 }
             }
         }
@@ -81,9 +85,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (monitoring) {
             // 开始监控时重置计数
             _processedCount.value = 0
-            _statusText.value = "监控中..."
+            _statusText.value = getApplication<Application>().getString(R.string.status_monitoring)
         } else {
-            _statusText.value = "已停止监控"
+            _statusText.value =
+                getApplication<Application>().getString(R.string.status_monitoring_stopped)
         }
         
         // 保存监控状态到SharedPreferences
@@ -99,7 +104,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             // 确保状态一致
             _isMonitoring.value = false
-            _statusText.value = "准备就绪"
+            _statusText.value = getApplication<Application>().getString(R.string.status_ready)
         }
     }
     
@@ -113,14 +118,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             _isMonitoring.value = isServiceRunning
-            _statusText.value = if (isServiceRunning) "监控中..." else "准备就绪"
+            _statusText.value = if (isServiceRunning) {
+                getApplication<Application>().getString(R.string.status_monitoring)
+            } else {
+                getApplication<Application>().getString(R.string.status_ready)
+            }
             
             // 同步PreferencesManager中的状态
             preferencesManager.isMonitoring = isServiceRunning
         } catch (_: Exception) {
             // 如果检查失败，重置状态
             _isMonitoring.value = false
-            _statusText.value = "准备就绪"
+            _statusText.value = getApplication<Application>().getString(R.string.status_ready)
             preferencesManager.isMonitoring = false
         }
     }

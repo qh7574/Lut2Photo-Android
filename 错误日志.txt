@@ -1,94 +1,144 @@
-14:43:23.465  E  监控过程中发生错误: StandaloneCoroutine was cancelled
-                 kotlinx.coroutines.JobCancellationException: StandaloneCoroutine was cancelled; job=StandaloneCoroutine{Cancelling}@169c11d
-14:43:23.465  W  kotlinx.coroutines.JobCancellationException: StandaloneCoroutine was cancelled; job=StandaloneCoroutine{Cancelling}@169c11d
-14:43:23.465  D  等待2秒后进行下次检查
-14:43:23.465  D  Shutting down VM
-14:43:23.467  W  type=1400 audit(0.0:794141): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
-14:43:23.470  E  FATAL EXCEPTION: main
-                 Process: cn.alittlecookie.lut2photo.lut2photo, PID: 16659
-                 android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException: Context.startForegroundService() did not then call Service.startForeground(): ServiceRecord{fbb350d u0 cn.alittlecookie.lut2photo.lut2photo/.service.FolderMonitorService c:cn.alittlecookie.lut2photo.lut2photo}
-                 	at android.app.ActivityThread.generateForegroundServiceDidNotStartInTimeException(ActivityThread.java:2503)
-                 	at android.app.ActivityThread.throwRemoteServiceException(ActivityThread.java:2471)
-                 	at android.app.ActivityThread.-$$Nest$mthrowRemoteServiceException(Unknown Source:0)
-                 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2793)
-                 	at android.os.Handler.dispatchMessage(Handler.java:107)
-                 	at android.os.Looper.loopOnce(Looper.java:249)
-                 	at android.os.Looper.loop(Looper.java:337)
-                 	at android.app.ActivityThread.main(ActivityThread.java:9586)
-                 	at java.lang.reflect.Method.invoke(Native Method)
-                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
-                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
-                 Caused by: android.app.StackTrace: Last startServiceCommon() call for this service was made here
-                 	at android.app.ContextImpl.startServiceCommon(ContextImpl.java:1992)
-                 	at android.app.ContextImpl.startForegroundService(ContextImpl.java:1946)
-                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
-                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.startMonitoring(HomeFragment.kt:462)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.setupViews$lambda$17$lambda$13(HomeFragment.kt:349)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.$r8$lambda$mcjB88buGlmSrTGZ0AQvRaBlkGw(Unknown Source:0)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment$$ExternalSyntheticLambda11.onClick(D8$$SyntheticClass:0)
-                 	at android.view.View.performClick(View.java:8215)
-                 	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
-                 	at android.view.View.performClickInternal(View.java:8192)
-                 	at android.view.View.-$$Nest$mperformClickInternal(Unknown Source:0)
-                 	at android.view.View$PerformClick.run(View.java:32717)
-                 	at android.os.Handler.handleCallback(Handler.java:959)
-                 	at android.os.Handler.dispatchMessage(Handler.java:100)
-                 	at android.os.Looper.loopOnce(Looper.java:249) 
-                 	at android.os.Looper.loop(Looper.java:337) 
-                 	at android.app.ActivityThread.main(ActivityThread.java:9586) 
-                 	at java.lang.reflect.Method.invoke(Native Method) 
-                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593) 
-                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936) 
-14:43:23.467  W  type=1400 audit(0.0:794142): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
-14:43:23.467  W  type=1400 audit(0.0:794143): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
-14:43:23.467  W  type=1400 audit(0.0:794144): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
-14:43:23.467  W  type=1400 audit(0.0:794145): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c7,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
-14:43:23.473  W  Failed to mkdir /data/miuilog/stability/hprof/
-14:43:23.478  E  Process: cn.alittlecookie.lut2photo.lut2photo, PID: 16659
-                 android.app.RemoteServiceException$ForegroundServiceDidNotStartInTimeException: Context.startForegroundService() did not then call Service.startForeground(): ServiceRecord{fbb350d u0 cn.alittlecookie.lut2photo.lut2photo/.service.FolderMonitorService c:cn.alittlecookie.lut2photo.lut2photo}
-                 	at android.app.ActivityThread.generateForegroundServiceDidNotStartInTimeException(ActivityThread.java:2503)
-                 	at android.app.ActivityThread.throwRemoteServiceException(ActivityThread.java:2471)
-                 	at android.app.ActivityThread.-$$Nest$mthrowRemoteServiceException(Unknown Source:0)
-                 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2793)
-                 	at android.os.Handler.dispatchMessage(Handler.java:107)
-                 	at android.os.Looper.loopOnce(Looper.java:249)
-                 	at android.os.Looper.loop(Looper.java:337)
-                 	at android.app.ActivityThread.main(ActivityThread.java:9586)
-                 	at java.lang.reflect.Method.invoke(Native Method)
-                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
-                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
-                 Caused by: android.app.StackTrace: Last startServiceCommon() call for this service was made here
-                 	at android.app.ContextImpl.startServiceCommon(ContextImpl.java:1992)
-                 	at android.app.ContextImpl.startForegroundService(ContextImpl.java:1946)
-                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
-                 	at android.content.ContextWrapper.startForegroundService(ContextWrapper.java:848)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.startMonitoring(HomeFragment.kt:462)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.setupViews$lambda$17$lambda$13(HomeFragment.kt:349)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment.$r8$lambda$mcjB88buGlmSrTGZ0AQvRaBlkGw(Unknown Source:0)
-                 	at cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment$$ExternalSyntheticLambda11.onClick(D8$$SyntheticClass:0)
-                 	at android.view.View.performClick(View.java:8215)
-                 	at com.google.android.material.button.MaterialButton.performClick(MaterialButton.java:1218)
-                 	at android.view.View.performClickInternal(View.java:8192)
-                 	at android.view.View.-$$Nest$mperformClickInternal(Unknown Source:0)
-                 	at android.view.View$PerformClick.run(View.java:32717)
-                 	at android.os.Handler.handleCallback(Handler.java:959)
-                 	at android.os.Handler.dispatchMessage(Handler.java:100)
-                 	at android.os.Looper.loopOnce(Looper.java:249) 
-                 	at android.os.Looper.loop(Looper.java:337) 
-                 	at android.app.ActivityThread.main(ActivityThread.java:9586) 
-                 	at java.lang.reflect.Method.invoke(Native Method) 
-                 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593) 
-                 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936) 
-14:43:23.485  I  Process is going to kill itself!
-                 java.lang.Exception
-                 	at android.os.Process.killProcess(Process.java:1495)
-                 	at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:193)
-                 	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1071)
-                 	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1066)
-                 	at java.lang.Thread.dispatchUncaughtException(Thread.java:2306)
-14:43:23.485  I  Sending signal. PID: 16659 SIG: 9
-14:43:23.486  I  kill: send 9 to pid 16659
----------------------------- PROCESS ENDED (16659) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
-14:43:23.593  E   source = Task{bc83164 #25181 type=standard A=10519:cn.alittlecookie.lut2photo.lut2photo} excludeMiuiNavBar = true excludeMiuiStatusBar = true excludeIme = false excludeNavBar = true miuiNavSurfaceControl = Surface(name=Miui Fake NavBar#51)/@0xf824201 miuiStatusSurfaceControl = Surface(name=Miui Fake StatusBar#50)/@0x672210b
-14:43:24.553  E  setClientVisible ActivityRecord{f0db1b8 u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t25181 f} isExiting} false
+2025-08-09 16:16:28.350 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  D  Shutting down VM
+2025-08-09 16:16:28.351 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  E  FATAL EXCEPTION: main
+                                                                                        Process: cn.alittlecookie.lut2photo.lut2photo, PID: 3483
+                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
+                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
+                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
+                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
+                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
+                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
+                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
+                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
+                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
+                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
+                                                                                        	at android.os.Looper.loop(Looper.java:337)
+                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
+                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332996): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332997): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332998): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332999): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:28.353 ScoutUtils              cn....tlecookie.lut2photo.lut2photo  W  Failed to mkdir /data/miuilog/stability/hprof/
+2025-08-09 16:16:28.356 JavaExceptionHandler    com.miui.daemon                      E  Process: cn.alittlecookie.lut2photo.lut2photo, PID: 3483
+                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
+                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
+                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
+                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
+                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
+                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
+                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
+                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
+                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
+                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
+                                                                                        	at android.os.Looper.loop(Looper.java:337)
+                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
+                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+2025-08-09 16:16:28.362 Process                 cn....tlecookie.lut2photo.lut2photo  I  Process is going to kill itself!
+                                                                                        java.lang.Exception
+                                                                                        	at android.os.Process.killProcess(Process.java:1495)
+                                                                                        	at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:193)
+                                                                                        	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1071)
+                                                                                        	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1066)
+                                                                                        	at java.lang.Thread.dispatchUncaughtException(Thread.java:2306)
+2025-08-09 16:16:28.362 Process                 cn....tlecookie.lut2photo.lut2photo  I  Sending signal. PID: 3483 SIG: 9
+2025-08-09 16:16:28.362 libc                    cn....tlecookie.lut2photo.lut2photo  I  kill: send 9 to pid 3483
+---------------------------- PROCESS ENDED (3483) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
+2025-08-09 16:16:28.463 WindowManager           system_server                        E   source = Task{30c1ae9 #447 type=standard A=10525:cn.alittlecookie.lut2photo.lut2photo} excludeMiuiNavBar = true excludeMiuiStatusBar = true excludeIme = false excludeNavBar = true miuiNavSurfaceControl = Surface(name=Miui Fake NavBar#51)/@0x5cfea1c miuiStatusSurfaceControl = Surface(name=Miui Fake StatusBar#50)/@0xcaf2dec
+2025-08-09 16:16:29.280 WindowManager           system_server                        E  setClientVisible ActivityRecord{1e59ced u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t447 f} isExiting} false
+2025-08-09 16:16:30.657 PreStartUtils           com.miui.home                        E  preLaunchProcess success infoPackage: cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:30.661 Zygote                  usap64                               E  process_name_ptr:5567 cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:30.661 Zygote                  usap64                               E  SetMemoryProtected process_name_ptr:5567 cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:30.729 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity true
+2025-08-09 16:16:30.733 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t448} true
+2025-08-09 16:16:30.734 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t448} true
+2025-08-09 16:16:30.742 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t448} true
+2025-08-09 16:16:30.757 SuggestManager          com.miui.securitycenter.remote       E  openApp name = cn.alittlecookie.lut2photo.lut2photo
+2025-08-09 16:16:30.838 ActivityManagerWrapper  com.miui.home                        E  getRecentTasksForceIncludingTaskIdIfValid: getRecentTasks: size=16
+                                                                                         mainTaskId=448   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity} }
+                                                                                         mainTaskId=443   userId=0   windowMode=1   baseIntent=Intent { act=null flag=1006632960 cmp=ComponentInfo{com.tencent.mm/com.tencent.mm.ui.LauncherUI} }
+                                                                                         mainTaskId=411   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xingin.xhs/com.xingin.xhs.index.v2.IndexActivityV2} }
+                                                                                         mainTaskId=400   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xunmeng.pinduoduo/com.xunmeng.pinduoduo.ui.activity.MainFrameActivity} }
+                                                                                         mainTaskId=442   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.bambulab.creator/com.bambulab.bambulab.MainActivity} }
+                                                                                         mainTaskId=403   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xiaomi.smarthome/com.xiaomi.smarthome.SmartHomeMainActivity} }
+                                                                                         mainTaskId=438   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{androidx.compose.material.catalog/androidx.compose.material.catalog.CatalogActivity} }
+                                                                                         mainTaskId=375   userId=999   windowMode=1   baseIntent=Intent { act=null flag=1006632960 cmp=ComponentInfo{com.tencent.mm/com.tencent.mm.ui.LauncherUI} }
+                                                                                         mainTaskId=133   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.tencent.mobileqq/com.tencent.mobileqq.activity.SplashActivity} }
+                                                                                         mainTaskId=415   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.android.camera/com.android.camera.Camera} }
+                                                                                         mainTaskId=410   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.chinamworld.main/com.ccb.start.MainActivity} }
+                                                                                         mainTaskId=395   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.taobao.taobao/com.taobao.tao.welcome.Welcome} }
+                                                                                         mainTaskId=397   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.miui.calculator/com.miui.calculator.cal.CalculatorActivity} }
+                                                                                         mainTaskId=394   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=268435456 cmp=ComponentInfo{com.alibaba.android.rimet/com.alibaba.android.rimet.biz.LaunchHomeActivity} }
+                                                                                         mainTaskId=392   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=268435456 cmp=ComponentInfo{com.baidu.naviauto/com.baidu.naviauto.SlashActivity} }
+                                                                                         mainTaskId=385   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xiaomi.market/com.xiaomi.market.ui.MarketTabActivity} }
+---------------------------- PROCESS STARTED (5567) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
+2025-08-09 16:16:31.860 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=207921903, downTime=207921903, phoneEventTime=16:16:31.856 } moveCount:0
+2025-08-09 16:16:31.939 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=207921984, downTime=207921903, phoneEventTime=16:16:31.937 } moveCount:0
+2025-08-09 16:16:31.945 WindowOnBackDispatcher  cn....tlecookie.lut2photo.lut2photo  W  OnBackInvokedCallback is not enabled for the application.
+                                                                                        Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+2025-08-09 16:16:31.956 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
+2025-08-09 16:16:31.978 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
+2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录路径: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts
+2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  外部文件目录: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files
+2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录已存在
+2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  目录中的文件数量: 1
+2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: bloom.cube, 大小: 904053
+2025-08-09 16:16:31.984 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  D  Shutting down VM
+2025-08-09 16:16:31.985 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  E  FATAL EXCEPTION: main
+                                                                                        Process: cn.alittlecookie.lut2photo.lut2photo, PID: 5567
+                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
+                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
+                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
+                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
+                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
+                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
+                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
+                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
+                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
+                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
+                                                                                        	at android.os.Looper.loop(Looper.java:337)
+                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
+                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+2025-08-09 16:16:31.986 ScoutUtils              cn....tlecookie.lut2photo.lut2photo  W  Failed to mkdir /data/miuilog/stability/hprof/
+2025-08-09 16:16:31.987 JavaExceptionHandler    com.miui.daemon                      E  Process: cn.alittlecookie.lut2photo.lut2photo, PID: 5567
+                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
+                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
+                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
+                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
+                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
+                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
+                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
+                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
+                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
+                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
+                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
+                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
+                                                                                        	at android.os.Looper.loop(Looper.java:337)
+                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
+                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+---------------------------- PROCESS ENDED (5567) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
