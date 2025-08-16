@@ -1,4 +1,2 @@
 // 删除整个文件，因为core包下已有完整实现
-object LutProcessor {
-
-}
+object LutProcessor

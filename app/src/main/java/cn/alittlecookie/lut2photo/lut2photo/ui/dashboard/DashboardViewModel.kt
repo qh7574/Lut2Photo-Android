@@ -155,7 +155,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val totalCount: Int,
         val message: String
     )
-    
+
     @SuppressLint("StringFormatInvalid", "StringFormatMatches")
     fun startProcessing(
         images: List<ImageItem>,
@@ -179,27 +179,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         val lutManager = LutManager(getApplication<Application>())
                         val lutFilePath = lutManager.getLutFilePath(lutItem)
                         val lutFile = File(lutFilePath)
-                        android.util.Log.d("DashboardViewModel", "尝试加载LUT文件: ${lutFile.absolutePath}")
-                        android.util.Log.d("DashboardViewModel", "LUT文件存在: ${lutFile.exists()}")
+                        Log.d("DashboardViewModel", "尝试加载LUT文件: ${lutFile.absolutePath}")
+                        Log.d("DashboardViewModel", "LUT文件存在: ${lutFile.exists()}")
                         
                         if (!lutFile.exists()) {
-                            android.util.Log.e("DashboardViewModel", "LUT文件不存在: ${lutFile.absolutePath}")
+                            Log.e("DashboardViewModel", "LUT文件不存在: ${lutFile.absolutePath}")
                             return@withContext false
                         }
                         
                         if (!lutFile.canRead()) {
-                            android.util.Log.e("DashboardViewModel", "LUT文件无法读取: ${lutFile.absolutePath}")
+                            Log.e("DashboardViewModel", "LUT文件无法读取: ${lutFile.absolutePath}")
                             return@withContext false
                         }
-                        
-                        android.util.Log.d("DashboardViewModel", "开始加载LUT文件内容")
+
+                        Log.d("DashboardViewModel", "开始加载LUT文件内容")
                         val result = lutFile.inputStream().use { inputStream ->
                             lutProcessor.loadCubeLut(inputStream)
                         }
-                        android.util.Log.d("DashboardViewModel", "LUT文件加载结果: $result")
+                        Log.d("DashboardViewModel", "LUT文件加载结果: $result")
                         result
                     } catch (e: Exception) {
-                        android.util.Log.e("DashboardViewModel", "LUT文件加载异常", e)
+                        Log.e("DashboardViewModel", "LUT文件加载异常", e)
                         e.printStackTrace()
                         false
                     }
@@ -210,24 +210,24 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         R.string.error_lut_load_failed,
                         lutItem.filePath
                     )
-                    android.util.Log.e("DashboardViewModel", errorMsg)
+                    Log.e("DashboardViewModel", errorMsg)
                     updateStatus(errorMsg)
                     setProcessing(false)
                     return@launch
                 }
 
                 updateStatus(getApplication<Application>().getString(R.string.status_lut_loaded_start_processing))
-                android.util.Log.d("DashboardViewModel", "开始处理 ${images.size} 张图片")
+                Log.d("DashboardViewModel", "开始处理 ${images.size} 张图片")
                 var processedCount = 0
                 
                 for ((index, imageItem) in images.withIndex()) {
                     if (!_isProcessing.value!!) {
-                        android.util.Log.d("DashboardViewModel", "处理被取消")
+                        Log.d("DashboardViewModel", "处理被取消")
                         break
                     }
                     
                     try {
-                        android.util.Log.d("DashboardViewModel", "处理第${index + 1}张图片: ${imageItem.uri}")
+                        Log.d("DashboardViewModel", "处理第${index + 1}张图片: ${imageItem.uri}")
                         updateStatus(
                             getApplication<Application>().getString(
                                 R.string.status_processing_image,
@@ -245,7 +245,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                         
                         if (bitmap == null) {
-                            android.util.Log.e("DashboardViewModel", "无法解码图片: ${imageItem.uri}")
+                            Log.e("DashboardViewModel", "无法解码图片: ${imageItem.uri}")
                             addProcessingRecord(
                                 imageItem.uri.toString(),
                                 getApplication<Application>().getString(R.string.status_decode_failed),
@@ -253,8 +253,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             )
                             continue
                         }
-                        
-                        android.util.Log.d("DashboardViewModel", "图片解码成功，尺寸: ${bitmap.width}x${bitmap.height}")
+
+                        Log.d(
+                            "DashboardViewModel",
+                            "图片解码成功，尺寸: ${bitmap.width}x${bitmap.height}"
+                        )
                         
                         val processedBitmap = withContext(Dispatchers.Default) {
                             lutProcessor.processImage(bitmap, params)
@@ -262,7 +265,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         
                         // 在处理成功时
                         if (processedBitmap != null) {
-                            android.util.Log.d("DashboardViewModel", "图片处理成功")
+                            Log.d("DashboardViewModel", "图片处理成功")
                             val outputPath = saveProcessedImage(processedBitmap, imageItem.uri, params.quality, outputFolderUri, lutItem.name)
                             addProcessingRecord(
                                 imageItem.uri.toString(),
@@ -274,9 +277,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             processedCount++
                             // 修复：在完成每张图片处理后更新进度
                             updateProcessedCount(processedCount)
-                            android.util.Log.d("DashboardViewModel", "图片保存完成: $outputPath")
+                            Log.d("DashboardViewModel", "图片保存完成: $outputPath")
                         } else {
-                            android.util.Log.e("DashboardViewModel", "图片处理失败")
+                            Log.e("DashboardViewModel", "图片处理失败")
                             addProcessingRecord(
                                 imageItem.uri.toString(),
                                 getApplication<Application>().getString(R.string.status_failed),
@@ -287,7 +290,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                         
                     } catch (e: Exception) {
-                        android.util.Log.e("DashboardViewModel", "处理图片时发生错误: ${e.message}", e)
+                        Log.e("DashboardViewModel", "处理图片时发生错误: ${e.message}", e)
                         val errorMsg = getApplication<Application>().getString(
                             R.string.error_processing_image,
                             index + 1,
@@ -313,7 +316,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 } else {
                     getApplication<Application>().getString(R.string.status_processing_cancelled)
                 }
-                android.util.Log.d("DashboardViewModel", finalMsg)
+                Log.d("DashboardViewModel", finalMsg)
                 updateStatus(finalMsg)
                 
                 // 发送处理完成事件
@@ -331,7 +334,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     R.string.error_processing_exception,
                     e.message
                 )
-                android.util.Log.e("DashboardViewModel", errorMsg, e)
+                Log.e("DashboardViewModel", errorMsg, e)
                 e.printStackTrace()
                 updateStatus(errorMsg)
                 
@@ -345,7 +348,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     )
                 )
             } finally {
-                android.util.Log.d("DashboardViewModel", "处理结束，设置isProcessing为false")
+                Log.d("DashboardViewModel", "处理结束，设置isProcessing为false")
                 setProcessing(false)
             }
         }
@@ -374,7 +377,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             // 读取原始图片的EXIF信息
             val originalExif = try {
                 getApplication<Application>().contentResolver.openInputStream(originalUri)?.use { inputStream ->
-                    androidx.exifinterface.media.ExifInterface(inputStream)
+                    ExifInterface(inputStream)
                 }
             } catch (e: Exception) {
                 Log.w(
@@ -407,7 +410,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     originalExif?.let { exif ->
                         try {
                             getApplication<Application>().contentResolver.openFileDescriptor(docFile.uri, "rw")?.use { pfd ->
-                                val newExif = androidx.exifinterface.media.ExifInterface(pfd.fileDescriptor)
+                                val newExif = ExifInterface(pfd.fileDescriptor)
                                 copyExifData(exif, newExif)
                                 newExif.saveAttributes()
                             }
@@ -444,7 +447,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 // 保存EXIF信息
                 originalExif?.let { exif ->
                     try {
-                        val newExif = androidx.exifinterface.media.ExifInterface(file.absolutePath)
+                        val newExif = ExifInterface(file.absolutePath)
                         copyExifData(exif, newExif)
                         newExif.saveAttributes()
                     } catch (e: Exception) {
@@ -484,11 +487,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private fun getFileNameFromUri(uri: Uri): String {
         return try {
             val cursor = getApplication<Application>().contentResolver.query(
-                uri, arrayOf(android.provider.MediaStore.Images.Media.DISPLAY_NAME), null, null, null
+                uri, arrayOf(MediaStore.Images.Media.DISPLAY_NAME), null, null, null
             )
             cursor?.use {
                 if (it.moveToFirst()) {
-                    val nameIndex = it.getColumnIndex(android.provider.MediaStore.Images.Media.DISPLAY_NAME)
+                    val nameIndex = it.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME)
                     if (nameIndex >= 0) {
                         it.getString(nameIndex) ?: "unknown.jpg"
                     } else {
@@ -542,8 +545,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     
     // 修复addProcessingRecord方法中的fileName处理
     private fun addProcessingRecord(
-        inputPath: String, 
-        status: String, 
+        inputPath: String,
+        status: String,
         outputPath: String,
         lutFileName: String = getApplication<Application>().getString(R.string.unknown),
         params: LutProcessor.ProcessingParams? = null

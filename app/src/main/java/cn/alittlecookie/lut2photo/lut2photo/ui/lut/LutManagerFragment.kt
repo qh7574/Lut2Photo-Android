@@ -19,7 +19,6 @@ import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class LutManagerFragment : Fragment() {
     
@@ -88,7 +87,7 @@ class LutManagerFragment : Fragment() {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 exportLutLauncher.launch(intent)
             }
-            
+
             // 移除了删除选中按钮的点击事件
         }
     }

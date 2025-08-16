@@ -141,7 +141,7 @@ class DashboardFragment : Fragment() {
     private fun addImageToList(uri: Uri) {
         try {
             val inputStream = requireContext().contentResolver.openInputStream(uri)
-            val previewBitmap = BitmapFactory.decodeStream(inputStream)
+            BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
 
             // 直接传递 Uri 给 ViewModel，让 ViewModel 处理 ImageItem 的创建
@@ -165,7 +165,7 @@ class DashboardFragment : Fragment() {
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 binding.spinnerLut.adapter = adapter
 
-                binding.spinnerLut.setOnItemSelectedListener(object :
+                binding.spinnerLut.onItemSelectedListener = object :
                     android.widget.AdapterView.OnItemSelectedListener {
                     override fun onItemSelected(
                         parent: android.widget.AdapterView<*>?,
@@ -187,7 +187,7 @@ class DashboardFragment : Fragment() {
                         selectedLutItem = null
                         binding.buttonStartProcessing.isEnabled = false
                     }
-                })
+                }
 
                 // 恢复选中的LUT
                 val savedLutUri = preferencesManager.dashboardLutUri
