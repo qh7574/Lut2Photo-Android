@@ -40,14 +40,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val preferencesManager = PreferencesManager(application)
     
     private val processingUpdateReceiver = object : BroadcastReceiver() {
+        private var lastUpdateTime = 0L
+
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "cn.alittlecookie.lut2photo.PROCESSING_UPDATE") {
-                val processedCount = intent.getIntExtra("processed_count", 0)
-
+                val currentTime = System.currentTimeMillis()
+                // 优化：限制UI更新频率，最多每3秒更新一次
+                if (currentTime - lastUpdateTime > 3000) {
+                    val processedCount = try {
+                        intent.getIntExtra("processed_count", 0)
+                    } catch (e: Exception) {
+                        0
+                    }
                 _processedCount.value = processedCount
                 if (_isMonitoring.value == true) {
-                    _statusText.value =
-                        getApplication<Application>().getString(R.string.status_monitoring)
+                    _statusText.value = "status_monitoring"
+                }
+                    lastUpdateTime = currentTime
                 }
             }
         }
@@ -128,9 +137,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (serviceRunning && !savedSwitchState) {
             // 如果服务在运行但UI显示关闭，可能是服务异常残留
             Log.w(TAG, "检测到服务异常残留，强制停止服务")
-            // 发送停止服务的Intent
+            // 修复：使用正确的action常量
             val stopIntent = Intent(getApplication(), FolderMonitorService::class.java).apply {
-                action = "ACTION_STOP_MONITORING"
+                action = FolderMonitorService.ACTION_STOP_MONITORING  // ✅ 使用正确的常量
             }
             getApplication<Application>().startService(stopIntent)
 

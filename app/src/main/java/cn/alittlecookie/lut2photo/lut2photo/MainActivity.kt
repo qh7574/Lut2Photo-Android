@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -21,6 +22,10 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var themeManager: ThemeManager
+
+    // 添加权限请求标志，避免重复请求
+    private var isPermissionRequesting = false
+    private val PERMISSION_REQUEST_CODE = 1001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // 在super.onCreate之前应用主题
@@ -95,11 +100,41 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    // 添加权限检查标志，避免重复检查
+    private var hasCheckedPermissions = false
     
     override fun onResume() {
         super.onResume()
-        // 每次应用恢复时检查权限
-        checkAndRequestPermissions()
+        // 只在首次启动时检查权限，避免重复检查导致循环
+        if (!isPermissionRequesting && !hasCheckedPermissions) {
+            checkAndRequestPermissions()
+            hasCheckedPermissions = true
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            isPermissionRequesting = false
+
+            // 检查权限授权结果
+            val allGranted =
+                grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+
+            if (allGranted) {
+                Log.d("MainActivity", "所有权限已授权")
+            } else {
+                Log.w("MainActivity", "部分权限被拒绝")
+                // 权限被拒绝时，不再重复请求
+                hasCheckedPermissions = true
+            }
+        }
     }
     
     private fun checkAndRequestPermissions() {
@@ -116,7 +151,12 @@ class MainActivity : AppCompatActivity() {
         }
         
         if (permissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 1001)
+            isPermissionRequesting = true
+            ActivityCompat.requestPermissions(
+                this,
+                permissions.toTypedArray(),
+                PERMISSION_REQUEST_CODE
+            )
         }
     }
 

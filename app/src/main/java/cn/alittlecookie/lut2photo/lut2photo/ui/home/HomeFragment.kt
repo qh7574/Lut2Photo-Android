@@ -41,8 +41,18 @@ class HomeFragment : Fragment() {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
-            preferencesManager.homeInputFolder = it.toString()
-            updateInputFolderDisplay()
+            // 添加权限持久化
+            try {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                preferencesManager.homeInputFolder = it.toString()
+                updateInputFolderDisplay()
+            } catch (e: SecurityException) {
+                Log.e("HomeFragment", "无法获取持久化URI权限", e)
+                // 显示错误提示给用户
+            }
         }
     }
 
@@ -50,8 +60,18 @@ class HomeFragment : Fragment() {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
-            preferencesManager.homeOutputFolder = it.toString()
-            updateOutputFolderDisplay()
+            // 添加权限持久化
+            try {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                preferencesManager.homeOutputFolder = it.toString()
+                updateOutputFolderDisplay()
+            } catch (e: SecurityException) {
+                Log.e("HomeFragment", "无法获取持久化URI权限", e)
+                // 显示错误提示给用户
+            }
         }
     }
 
@@ -76,14 +96,15 @@ class HomeFragment : Fragment() {
         restoreUIState()
 
         // 修复：延迟观察ViewModel，确保LUT加载完成
-        // 等待LUT异步加载完成后再设置观察者
         lifecycleScope.launch {
-            // 等待一个短暂的延迟，确保setupLutSpinner中的异步操作有时间完成
+            // 等待LUT异步加载完成
             kotlinx.coroutines.delay(100)
             observeViewModel()
 
-            // 然后进行状态恢复
-            homeViewModel.restoreMonitoringState()
+            // 只在Fragment首次创建时恢复状态，避免重复调用
+            if (savedInstanceState == null) {
+                homeViewModel.restoreMonitoringState()
+            }
         }
     }
 

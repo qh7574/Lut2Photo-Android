@@ -1,7 +1,9 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.dashboard
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -53,8 +55,18 @@ class DashboardFragment : Fragment() {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
         uri?.let {
-            preferencesManager.dashboardOutputFolder = it.toString()
-            updateOutputFolderDisplay()
+            // 添加权限持久化
+            try {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                preferencesManager.dashboardOutputFolder = it.toString()
+                updateOutputFolderDisplay()
+            } catch (e: SecurityException) {
+                Log.e("DashboardFragment", "无法获取持久化URI权限", e)
+                // 显示错误提示给用户
+            }
         }
     }
 
