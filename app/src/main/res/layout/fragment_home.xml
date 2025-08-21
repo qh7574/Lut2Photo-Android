@@ -49,33 +49,40 @@
                     android:layout_height="wrap_content"
                     android:text="监控状态: 未启动"
                     android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="16dp" />
                     
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_start_monitoring"
+                    <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="56dp"
+                        android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:text="开始监控"
-                        android:textSize="16sp"
-                        style="@style/Widget.Material3.Button" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_stop_monitoring"
-                        android:layout_width="0dp"
-                        android:layout_height="56dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:text="停止监控"
-                        android:textSize="16sp"
-                        android:enabled="false"
-                        style="@style/Widget.Material3.Button" />
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="8dp"
+                            android:contentDescription="文件夹图标"
+                            android:src="@drawable/ic_folder_24" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="文件夹监控"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_monitoring"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false" />
 
                 </LinearLayout>
 

@@ -7,19 +7,24 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import cn.alittlecookie.lut2photo.lut2photo.R
-import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 
 @SuppressLint("UnspecifiedRegisterReceiverFlag")
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
+
     private val _isMonitoring = MutableLiveData<Boolean>().apply {
-        value = false
+        // 修复：初始值应该从保存的状态恢复，而不是硬编码为false
+        value = PreferencesManager(getApplication()).monitoringSwitchEnabled
     }
     val isMonitoring: LiveData<Boolean> = _isMonitoring
     
@@ -31,13 +36,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _processedCount = MutableLiveData<Int>().apply {
         value = 0
     }
-    val processedCount: LiveData<Int> = _processedCount
-    
-    private val _processingHistory = MutableLiveData<List<ProcessingRecord>>().apply {
-        value = emptyList()
-    }
-    val processingHistory: LiveData<List<ProcessingRecord>> = _processingHistory
-    
+
     private val preferencesManager = PreferencesManager(application)
     
     private val processingUpdateReceiver = object : BroadcastReceiver() {
@@ -55,9 +54,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     init {
-        // 应用启动时检查服务状态
-        checkServiceStatus()
-        
+        // 移除自动检查服务状态，避免强制更新UI
         // 注册广播接收器
         val filter = IntentFilter("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -95,49 +92,62 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         preferencesManager.isMonitoring = monitoring
     }
 
-    // 添加恢复监控状态的方法
-    fun restoreMonitoringState() {
-        val wasMonitoring = preferencesManager.isMonitoring
-        if (wasMonitoring) {
-            // 检查服务是否真的在运行
-            checkServiceStatus()
-        } else {
-            // 确保状态一致
-            _isMonitoring.value = false
-            _statusText.value = getApplication<Application>().getString(R.string.status_ready)
-        }
-    }
-    
-    private fun checkServiceStatus() {
-        try {
+    // 检查服务是否正在运行（不更新UI）
+    private fun isServiceRunning(): Boolean {
+        return try {
             val activityManager = getApplication<Application>().getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val runningServices = activityManager.getRunningServices(Integer.MAX_VALUE)
-            
-            val isServiceRunning = runningServices.any { serviceInfo ->
+
+            runningServices.any { serviceInfo ->
                 serviceInfo.service.className == FolderMonitorService::class.java.name
             }
-            
-            _isMonitoring.value = isServiceRunning
-            _statusText.value = if (isServiceRunning) {
-                getApplication<Application>().getString(R.string.status_monitoring)
-            } else {
-                getApplication<Application>().getString(R.string.status_ready)
-            }
-            
-            // 同步PreferencesManager中的状态
-            preferencesManager.isMonitoring = isServiceRunning
-        } catch (_: Exception) {
-            // 如果检查失败，重置状态
-            _isMonitoring.value = false
-            _statusText.value = getApplication<Application>().getString(R.string.status_ready)
-            preferencesManager.isMonitoring = false
+        } catch (e: Exception) {
+            Log.e(TAG, "检查服务状态失败", e)
+            false
         }
     }
 
-    // 新增：停止监控
-    fun stopMonitoring() {
-        setMonitoring(false)
-        // TODO: 停止FolderMonitorService
+    // 恢复监控状态（只在必要时更新UI）
+    fun restoreMonitoringState() {
+        val serviceRunning = isServiceRunning()
+        val savedSwitchState = preferencesManager.monitoringSwitchEnabled
+
+        Log.d(TAG, "监控状态检查 - 服务运行: $serviceRunning, 保存的UI状态: $savedSwitchState")
+
+        // 修复：状态文本应该基于实际服务状态
+        if (serviceRunning) {
+            _statusText.value = getApplication<Application>().getString(R.string.status_monitoring)
+            Log.d(TAG, "服务运行中，更新状态文本为监控中")
+        } else {
+            _statusText.value =
+                getApplication<Application>().getString(R.string.status_monitoring_stopped)
+            Log.d(TAG, "服务未运行，更新状态文本为已停止")
+        }
+
+        // 修复：只有在用户明确启动服务时才同步开关状态，避免意外的服务残留导致开关自动打开
+        if (serviceRunning && !savedSwitchState) {
+            // 如果服务在运行但UI显示关闭，可能是服务异常残留
+            Log.w(TAG, "检测到服务异常残留，强制停止服务")
+            // 发送停止服务的Intent
+            val stopIntent = Intent(getApplication(), FolderMonitorService::class.java).apply {
+                action = "ACTION_STOP_MONITORING"
+            }
+            getApplication<Application>().startService(stopIntent)
+
+            // 确保状态文本显示为已停止
+            _statusText.value =
+                getApplication<Application>().getString(R.string.status_monitoring_stopped)
+        } else if (!serviceRunning && savedSwitchState) {
+            // 如果UI显示开启但服务未运行，同步UI状态为关闭
+            Log.d(TAG, "服务未运行但UI显示开启，同步UI状态为关闭")
+            preferencesManager.monitoringSwitchEnabled = false
+            _isMonitoring.value = false
+        }
+
+        Log.d(
+            TAG,
+            "监控状态检查完成 - 服务运行: $serviceRunning, 保存状态: ${preferencesManager.monitoringSwitchEnabled}"
+        )
     }
 
 }

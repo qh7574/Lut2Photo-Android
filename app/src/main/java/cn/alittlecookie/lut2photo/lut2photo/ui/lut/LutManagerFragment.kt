@@ -1,5 +1,6 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.lut
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -33,8 +34,22 @@ class LutManagerFragment : Fragment() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                importLutFile(uri)
+            result.data?.let { intent ->
+                // 处理多选文件
+                val clipData = intent.clipData
+                if (clipData != null) {
+                    // 多个文件
+                    val uris = mutableListOf<Uri>()
+                    for (i in 0 until clipData.itemCount) {
+                        uris.add(clipData.getItemAt(i).uri)
+                    }
+                    importMultipleLutFiles(uris)
+                } else {
+                    // 单个文件
+                    intent.data?.let { uri ->
+                        importLutFile(uri)
+                    }
+                }
             }
         }
     }
@@ -118,7 +133,62 @@ class LutManagerFragment : Fragment() {
             updateUI()
         }
     }
-    
+
+    @SuppressLint("SetTextI18n")
+    private fun importMultipleLutFiles(uris: List<Uri>) {
+        lifecycleScope.launch {
+            try {
+                binding.buttonImportLut.isEnabled = false
+                binding.buttonImportLut.text = "导入中..."
+
+                var successCount = 0
+                var failCount = 0
+
+                for ((index, uri) in uris.withIndex()) {
+                    try {
+                        val success = withContext(Dispatchers.IO) {
+                            lutManager.importLut(uri)
+                        }
+
+                        if (success) {
+                            successCount++
+                        } else {
+                            failCount++
+                        }
+
+                        // 更新进度
+                        binding.buttonImportLut.text = "导入中... (${index + 1}/${uris.size})"
+                    } catch (e: Exception) {
+                        failCount++
+                        e.printStackTrace()
+                    }
+                }
+
+                // 显示结果
+                val message = when {
+                    failCount == 0 -> "成功导入 $successCount 个LUT文件"
+                    successCount == 0 -> "导入失败，请检查文件格式"
+                    else -> "成功导入 $successCount 个，失败 $failCount 个LUT文件"
+                }
+
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+
+                // 刷新列表
+                if (successCount > 0) {
+                    loadLutFiles()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "批量导入错误: ${e.message}", Toast.LENGTH_SHORT)
+                    .show()
+                e.printStackTrace()
+            } finally {
+                binding.buttonImportLut.isEnabled = true
+                binding.buttonImportLut.text = "导入LUT"
+            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
     private fun importLutFile(uri: Uri) {
         lifecycleScope.launch {
             try {
@@ -178,15 +248,12 @@ class LutManagerFragment : Fragment() {
             }
         }
     }
-    
+
+    @SuppressLint("SetTextI18n")
     private fun updateUI() {
         binding.textLutCount.text = "共 ${lutItems.size} 个LUT文件"
     }
-    
-    fun getSelectedLuts(): List<LutItem> {
-        return lutAdapter.getSelectedLuts()
-    }
-    
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

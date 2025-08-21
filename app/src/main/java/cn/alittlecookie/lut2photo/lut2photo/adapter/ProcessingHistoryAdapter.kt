@@ -5,6 +5,7 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -12,7 +13,8 @@ import cn.alittlecookie.lut2photo.lut2photo.databinding.ItemProcessingRecordBind
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistoryAdapter.HistoryViewHolder>(HistoryDiffCallback()) {
     
@@ -36,12 +38,19 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
             with(binding) {
                 // 1. 只显示文件名，不显示完整路径
                 textFileName.text = getFileNameFromPath(record.fileName)
-                
-                textStatus.text = record.status
-                
-                // 设置状态颜色
+
+                // 修改状态显示逻辑
+                val displayStatus = when {
+                    record.status.contains("成功") -> "手动处理"
+                    record.status.contains("处理完成") -> "文件夹监控"
+                    record.status.contains("失败") -> record.status // 保持原有的失败状态显示
+                    else -> record.status
+                }
+                textStatus.text = displayStatus
+
+                // 统一设置状态颜色为"成功"的样式（绿色）
                 when {
-                    record.status.contains("成功") -> {
+                    displayStatus == "手动处理" || displayStatus == "文件夹监控" -> {
                         textStatus.setTextColor(ContextCompat.getColor(root.context, android.R.color.holo_green_dark))
                     }
                     record.status.contains("失败") -> {
@@ -118,7 +127,7 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
                         path
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // 如果解析失败，返回原始字符串
                 path
             }
@@ -152,7 +161,7 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
                     }
                     else -> path.substringAfterLast("/").substringAfterLast("\\")
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // 如果解码失败，返回文件名
                 path.substringAfterLast("/").substringAfterLast("\\")
             }
@@ -167,7 +176,7 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
                     // 如果是content URI
                     outputPath.startsWith("content://") -> {
                         Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(Uri.parse(outputPath), "image/*")
+                            setDataAndType(outputPath.toUri(), "image/*")
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                         }
                     }
@@ -186,10 +195,10 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
                     else -> {
                         try {
                             Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(Uri.parse(outputPath), "image/*")
+                                setDataAndType(outputPath.toUri(), "image/*")
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             null
                         }
                     }
@@ -198,7 +207,7 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
                 if (intent != null) {
                     try {
                         context.startActivity(intent)
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         // 如果无法打开特定图片，尝试打开相册应用
                         val galleryIntent = Intent(Intent.ACTION_VIEW).apply {
                             type = "image/*"
@@ -212,15 +221,15 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
                     }
                     context.startActivity(galleryIntent)
                 }
-                
-            } catch (e: Exception) {
+
+            } catch (_: Exception) {
                 // 最后的备选方案
                 try {
                     val galleryIntent = Intent(Intent.ACTION_VIEW).apply {
                         type = "image/*"
                     }
                     binding.root.context.startActivity(galleryIntent)
-                } catch (ex: Exception) {
+                } catch (_: Exception) {
                     // 忽略错误
                 }
             }

@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -18,15 +19,18 @@ import androidx.lifecycle.ViewModelProvider
 import cn.alittlecookie.lut2photo.lut2photo.BuildConfig
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentNotificationsBinding
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.ThemeManager
 
 class NotificationsFragment : Fragment() {
 
+    companion object;
+
     private var _binding: FragmentNotificationsBinding? = null
     private val binding get() = _binding!!
-    
     private lateinit var notificationsViewModel: NotificationsViewModel
     private lateinit var themeManager: ThemeManager
+    private lateinit var preferencesManager: PreferencesManager
     
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -43,10 +47,12 @@ class NotificationsFragment : Fragment() {
         _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
         
         themeManager = ThemeManager(requireContext())
+        preferencesManager = PreferencesManager(requireContext())
         
         setupViews()
         updatePermissionStatus()
         setupThemeDropdown()
+        setupProcessorDropdown()
         
         return binding.root
     }
@@ -105,7 +111,50 @@ class NotificationsFragment : Fragment() {
             requireActivity().recreate()
         }
     }
-    
+
+    private fun setupProcessorDropdown() {
+        val processors = listOf(
+            getString(R.string.processor_auto) to "AUTO",  // 改为大写
+            getString(R.string.processor_gpu) to "GPU",    // 改为大写
+            getString(R.string.processor_cpu) to "CPU"     // 改为大写
+        )
+
+        val processorNames = processors.map { it.first }
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            processorNames
+        )
+
+        binding.dropdownProcessor.setAdapter(adapter)
+
+        // 设置当前处理器类型 - 需要处理大小写兼容
+        val currentProcessor = preferencesManager.processorType.uppercase()  // 转换为大写
+        val currentProcessorName = when (currentProcessor) {
+            "GPU" -> getString(R.string.processor_gpu)
+            "CPU" -> getString(R.string.processor_cpu)
+            else -> getString(R.string.processor_auto)
+        }
+        binding.dropdownProcessor.setText(currentProcessorName, false)
+
+        // 设置选择监听器
+        binding.dropdownProcessor.setOnItemClickListener { _, _, position, _ ->
+            val selectedProcessor = processors[position].second
+            preferencesManager.processorType = selectedProcessor
+
+            // 发送广播通知处理器设置变化
+            val intent = Intent("cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED")
+            intent.putExtra("processorType", selectedProcessor)
+            requireContext().sendBroadcast(intent)
+
+            Toast.makeText(
+                requireContext(),
+                "处理器设置已更新: $selectedProcessor",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun updatePermissionStatus() {
         val permissions = getRequiredPermissions()
         val grantedPermissions = permissions.filter { permission ->
@@ -184,11 +233,11 @@ class NotificationsFragment : Fragment() {
         super.onResume()
         updatePermissionStatus()
         setupThemeDropdown()
+        setupProcessorDropdown()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
-
 }

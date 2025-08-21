@@ -1,1 +1,0 @@
-// 删除整个文件，RenderScript在高版本Android API中已被废弃

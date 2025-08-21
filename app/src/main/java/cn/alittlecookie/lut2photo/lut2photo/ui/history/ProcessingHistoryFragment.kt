@@ -1,5 +1,6 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.history
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,13 +11,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import cn.alittlecookie.lut2photo.lut2photo.adapter.ProcessingHistoryAdapter
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentProcessingHistoryBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
-import java.text.SimpleDateFormat
-import java.util.*
 
 class ProcessingHistoryFragment : Fragment() {
     
@@ -59,7 +60,12 @@ class ProcessingHistoryFragment : Fragment() {
                 Context.RECEIVER_NOT_EXPORTED
             )
         } else {
-            requireContext().registerReceiver(processingUpdateReceiver, filter)
+            ContextCompat.registerReceiver(
+                requireContext(),
+                processingUpdateReceiver,
+                filter,
+                ContextCompat.RECEIVER_EXPORTED
+            )
         }
         
         // 重新加载历史记录
@@ -71,7 +77,7 @@ class ProcessingHistoryFragment : Fragment() {
         // 在onStop中注销广播接收器，而不是onPause
         try {
             requireContext().unregisterReceiver(processingUpdateReceiver)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // 忽略取消注册时的异常
         }
     }
@@ -82,7 +88,7 @@ class ProcessingHistoryFragment : Fragment() {
         // 取消注册广播接收器
         try {
             requireContext().unregisterReceiver(processingUpdateReceiver)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // 忽略取消注册时的异常
         }
     }
@@ -101,7 +107,8 @@ class ProcessingHistoryFragment : Fragment() {
             adapter = historyAdapter
         }
     }
-    
+
+    @SuppressLint("SetTextI18n")
     private fun loadProcessingHistory() {
         val prefs = requireContext().getSharedPreferences("processing_history", Context.MODE_PRIVATE)
         val records = prefs.getStringSet("records", emptySet()) ?: emptySet()
@@ -171,7 +178,7 @@ class ProcessingHistoryFragment : Fragment() {
     
     private fun clearHistory() {
         val prefs = requireContext().getSharedPreferences("processing_history", Context.MODE_PRIVATE)
-        prefs.edit().remove("records").apply()
+        prefs.edit { remove("records") }
         
         historyAdapter.submitList(emptyList())
         binding.textHistoryCount.text = "共 0 条记录"

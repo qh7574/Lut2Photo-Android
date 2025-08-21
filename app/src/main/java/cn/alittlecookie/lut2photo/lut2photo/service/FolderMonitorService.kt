@@ -1,33 +1,49 @@
 package cn.alittlecookie.lut2photo.lut2photo.service
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.MediaScannerConnection
-import android.net.Uri
+import android.graphics.Matrix
+import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import androidx.exifinterface.media.ExifInterface
 import cn.alittlecookie.lut2photo.lut2photo.MainActivity
-import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.R
+import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class FolderMonitorService : Service() {
 
     companion object {
+        private const val TAG = "FolderMonitorService"
         const val CHANNEL_ID = "folder_monitor_channel"
         const val NOTIFICATION_ID = 1
         const val ACTION_START_MONITORING = "start_monitoring"
@@ -40,159 +56,169 @@ class FolderMonitorService : Service() {
         const val EXTRA_DITHER = "dither"
     }
 
-    private var lutProcessor: LutProcessor? = null
+
     private var isLutLoaded = false
     private var isMonitoring = false
     private var monitoringJob: Job? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private var processedFiles = mutableSetOf<String>()
     private var processedCount = 0
-    private var currentLutName = "" // 添加当前LUT名称变量
+    private var currentLutName = ""
 
+    // 监控参数
+    private var inputFolderUri: String = ""
+    private var outputFolderUri: String = ""
+    private var lutFilePath: String = ""
+    private var processingParams: ILutProcessor.ProcessingParams? = null
+
+    // 统一集合声明
+    // 添加处理中的文件跟踪
+    private val processingFiles = mutableSetOf<String>()
+
+    private val completedFiles = mutableSetOf<String>()
+
+    private var wakeLock: PowerManager.WakeLock? = null
+    private val restartHandler = Handler(Looper.getMainLooper())
+    private val restartRunnable = Runnable {
+        if (isMonitoring) {
+            restartService()
+        }
+    }
+
+    private lateinit var threadManager: ThreadManager
+
+    // 处理器设置变化广播接收器
+    private val processorSettingReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED") {
+                val processorType = intent.getStringExtra("processorType")
+                Log.d(TAG, "Received processor setting change: $processorType")
+
+                // 更新ThreadManager的处理器设置
+                threadManager.updateProcessorFromSettings()  // 移除?操作符
+                Log.d(TAG, "ThreadManager processor setting updated")
+            }
+        }
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        lutProcessor = LutProcessor()
+        threadManager = ThreadManager(this)
+
+        // 注册广播接收器
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                processorSettingReceiver,
+                IntentFilter("PROCESSOR_SETTING_CHANGED"),
+                RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            // 在 Android 13 以下的设备上，使用旧方法注册
+            // 注意：在旧版本上，默认行为是 RECEIVER_EXPORTED，
+            // 如果你需要 NOT_EXPORTED 的行为，此方案不安全，请看方案1的注意点。
+            registerReceiver(
+                processorSettingReceiver,
+                IntentFilter("PROCESSOR_SETTING_CHANGED")
+            )
+        }
+
+        // 添加：启动时同步处理器设置
+        threadManager.updateProcessorFromSettings()
+
+        // 获取WakeLock以防止系统休眠
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "FolderMonitorService::WakeLock"
+        )
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // 立即启动前台服务，避免超时异常
-        val initialNotification = createNotification("正在启动监控服务...")
-        startForeground(NOTIFICATION_ID, initialNotification)
-        
+        // 修复：只有在实际开始监控时才显示启动通知
         when (intent?.action) {
             ACTION_START_MONITORING -> {
+                // 显示初始通知
+                val initialNotification = createNotification("文件夹监控服务", "等待状态更新...")
+                startForeground(NOTIFICATION_ID, initialNotification)
+
+                // 获取WakeLock
+                wakeLock?.takeIf { !it.isHeld }?.acquire(10 * 60 * 1000L /*10 minutes*/)
+
                 val inputFolder =
-                    intent.getStringExtra(EXTRA_INPUT_FOLDER) ?: return START_NOT_STICKY
+                    intent.getStringExtra(EXTRA_INPUT_FOLDER) ?: return START_REDELIVER_INTENT
                 val outputFolder =
-                    intent.getStringExtra(EXTRA_OUTPUT_FOLDER) ?: return START_NOT_STICKY
+                    intent.getStringExtra(EXTRA_OUTPUT_FOLDER) ?: return START_REDELIVER_INTENT
                 val lutFilePath =
-                    intent.getStringExtra(EXTRA_LUT_FILE_PATH) ?: return START_NOT_STICKY
+                    intent.getStringExtra(EXTRA_LUT_FILE_PATH) ?: return START_REDELIVER_INTENT
                 val strength = intent.getIntExtra(EXTRA_STRENGTH, 100)
                 val quality = intent.getIntExtra(EXTRA_QUALITY, 90)
                 val dither = intent.getStringExtra(EXTRA_DITHER) ?: "none"
 
                 startMonitoring(inputFolder, outputFolder, strength, quality, dither, lutFilePath)
             }
-
             ACTION_STOP_MONITORING -> {
                 stopMonitoring()
             }
+            else -> {
+                // 修复：如果没有明确的action，不显示启动通知
+                Log.w(TAG, "服务启动但没有明确的action,已停止服务")
+                stopMonitoring()
+                return START_NOT_STICKY
+            }
         }
 
-        return START_STICKY
-    }
-
-    // 在类的成员变量部分添加：
-    private var processingFiles = mutableSetOf<String>() // 正在处理的文件
-    private var completedFiles = mutableListOf<String>() // 已完成的文件（按完成顺序）
-    
-    // 修改createNotification方法：
-    private fun createNotification(contentText: String): Notification {
-        // 创建点击通知时的Intent
-        val notificationIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("navigate_to", "home")
-        }
-    
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    
-        // 构建详细的通知内容
-        val detailedContent = buildNotificationContent(contentText)
-        
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("LUT图像处理")
-            .setContentText(contentText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(detailedContent)) // 使用BigTextStyle显示多行
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setOngoing(true)
-            .setContentIntent(pendingIntent)
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .build()
-    }
-    
-    // 新增方法：构建通知内容
-    private fun buildNotificationContent(statusText: String): String {
-        val content = StringBuilder()
-        content.append(statusText)
-        
-        if (processingFiles.isNotEmpty() || completedFiles.isNotEmpty()) {
-            content.append("\n\n")
-            
-            // 显示正在处理的文件
-            if (processingFiles.isNotEmpty()) {
-                content.append("正在处理：\n")
-                processingFiles.forEach { fileName ->
-                    content.append("⏳ $fileName\n")
-                }
-            }
-            
-            // 显示已完成的文件（最近的几个）
-            if (completedFiles.isNotEmpty()) {
-                if (processingFiles.isNotEmpty()) content.append("\n")
-                content.append("已完成：\n")
-                // 只显示最近完成的5个文件，避免通知过长
-                val recentCompleted = completedFiles.takeLast(5)
-                recentCompleted.forEach { fileName ->
-                    content.append("✅ $fileName\n")
-                }
-                if (completedFiles.size > 5) {
-                    content.append("... 及其他 ${completedFiles.size - 5} 个文件\n")
-                }
-            }
-            
-            // 显示统计信息
-            content.append("\n总计：${completedFiles.size} 已完成，${processingFiles.size} 处理中")
-        }
-        
-        return content.toString()
-    }
-    
-    // 新增方法：开始处理文件时调用
-    private fun startProcessingFile(fileName: String) {
-        processingFiles.add(fileName)
-        updateNotification("正在处理文件...")
-    }
-    
-    // 新增方法：完成处理文件时调用
-    private fun completeProcessingFile(fileName: String) {
-        processingFiles.remove(fileName)
-        completedFiles.add(fileName)
-        updateNotification("处理完成")
-    }
-    
-    // 新增方法：更新通知
-    private fun updateNotification(statusText: String) {
-        val notification = createNotification(statusText)
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.notify(NOTIFICATION_ID, notification)
+        return START_REDELIVER_INTENT
     }
 
     private fun createNotificationChannel() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "文件夹监控服务",
-                NotificationManager.IMPORTANCE_HIGH // 改为HIGH重要性
-            ).apply {
-                description = "LUT图像处理文件夹监控"
-                setShowBadge(true)
-                enableLights(true)
-                enableVibration(false)
-            }
-
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            getString(R.string.notification_channel_name),
+            NotificationManager.IMPORTANCE_LOW // 改为LOW以减少用户干扰
+        ).apply {
+            description = "文件夹监控服务通知"
+            setShowBadge(false)
+            enableLights(false)
+            enableVibration(false)
+            setSound(null, null)
         }
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    private fun createNotification(
+        title: String,
+        content: String = "",
+        progress: Int = -1,
+        maxProgress: Int = 100
+    ): Notification {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        // 添加进度条支持
+        if (progress >= 0) {
+            builder.setProgress(maxProgress, progress, false)
+        }
+
+        return builder.build()
     }
 
     private fun startMonitoring(
@@ -204,511 +230,393 @@ class FolderMonitorService : Service() {
         lutFilePath: String
     ) {
         if (isMonitoring) {
-            Log.w("FolderMonitorService", "监控已在运行中")
+            Log.w(TAG, "监控已在运行中")
             return
         }
 
+        // 添加：每次开始监控时都更新处理器设置
+        Log.d(TAG, "开始监控前更新处理器设置")
+        threadManager.updateProcessorFromSettings()
+
+        // 保存参数
+        this.inputFolderUri = inputFolder
+        this.outputFolderUri = outputFolder
+        this.lutFilePath = lutFilePath
+
+        // 修复：正确设置LUT文件名
+        val lutFile = File(lutFilePath)
+        currentLutName = lutFile.nameWithoutExtension
+
+        // 修复：正确的抖动类型转换
+        this.processingParams = ILutProcessor.ProcessingParams(
+            strength = strength / 100f,
+            quality = quality,
+            ditherType = when (dither.uppercase()) {
+                "FLOYD_STEINBERG" -> ILutProcessor.DitherType.FLOYD_STEINBERG
+                "RANDOM" -> ILutProcessor.DitherType.RANDOM
+                "NONE" -> ILutProcessor.DitherType.NONE
+                else -> ILutProcessor.DitherType.NONE
+            }
+        )
+
         isMonitoring = true
-        currentLutName = File(lutFilePath).nameWithoutExtension
-        
-        // 重置计数
-        processedCount = 0
-        
-        // 从SharedPreferences加载已处理文件历史记录
-        loadProcessedFilesFromHistory()
-        
-        Log.d("FolderMonitorService", "开始监控服务")
-        Log.d("FolderMonitorService", "输入文件夹: $inputFolder")
-        Log.d("FolderMonitorService", "输出文件夹: $outputFolder")
-        Log.d("FolderMonitorService", "LUT文件路径: $lutFilePath")
-        Log.d("FolderMonitorService", "强度: $strength, 质量: $quality, 抖动: $dither")
-
-        serviceScope.launch {
-            // 在startMonitoring方法中，将第174行附近的代码修改为：
+        monitoringJob = serviceScope.launch {
             try {
-                Log.d("FolderMonitorService", "开始加载LUT文件")
-                // 更新通知状态
-                val loadingNotification = createNotification("正在加载LUT文件...")
-                val notificationManager = getSystemService(NotificationManager::class.java)
-                notificationManager.notify(NOTIFICATION_ID, loadingNotification)
-
+                Log.d(TAG, "开始监控文件夹: $inputFolder")
+                
                 // 加载LUT文件
-                val lutFile = File(lutFilePath)
-                if (!lutFile.exists()) {
-                    Log.e("FolderMonitorService", "LUT文件不存在: $lutFilePath")
-                    val errorNotification = createNotification("LUT文件不存在")
-                    notificationManager.notify(NOTIFICATION_ID, errorNotification)
-                    stopMonitoring()
+                if (lutFile.exists()) {
+                    threadManager.loadLut(lutFile.inputStream())
+                    isLutLoaded = true
+                    Log.d(TAG, "LUT文件加载成功: $currentLutName")
+                } else {
+                    Log.e(TAG, "LUT文件不存在: $lutFilePath")
                     return@launch
                 }
 
-                // 修复：使用正确的方法名和参数类型
-                val lutLoaded = lutFile.inputStream().use { inputStream ->
-                    lutProcessor?.loadCubeLut(inputStream) ?: false
-                }
-                
-                if (!lutLoaded) {
-                    Log.e("FolderMonitorService", "LUT文件加载失败")
-                    val errorNotification = createNotification("LUT文件加载失败")
-                    notificationManager.notify(NOTIFICATION_ID, errorNotification)
-                    stopMonitoring()
-                    return@launch
-                }
-                
-                isLutLoaded = true
-                Log.d("FolderMonitorService", "LUT文件加载成功")
+                startContinuousMonitoring()
             } catch (e: Exception) {
-                Log.e("FolderMonitorService", "加载LUT文件失败: ${e.message}", e)
-                val errorNotification = createNotification("LUT文件加载失败: ${e.message}")
-                val notificationManager = getSystemService(NotificationManager::class.java)
-                notificationManager.notify(NOTIFICATION_ID, errorNotification)
-                stopMonitoring()
-                return@launch
+                Log.e(TAG, "监控过程中发生错误", e)
             }
-
-            if (!isLutLoaded) {
-                Log.e("FolderMonitorService", "LUT未加载，无法开始监控")
-                val errorNotification = createNotification("LUT未加载，无法开始监控")
-                val notificationManager = getSystemService(NotificationManager::class.java)
-                notificationManager.notify(NOTIFICATION_ID, errorNotification)
-                stopMonitoring()
-                return@launch
-            }
-
-            Log.d("FolderMonitorService", "LUT加载成功，开始监控文件夹")
-            val monitoringNotification = createNotification("正在监控文件夹")
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.notify(NOTIFICATION_ID, monitoringNotification)
-
-            val inputUri = Uri.parse(inputFolder)
-            val outputUri = Uri.parse(outputFolder)
-
-            Log.d("FolderMonitorService", "开始处理现有文件")
-            processExistingFiles(inputUri, outputUri, strength, quality, dither, lutFilePath)
-            
-            Log.d("FolderMonitorService", "开始监控新文件")
-            // **整合监控逻辑到这里，不再调用startDocumentFileMonitoring**
-            startContinuousMonitoring(inputUri, outputUri, strength, quality, dither, lutFilePath)
         }
     }
 
-    private fun isImageAlreadyProcessed(fileName: String): Boolean {
+    // 添加历史记录管理
+    private fun isFileAlreadyProcessed(fileName: String): Boolean {
         val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
-        val records = prefs.getStringSet("records", emptySet()) ?: emptySet()
+        val existingRecords = prefs.getStringSet("records", emptySet()) ?: emptySet()
 
-        return records.any { record ->
-            val parts = record.split("|")
-            if (parts.size >= 2) {
-                parts[1] == fileName
-            } else {
+        return existingRecords.any { recordStr ->
+            try {
+                val parts = recordStr.split("|")
+                parts.size >= 2 && parts[1] == fileName
+            } catch (_: Exception) {
                 false
             }
         }
     }
 
-    private fun processExistingFiles(
-        inputUri: Uri,
-        outputUri: Uri,
-        strength: Int,
-        quality: Int,
-        dither: String,
-        lutFilePath: String
+    private fun saveProcessingRecord(
+        fileName: String,
+        inputPath: String,
+        outputPath: String,
+        lutFileName: String,
+        params: ILutProcessor.ProcessingParams
     ) {
-        Log.d("FolderMonitorService", "开始处理现有文件")
-        try {
-            val inputDir = DocumentFile.fromTreeUri(this, inputUri)
-            val outputDir = DocumentFile.fromTreeUri(this, outputUri)
+        val timestamp = System.currentTimeMillis()
+        val recordString =
+            "$timestamp|$fileName|$inputPath|$outputPath|处理完成|$lutFileName|${params.strength}|${params.quality}|${params.ditherType.name}"
 
-            if (inputDir == null) {
-                Log.e("FolderMonitorService", "无法访问输入文件夹: $inputUri")
-                return
-            }
+        val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
+        val existingRecords =
+            prefs.getStringSet("records", emptySet())?.toMutableSet() ?: mutableSetOf()
+        existingRecords.add(recordString)
 
-            if (outputDir == null) {
-                Log.e("FolderMonitorService", "无法访问输出文件夹: $outputUri")
-                return
-            }
-
-            val files = inputDir.listFiles()
-            Log.d("FolderMonitorService", "输入文件夹中共有${files.size}个文件")
-
-            files.forEach { file ->
-                if (file.isFile && isImageFile(file.name ?: "")) {
-                    val fileName = file.name ?: ""
-                    if (isImageAlreadyProcessed(fileName)) {
-                        Log.d("FolderMonitorService", "跳过已处理的图片文件: $fileName")
-                    } else {
-                        Log.d("FolderMonitorService", "发现新图片文件: $fileName")
-                        serviceScope.launch {
-                            processDocumentFile(
-                                file,
-                                outputDir,
-                                strength.toFloat(),
-                                quality,
-                                dither,
-                                lutFilePath
-                            )
-                        }
-                    }
-                } else {
-                    Log.d("FolderMonitorService", "跳过非图片文件: ${file.name}")
+        // 限制记录数量
+        if (existingRecords.size > 10000) {
+            val sortedRecords = existingRecords.mapNotNull { recordStr ->
+                try {
+                    val parts = recordStr.split("|")
+                    parts[0].toLong() to recordStr
+                } catch (_: Exception) {
+                    null
                 }
-            }
-        } catch (e: Exception) {
-            Log.e("FolderMonitorService", "处理现有文件时发生错误: ${e.message}", e)
-            e.printStackTrace()
+            }.sortedByDescending { it.first }
+
+            existingRecords.clear()
+            existingRecords.addAll(sortedRecords.take(10000).map { it.second })
         }
+
+        prefs.edit { putStringSet("records", existingRecords) }
+
+        // 发送广播通知历史页面更新
+        val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+        sendBroadcast(intent)
     }
 
-    private fun startContinuousMonitoring(
-        inputUri: Uri,
-        outputUri: Uri,
-        strength: Int,
-        quality: Int,
-        dither: String,
-        lutFilePath: String
-    ) {
-        Log.d("FolderMonitorService", "开始持续监控循环")
-        
-        monitoringJob = serviceScope.launch {
-            while (isActive && isMonitoring) {
-                try {
-                    Log.d("FolderMonitorService", "执行监控检查...")
+    private suspend fun startContinuousMonitoring() {
+        val inputUri = inputFolderUri.toUri()
+        val outputUri = outputFolderUri.toUri()
 
-                    // 权限检查
-                    if (!hasUriPermission(inputUri) || !hasUriPermission(outputUri)) {
-                        Log.e("FolderMonitorService", "文件夹访问权限已失效，停止监控")
-                        val errorNotification = createNotification("文件夹访问权限已失效，请重新选择文件夹")
-                        val notificationManager = getSystemService(NotificationManager::class.java)
-                        notificationManager.notify(NOTIFICATION_ID, errorNotification)
-                        stopMonitoring()
-                        return@launch
-                    }
+        val inputDir = DocumentFile.fromTreeUri(this, inputUri)
+        val outputDir = DocumentFile.fromTreeUri(this, outputUri)
 
-                    val inputDir = DocumentFile.fromTreeUri(this@FolderMonitorService, inputUri)
-                    val outputDir = DocumentFile.fromTreeUri(this@FolderMonitorService, outputUri)
+        if (inputDir == null || outputDir == null) {
+            Log.e(TAG, "无法访问文件夹")
+            return
+        }
 
-                    if (inputDir != null && outputDir != null) {
-                        val currentFiles = inputDir.listFiles()
-                            .filter { it.isFile && isImageFile(it.name ?: "") }
-                            .map { it.name ?: "" }
-                            .toSet()
+        // 立即显示监控开始通知
+        val notification = createNotification("文件夹监控服务", "监控已启动，等待新文件...")
+        startForeground(NOTIFICATION_ID, notification)
 
-                        Log.d("FolderMonitorService", "当前文件数量: ${currentFiles.size}")
-                        Log.d("FolderMonitorService", "已处理文件数量: ${processedFiles.size}")
+        var scanCount = 0
+        var lastHeartbeat = System.currentTimeMillis()
 
-                        // 检查新文件
-                        val newFiles = currentFiles.filter { fileName ->
-                            !processedFiles.contains(fileName) && !isImageAlreadyProcessed(fileName)
-                        }
+        while (serviceScope.isActive && isMonitoring) {
+            try {
+                scanCount++
+                val currentTime = System.currentTimeMillis()
 
-                        if (newFiles.isNotEmpty()) {
-                            Log.d("FolderMonitorService", "发现${newFiles.size}个新文件: $newFiles")
+                // 每30秒更新一次心跳通知
+                if (currentTime - lastHeartbeat > 30000) {
+                    val statusNotification = createNotification(
+                        "文件夹监控服务",
+                        "监控中... 已处理 $processedCount 个文件 (扫描次数: $scanCount)"
+                    )
+                    startForeground(NOTIFICATION_ID, statusNotification)
+                    lastHeartbeat = currentTime
 
-                            newFiles.forEach { fileName ->
-                                val file = inputDir.listFiles().find { it.name == fileName }
-                                file?.let {
-                                    Log.d("FolderMonitorService", "准备处理新文件: $fileName")
-                                    // 等待文件写入完成
-                                    delay(3000)
-                                    processDocumentFile(
-                                        it,
-                                        outputDir,
-                                        strength.toFloat(),
-                                        quality,
-                                        dither,
-                                        lutFilePath
-                                    )
-                                }
-                            }
-                        } else {
-                            Log.d("FolderMonitorService", "未发现新文件")
-                        }
-                    } else {
-                        Log.e("FolderMonitorService", "无法访问输入或输出文件夹")
-                    }
-                } catch (e: SecurityException) {
-                    Log.e("FolderMonitorService", "权限错误: ${e.message}", e)
-                    val errorNotification = createNotification("文件夹访问权限不足，请重新授权")
-                    val notificationManager = getSystemService(NotificationManager::class.java)
-                    notificationManager.notify(NOTIFICATION_ID, errorNotification)
-                    stopMonitoring()
-                    return@launch
-                } catch (e: Exception) {
-                    Log.e("FolderMonitorService", "监控过程中发生错误: ${e.message}", e)
-                    e.printStackTrace()
+                    // 重新获取WakeLock
+                    wakeLock?.takeIf { !it.isHeld }?.acquire(10 * 60 * 1000L)
                 }
 
-                Log.d("FolderMonitorService", "等待2秒后进行下次检查")
-                delay(2000)
-            }
+                // 扫描输入文件夹中的新图片
+                val imageFiles = inputDir.listFiles().filter { file ->
+                    file.isFile &&
+                            file.name?.lowercase()?.let { name ->
+                                name.endsWith(".jpg") || name.endsWith(".jpeg") ||
+                                        name.endsWith(".png") || name.endsWith(".webp")
+                            } == true &&
+                            !isFileAlreadyProcessed(file.name ?: "") &&
+                            !processingFiles.contains(file.name)
+                }
 
-            Log.d("FolderMonitorService", "监控循环结束")
+                // 处理新发现的图片
+                for (imageFile in imageFiles) {
+                    if (!isMonitoring) break
+
+                    imageFile.name?.let { fileName ->
+                        startProcessingFile(fileName)
+
+                        try {
+                            processingParams?.let { params ->
+                                processDocumentFile(imageFile, outputDir, params)
+                            }
+                            completeProcessingFile(fileName)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "处理文件失败: $fileName", e)
+                            completeProcessingFile(fileName)
+                        }
+                    }
+                }
+
+                // 等待一段时间再次扫描
+                kotlinx.coroutines.delay(2000)
+            } catch (e: Exception) {
+                Log.e(TAG, "监控循环中发生错误", e)
+                // 不要立即退出，尝试继续监控
+                kotlinx.coroutines.delay(5000)
+            }
         }
     }
 
     private suspend fun processDocumentFile(
-        documentFile: DocumentFile,
+        inputFile: DocumentFile,
         outputDir: DocumentFile,
-        strength: Float,
-        quality: Int,
-        dither: String,
-        lutFilePath: String? = null
+        params: ILutProcessor.ProcessingParams
     ) {
-        val fileName = documentFile.name ?: return
-        
-        // 开始处理文件
-        startProcessingFile(fileName)
-        
         try {
-            // **增强的重复检查逻辑**
-            if (processedFiles.contains(fileName)) {
-                Log.d("FolderMonitorService", "文件已在当前会话中处理过，跳过: $fileName")
-                return
-            }
-            
-            if (isImageAlreadyProcessed(fileName)) {
-                Log.d("FolderMonitorService", "文件已在历史记录中处理过，跳过: $fileName")
-                // 同时添加到当前会话的processedFiles中
-                processedFiles.add(fileName)
-                return
-            }
-            
-            // 添加到已处理列表
-            processedFiles.add(fileName)
-            
-            Log.d("FolderMonitorService", "开始解码图片: $fileName")
-            val bitmap = contentResolver.openInputStream(documentFile.uri)?.use { inputStream ->
-                BitmapFactory.decodeStream(inputStream)
-            }
+            Log.d(TAG, "开始处理文件: ${inputFile.name}")
 
-            if (bitmap == null) {
-                Log.e("FolderMonitorService", "无法解码图片: $fileName")
-                return
-            }
+            val inputStream = contentResolver.openInputStream(inputFile.uri)
+            if (inputStream != null) {
+                // 首先读取EXIF信息
+                val exif = ExifInterface(inputStream)
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+                inputStream.close()
 
-            Log.d(
-                "FolderMonitorService",
-                "图片解码成功: $fileName, 尺寸: ${bitmap.width}x${bitmap.height}"
-            )
+                // 重新打开流来解码图像
+                val decodeStream = contentResolver.openInputStream(inputFile.uri)
+                if (decodeStream != null) {
+                    val bitmap = BitmapFactory.decodeStream(decodeStream)
+                    decodeStream.close()
 
-            val ditherType = when (dither) {
-                "floyd" -> LutProcessor.DitherType.FLOYD_STEINBERG
-                "random" -> LutProcessor.DitherType.RANDOM
-                else -> LutProcessor.DitherType.NONE
-            }
+                    if (bitmap != null) {
+                        // 应用EXIF方向变换
+                        val correctedBitmap = applyExifOrientation(bitmap, orientation)
 
-            Log.d(
-                "FolderMonitorService",
-                "处理参数 - 强度: $strength, 质量: $quality, 抖动: $dither"
-            )
-            val params = LutProcessor.ProcessingParams(strength.toInt(), quality, ditherType)
+                        // 使用submitTask处理图片
+                        val processedBitmap = suspendCoroutine { continuation ->
+                            threadManager.submitTask(
+                                bitmap = correctedBitmap,
+                                params = params,
+                                onComplete = { result ->
+                                    continuation.resume(result.getOrNull())
+                                }
+                            )
+                        }
 
-            Log.d("FolderMonitorService", "开始应用LUT处理: $fileName")
-            val processedBitmap = lutProcessor?.processImage(bitmap, params)
+                        if (processedBitmap != null) {
+                            // 修复：使用正确的文件命名格式
+                            val originalName = inputFile.name?.substringBeforeLast(".") ?: "unknown"
+                            val outputFileName = "${originalName}-${currentLutName}.jpg"
+                            val outputFile = outputDir.createFile("image/jpeg", outputFileName)
 
-            if (processedBitmap == null) {
-                Log.e("FolderMonitorService", "LUT处理失败: $fileName")
-                throw Exception("处理器未初始化或处理失败")
-            }
+                            outputFile?.let { file ->
+                                contentResolver.openOutputStream(file.uri)?.use { outputStream ->
+                                    processedBitmap.compress(
+                                        Bitmap.CompressFormat.JPEG,
+                                        params.quality,
+                                        outputStream
+                                    )
+                                }
 
-            Log.d("FolderMonitorService", "LUT处理成功: $fileName")
+                                // 保存处理记录到历史
+                                saveProcessingRecord(
+                                    fileName = inputFile.name ?: "unknown",
+                                    inputPath = inputFile.uri.toString(),
+                                    outputPath = file.uri.toString(),
+                                    lutFileName = currentLutName,
+                                    params = params
+                                )
+                            }
 
-            // 创建输出文件
-            val originalName = fileName.substringBeforeLast(".")
-            val extension = fileName.substringAfterLast(".", "jpg")
-            val outputFileName = "$originalName-$currentLutName.$extension"
-            val outputFile = outputDir.createFile("image/jpeg", outputFileName)
-
-            Log.d("FolderMonitorService", "创建输出文件: $outputFileName")
-            Log.d("FolderMonitorService", "输出文件URI: ${outputFile?.uri}")
-
-            // 更新媒体库
-            outputFile?.uri?.let { uri ->
-                try {
-                    MediaScannerConnection.scanFile(
-                        this@FolderMonitorService,
-                        arrayOf(uri.toString()),
-                        arrayOf("image/*")
-                    ) { path, uri ->
-                        Log.d("FolderMonitorService", "媒体库已更新: $path")
+                            Log.d(TAG, "文件处理完成: ${inputFile.name}")
+                        }
                     }
-                } catch (e: Exception) {
-                    Log.w("FolderMonitorService", "更新媒体库失败: ${e.message}")
                 }
             }
 
-            if (outputFile == null) {
-                Log.e("FolderMonitorService", "无法创建输出文件: $fileName")
-                throw Exception("无法创建输出文件")
-            }
-
-            contentResolver.openOutputStream(outputFile.uri)?.use { outputStream ->
-                val compressed =
-                    processedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
-                Log.d("FolderMonitorService", "图片压缩保存结果: $compressed")
-                Log.d("FolderMonitorService", "文件已保存到: ${outputFile.uri}")
-            }
-
-            // 在文件处理成功后，替换原来的通知更新代码：
-            Log.d("FolderMonitorService", "文件处理完成: $fileName")
-            
-            // 完成处理文件
-            completeProcessingFile(fileName)
-            
-            // 在成功处理后增加计数并发送广播
-            processedCount++
-            recordProcessing(fileName, documentFile.uri, outputFile.uri, lutFilePath, strength.toInt(), quality, dither)
-            Log.d("FolderMonitorService", "处理记录已保存: $fileName")
-
-            // 发送广播通知UI更新
-            val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
-            intent.putExtra("processed_count", processedCount)
-            intent.putExtra("file_name", fileName)
-            sendBroadcast(intent)
-
         } catch (e: Exception) {
-            // 处理失败时从已处理列表中移除
-            processedFiles.remove(fileName)
-            Log.e("FolderMonitorService", "处理文件失败: $fileName, 错误: ${e.message}", e)
-            e.printStackTrace()
-            val errorNotification = createNotification("处理失败: $fileName")
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.notify(NOTIFICATION_ID, errorNotification)
+            Log.e(TAG, "处理文档文件失败: ${inputFile.name}", e)
+            throw e
         }
     }
 
-    private fun recordProcessing(
-        fileName: String, 
-        inputUri: Uri, 
-        outputUri: Uri?, 
-        lutFilePath: String? = null,
-        strength: Int = 60,
-        quality: Int = 90,
-        ditherType: String = "none"
-    ) {
-        try {
-            val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
-            val timestamp = System.currentTimeMillis()
-
-            // 获取LUT文件名
-            val lutFileName = lutFilePath?.let { File(it).name } ?: "未知"
-
-            // 使用完整格式存储，包含所有必要字段
-            val strengthFloat = strength / 100f // 转换为0-1的浮点数
-            val ditherTypeFormatted = when (ditherType.lowercase()) {
-                "floyd" -> "Floyd"
-                "random" -> "Random"
-                else -> "None"
-            }
-
-            val record =
-                "$timestamp|$fileName|$inputUri|${outputUri ?: ""}|处理成功|$lutFileName|$strengthFloat|$quality|$ditherTypeFormatted"
-
-            // 修复：创建新的可变集合，避免并发问题
-            val existingRecords = prefs.getStringSet("records", emptySet()) ?: emptySet()
-            val mutableRecords = existingRecords.toMutableSet()
-            mutableRecords.add(record)
-
-            // 按时间戳排序并限制数量，避免无限增长
-            val sortedRecords = mutableRecords.sortedByDescending {
-                it.split("|")[0].toLongOrNull() ?: 0L
-            }.take(100)
-
-            // 使用commit()确保立即写入
-            val success = prefs.edit()
-                .putStringSet("records", sortedRecords.toSet())
-                .commit()
-
-            if (success) {
-                Log.d("FolderMonitorService", "处理记录保存成功: $fileName")
-            } else {
-                Log.e("FolderMonitorService", "处理记录保存失败: $fileName")
-            }
-
-        } catch (e: Exception) {
-            Log.e("FolderMonitorService", "保存处理记录时发生错误: ${e.message}", e)
-        }
+    private fun startProcessingFile(fileName: String) {
+        processingFiles.add(fileName)
+        val notification = createNotification(
+            "正在处理文件",
+            "处理中: $fileName",
+            processedCount,
+            processedCount + processingFiles.size
+        )
+        startForeground(NOTIFICATION_ID, notification)
     }
-    
-    private fun hasUriPermission(uri: Uri): Boolean {
-        return try {
-            // 检查是否有持久化权限
-            val persistedUris = contentResolver.persistedUriPermissions
-            val hasPermission = persistedUris.any { permission ->
-                permission.uri == uri &&
-                        permission.isReadPermission &&
-                        permission.isWritePermission
-            }
 
-            if (hasPermission) {
-                Log.d("FolderMonitorService", "URI权限检查通过: $uri")
-                return true
-            }
-
-            // 如果没有持久化权限，尝试直接访问测试
-            val documentFile = DocumentFile.fromTreeUri(this, uri)
-            val canAccess =
-                documentFile?.exists() == true && documentFile.canRead() && documentFile.canWrite()
-
-            Log.d("FolderMonitorService", "URI访问测试结果: $canAccess for $uri")
-            canAccess
-        } catch (e: Exception) {
-            Log.e("FolderMonitorService", "权限检查失败: ${e.message}")
-            false
-        }
+    private fun completeProcessingFile(fileName: String) {
+        processingFiles.remove(fileName)
+        completedFiles.add(fileName)
+        processedCount++
+        val notification = createNotification(
+            "文件夹监控服务",
+            "已处理 $processedCount 个文件，监控中...",
+            processedCount,
+            processedCount + processingFiles.size
+        )
+        startForeground(NOTIFICATION_ID, notification)
     }
-    
-    private fun isImageFile(filename: String): Boolean {
-        return filename.lowercase().endsWith(".jpg") ||
-                filename.lowercase().endsWith(".jpeg") ||
-                filename.lowercase().endsWith(".png") ||
-                filename.lowercase().endsWith(".bmp") ||
-                filename.lowercase().endsWith(".tiff")
-    }
-    
+
+    // 在服务停止时清理状态
     private fun stopMonitoring() {
         isMonitoring = false
         monitoringJob?.cancel()
         monitoringJob = null
-        // 重置计数和状态
-        processedCount = 0
-        processedFiles.clear()
-        processingFiles.clear() // 清空正在处理的文件列表
-        completedFiles.clear() // 清空已完成的文件列表
-        stopForeground(true)
-        stopSelf()
+
+        // 添加状态同步到PreferencesManager
+        val preferencesManager = cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager(this)
+        preferencesManager.isMonitoring = false
+        // 修复：同时清理UI开关状态，防止状态不一致
+        preferencesManager.monitoringSwitchEnabled = false
+
+        val notification = createNotification("监控已停止")
+        startForeground(NOTIFICATION_ID, notification)
+
+        Log.d(TAG, "文件夹监控已停止，所有状态已清理")
     }
-    
-    // 新增方法：从SharedPreferences加载已处理文件历史
-    private fun loadProcessedFilesFromHistory() {
-        val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
-        val records = prefs.getStringSet("records", emptySet()) ?: emptySet()
-        
-        // 清空当前的processedFiles集合
-        processedFiles.clear()
-        
-        // 从历史记录中提取文件名并添加到processedFiles
-        records.forEach { record: String ->
-            val parts = record.split("|")
-            if (parts.size >= 2) {
-                val fileName = parts[1]
-                processedFiles.add(fileName)
-            }
-        }
-        
-        Log.d("FolderMonitorService", "从历史记录加载了 ${processedFiles.size} 个已处理文件")
-    }
-    
+
     override fun onDestroy() {
         super.onDestroy()
-        // 确保在服务销毁前同步所有数据
         try {
-            val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
-            prefs.edit().commit() // 强制同步
+            unregisterReceiver(processorSettingReceiver)
+            Log.d(TAG, "Processor setting receiver unregistered")
         } catch (e: Exception) {
-            Log.e("FolderMonitorService", "服务销毁时同步数据失败", e)
+            Log.e(TAG, "Failed to unregister processor setting receiver", e)
         }
+
+        // 修复：确保状态完全清理，防止服务残留
+        val preferencesManager = cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager(this)
+        preferencesManager.isMonitoring = false
+        preferencesManager.monitoringSwitchEnabled = false
+
+        monitoringJob?.cancel()
+        runBlocking {
+            threadManager.release()
+        }
+
+        Log.d(TAG, "服务正在销毁，所有状态已清理")
+
+        // 释放WakeLock
+        wakeLock?.takeIf { it.isHeld }?.release()
+
+        // 移除重启定时器
+        restartHandler.removeCallbacks(restartRunnable)
+
+        // 如果正在监控，尝试重启服务
+        //if (isMonitoring) {
+        //  restartService()
+        //}
+        
         stopMonitoring()
+        serviceScope.cancel()
+    }
+
+    private fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(-90f)
+                matrix.postScale(-1f, 1f)
+            }
+
+            else -> return bitmap // ORIENTATION_NORMAL 或未知方向
+        }
+
+        return try {
+            val rotatedBitmap = Bitmap.createBitmap(
+                bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+            )
+            if (rotatedBitmap != bitmap) {
+                bitmap.recycle()
+            }
+            rotatedBitmap
+        } catch (e: OutOfMemoryError) {
+            Log.e(TAG, "内存不足，无法旋转图像", e)
+            bitmap
+        }
+    }
+
+    private fun restartService() {
+        val restartIntent = Intent(this, FolderMonitorService::class.java).apply {
+            action = ACTION_START_MONITORING
+            putExtra(EXTRA_INPUT_FOLDER, inputFolderUri)
+            putExtra(EXTRA_OUTPUT_FOLDER, outputFolderUri)
+            putExtra(EXTRA_LUT_FILE_PATH, lutFilePath)
+            processingParams?.let { params ->
+                putExtra(EXTRA_STRENGTH, (params.strength * 100).toInt())
+                putExtra(EXTRA_QUALITY, params.quality)
+                putExtra(EXTRA_DITHER, params.ditherType.name)
+            }
+        }
+
+        try {
+            startForegroundService(restartIntent)
+        } catch (e: Exception) {
+            Log.e(TAG, "重启服务失败", e)
+        }
     }
 }

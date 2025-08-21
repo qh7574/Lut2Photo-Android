@@ -10,7 +10,8 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class LutManager(private val context: Context) {
     
@@ -117,13 +118,7 @@ class LutManager(private val context: Context) {
             false
         }
     }
-    
-    fun getLutFile(lutItem: LutItem): File? {
-        // 修改：使用lutDirectory + fileName构建完整路径
-        val file = File(lutDirectory, lutItem.filePath)
-        return if (file.exists()) file else null
-    }
-    
+
     // 新增：获取LUT文件的完整路径
     fun getLutFilePath(lutItem: LutItem): String {
         val fullPath = File(lutDirectory, lutItem.filePath).absolutePath
@@ -131,38 +126,7 @@ class LutManager(private val context: Context) {
         android.util.Log.d("LutManager", "文件是否存在: ${File(fullPath).exists()}")
         return fullPath
     }
-    
-    // 新增：迁移旧LUT文件的方法
-    suspend fun migrateLegacyLuts(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            // 检查旧的存储位置
-            val oldDirectory = File(context.filesDir, "luts")
-            android.util.Log.d("LutManager", "检查旧LUT目录: ${oldDirectory.absolutePath}")
-            
-            if (oldDirectory.exists()) {
-                android.util.Log.d("LutManager", "发现旧LUT目录，开始迁移")
-                val oldFiles = oldDirectory.listFiles { file ->
-                    file.isFile && file.name.endsWith(".cube", ignoreCase = true)
-                }
-                
-                oldFiles?.forEach { oldFile ->
-                    val newFile = File(lutDirectory, oldFile.name)
-                    if (!newFile.exists()) {
-                        oldFile.copyTo(newFile)
-                        android.util.Log.d("LutManager", "迁移文件: ${oldFile.name}")
-                    }
-                }
-                
-                android.util.Log.d("LutManager", "迁移完成，共迁移 ${oldFiles?.size ?: 0} 个文件")
-                return@withContext true
-            }
-            false
-        } catch (e: Exception) {
-            android.util.Log.e("LutManager", "迁移LUT文件失败", e)
-            false
-        }
-    }
-    
+
     private fun getFileName(uri: Uri): String? {
         return DocumentFile.fromSingleUri(context, uri)?.name
     }
@@ -172,7 +136,7 @@ class LutManager(private val context: Context) {
             file.readLines().any { line ->
                 line.trim().startsWith("LUT_3D_SIZE")
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }

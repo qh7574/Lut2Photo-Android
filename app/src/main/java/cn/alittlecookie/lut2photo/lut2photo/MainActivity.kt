@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
         }
+
     }
     
     private fun setupSystemBars() {
@@ -71,21 +72,8 @@ class MainActivity : AppCompatActivity() {
                 // 获取底部导航栏的实际背景色
                 val typedValue = android.util.TypedValue()
                 theme.resolveAttribute(android.R.attr.windowBackground, typedValue, true)
-                val windowBackgroundColor =
-                    if (typedValue.type >= android.util.TypedValue.TYPE_FIRST_COLOR_INT &&
-                        typedValue.type <= android.util.TypedValue.TYPE_LAST_COLOR_INT
-                    ) {
-                        typedValue.data
-                    } else {
-                        // 备用方案：使用colorSurface
-                        val surfaceTypedValue = android.util.TypedValue()
-                        theme.resolveAttribute(
-                            com.google.android.material.R.attr.colorSurface,
-                            surfaceTypedValue,
-                            true
-                        )
-                        surfaceTypedValue.data
-                    }
+                val windowBackgroundColor = typedValue.data
+
 
                 // 强制设置导航栏颜色
                 window.navigationBarColor = windowBackgroundColor
@@ -131,20 +119,5 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 1001)
         }
     }
-    
-    private fun checkNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    1001
-                )
-            }
-        }
-    }
+
 }

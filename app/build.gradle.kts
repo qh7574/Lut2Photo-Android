@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    kotlin("kapt")
 }
 
 android {
@@ -11,12 +12,17 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1001
-        versionName = "1.1"
+        versionCode = 10001
+        versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21
         renderscriptSupportModeEnabled = true
+
+        // 添加OpenGL ES支持
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildTypes {
@@ -51,16 +57,20 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
-    implementation(libs.androidx.exifinterface)  // 添加这行
+    implementation(libs.androidx.exifinterface)
     
     // 新增依赖 - 使用正确的库
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.preference.ktx)
-    implementation(libs.androidx.activity.ktx)  // 替换原来的 activity-result
+    implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.documentfile)
     implementation(libs.kotlinx.coroutines.android.v1102)
     implementation(libs.androidx.lifecycle.service.v292)
-    // implementation(libs.androidx.renderscript.toolkit) // <-- 移除此行
+
+    // GPU相关依赖
+    implementation(libs.glide)
+    kapt(libs.glide.compiler)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

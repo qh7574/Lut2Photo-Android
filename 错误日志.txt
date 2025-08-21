@@ -1,144 +1,304 @@
-2025-08-09 16:16:28.350 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  D  Shutting down VM
-2025-08-09 16:16:28.351 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  E  FATAL EXCEPTION: main
-                                                                                        Process: cn.alittlecookie.lut2photo.lut2photo, PID: 3483
-                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
-                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
-                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
-                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
-                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
-                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
-                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
-                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
-                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
-                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
-                                                                                        	at android.os.Looper.loop(Looper.java:337)
-                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
-                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
-                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
-                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
-2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332996): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332997): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332998): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:28.351 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:332999): avc:  denied  { search } for  name="miuilog" dev="dm-62" ino=1046 scontext=u:r:untrusted_app:s0:c13,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0 app=cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:28.353 ScoutUtils              cn....tlecookie.lut2photo.lut2photo  W  Failed to mkdir /data/miuilog/stability/hprof/
-2025-08-09 16:16:28.356 JavaExceptionHandler    com.miui.daemon                      E  Process: cn.alittlecookie.lut2photo.lut2photo, PID: 3483
-                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
-                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
-                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
-                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
-                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
-                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
-                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
-                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
-                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
-                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
-                                                                                        	at android.os.Looper.loop(Looper.java:337)
-                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
-                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
-                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
-                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
-2025-08-09 16:16:28.362 Process                 cn....tlecookie.lut2photo.lut2photo  I  Process is going to kill itself!
-                                                                                        java.lang.Exception
-                                                                                        	at android.os.Process.killProcess(Process.java:1495)
-                                                                                        	at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:193)
-                                                                                        	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1071)
-                                                                                        	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1066)
-                                                                                        	at java.lang.Thread.dispatchUncaughtException(Thread.java:2306)
-2025-08-09 16:16:28.362 Process                 cn....tlecookie.lut2photo.lut2photo  I  Sending signal. PID: 3483 SIG: 9
-2025-08-09 16:16:28.362 libc                    cn....tlecookie.lut2photo.lut2photo  I  kill: send 9 to pid 3483
----------------------------- PROCESS ENDED (3483) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
-2025-08-09 16:16:28.463 WindowManager           system_server                        E   source = Task{30c1ae9 #447 type=standard A=10525:cn.alittlecookie.lut2photo.lut2photo} excludeMiuiNavBar = true excludeMiuiStatusBar = true excludeIme = false excludeNavBar = true miuiNavSurfaceControl = Surface(name=Miui Fake NavBar#51)/@0x5cfea1c miuiStatusSurfaceControl = Surface(name=Miui Fake StatusBar#50)/@0xcaf2dec
-2025-08-09 16:16:29.280 WindowManager           system_server                        E  setClientVisible ActivityRecord{1e59ced u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t447 f} isExiting} false
-2025-08-09 16:16:30.657 PreStartUtils           com.miui.home                        E  preLaunchProcess success infoPackage: cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:30.661 Zygote                  usap64                               E  process_name_ptr:5567 cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:30.661 Zygote                  usap64                               E  SetMemoryProtected process_name_ptr:5567 cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:30.729 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity true
-2025-08-09 16:16:30.733 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t448} true
-2025-08-09 16:16:30.734 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t448} true
-2025-08-09 16:16:30.742 WindowManager           system_server                        E  setClientVisible ActivityRecord{d258cdd u0 cn.alittlecookie.lut2photo.lut2photo/.MainActivity t448} true
-2025-08-09 16:16:30.757 SuggestManager          com.miui.securitycenter.remote       E  openApp name = cn.alittlecookie.lut2photo.lut2photo
-2025-08-09 16:16:30.838 ActivityManagerWrapper  com.miui.home                        E  getRecentTasksForceIncludingTaskIdIfValid: getRecentTasks: size=16
-                                                                                         mainTaskId=448   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity} }
-                                                                                         mainTaskId=443   userId=0   windowMode=1   baseIntent=Intent { act=null flag=1006632960 cmp=ComponentInfo{com.tencent.mm/com.tencent.mm.ui.LauncherUI} }
-                                                                                         mainTaskId=411   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xingin.xhs/com.xingin.xhs.index.v2.IndexActivityV2} }
-                                                                                         mainTaskId=400   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xunmeng.pinduoduo/com.xunmeng.pinduoduo.ui.activity.MainFrameActivity} }
-                                                                                         mainTaskId=442   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.bambulab.creator/com.bambulab.bambulab.MainActivity} }
-                                                                                         mainTaskId=403   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xiaomi.smarthome/com.xiaomi.smarthome.SmartHomeMainActivity} }
-                                                                                         mainTaskId=438   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{androidx.compose.material.catalog/androidx.compose.material.catalog.CatalogActivity} }
-                                                                                         mainTaskId=375   userId=999   windowMode=1   baseIntent=Intent { act=null flag=1006632960 cmp=ComponentInfo{com.tencent.mm/com.tencent.mm.ui.LauncherUI} }
-                                                                                         mainTaskId=133   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.tencent.mobileqq/com.tencent.mobileqq.activity.SplashActivity} }
-                                                                                         mainTaskId=415   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.android.camera/com.android.camera.Camera} }
-                                                                                         mainTaskId=410   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.chinamworld.main/com.ccb.start.MainActivity} }
-                                                                                         mainTaskId=395   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.taobao.taobao/com.taobao.tao.welcome.Welcome} }
-                                                                                         mainTaskId=397   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.miui.calculator/com.miui.calculator.cal.CalculatorActivity} }
-                                                                                         mainTaskId=394   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=268435456 cmp=ComponentInfo{com.alibaba.android.rimet/com.alibaba.android.rimet.biz.LaunchHomeActivity} }
-                                                                                         mainTaskId=392   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=268435456 cmp=ComponentInfo{com.baidu.naviauto/com.baidu.naviauto.SlashActivity} }
-                                                                                         mainTaskId=385   userId=0   windowMode=1   baseIntent=Intent { act=android.intent.action.MAIN flag=270532608 cmp=ComponentInfo{com.xiaomi.market/com.xiaomi.market.ui.MarketTabActivity} }
----------------------------- PROCESS STARTED (5567) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
-2025-08-09 16:16:31.860 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=207921903, downTime=207921903, phoneEventTime=16:16:31.856 } moveCount:0
-2025-08-09 16:16:31.939 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=207921984, downTime=207921903, phoneEventTime=16:16:31.937 } moveCount:0
-2025-08-09 16:16:31.945 WindowOnBackDispatcher  cn....tlecookie.lut2photo.lut2photo  W  OnBackInvokedCallback is not enabled for the application.
-                                                                                        Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
-2025-08-09 16:16:31.956 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
-2025-08-09 16:16:31.978 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
-2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录路径: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts
-2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  外部文件目录: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files
-2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录已存在
-2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  目录中的文件数量: 1
-2025-08-09 16:16:31.984 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: bloom.cube, 大小: 904053
-2025-08-09 16:16:31.984 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  D  Shutting down VM
-2025-08-09 16:16:31.985 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  E  FATAL EXCEPTION: main
-                                                                                        Process: cn.alittlecookie.lut2photo.lut2photo, PID: 5567
-                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
-                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
-                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
-                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
-                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
-                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
-                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
-                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
-                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
-                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
-                                                                                        	at android.os.Looper.loop(Looper.java:337)
-                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
-                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
-                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
-                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
-2025-08-09 16:16:31.986 ScoutUtils              cn....tlecookie.lut2photo.lut2photo  W  Failed to mkdir /data/miuilog/stability/hprof/
-2025-08-09 16:16:31.987 JavaExceptionHandler    com.miui.daemon                      E  Process: cn.alittlecookie.lut2photo.lut2photo, PID: 5567
-                                                                                        java.lang.ClassCastException: java.lang.Float cannot be cast to java.lang.Integer
-                                                                                        	at android.app.SharedPreferencesImpl.getInt(SharedPreferencesImpl.java:329)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager.getDashboardQuality(PreferencesManager.kt:41)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.loadSavedSettings(DashboardFragment.kt:228)
-                                                                                        	at cn.alittlecookie.lut2photo.lut2photo.ui.dashboard.DashboardFragment.onViewCreated(DashboardFragment.kt:81)
-                                                                                        	at androidx.fragment.app.Fragment.performViewCreated(Fragment.java:3147)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.createView(FragmentStateManager.java:588)
-                                                                                        	at androidx.fragment.app.FragmentStateManager.moveToExpectedState(FragmentStateManager.java:272)
-                                                                                        	at androidx.fragment.app.FragmentManager.executeOpsTogether(FragmentManager.java:1943)
-                                                                                        	at androidx.fragment.app.FragmentManager.removeRedundantOperationsAndExecute(FragmentManager.java:1845)
-                                                                                        	at androidx.fragment.app.FragmentManager.execPendingActions(FragmentManager.java:1782)
-                                                                                        	at androidx.fragment.app.FragmentManager$5.run(FragmentManager.java:565)
-                                                                                        	at android.os.Handler.handleCallback(Handler.java:959)
-                                                                                        	at android.os.Handler.dispatchMessage(Handler.java:100)
-                                                                                        	at android.os.Looper.loopOnce(Looper.java:249)
-                                                                                        	at android.os.Looper.loop(Looper.java:337)
-                                                                                        	at android.app.ActivityThread.main(ActivityThread.java:9586)
-                                                                                        	at java.lang.reflect.Method.invoke(Native Method)
-                                                                                        	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
-                                                                                        	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
----------------------------- PROCESS ENDED (5567) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
+10:33:27.961 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360662581, downTime=360662581, phoneEventTime=10:33:27.956 } moveCount:0
+10:33:28.015 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360662639, downTime=360662581, phoneEventTime=10:33:28.014 } moveCount:0
+10:33:28.030 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  Updating processor settings...
+10:33:28.030 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  Processor configured from settings: GPU (user setting: GPU)
+10:33:28.030 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  处理器设置已同步
+10:33:28.031 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录路径: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  外部文件目录: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录已存在
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  目录中的文件数量: 19
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 蓝橙.cube, 大小: 422002
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 青橙.cube, 大小: 905548
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 日系空气感.cube, 大小: 7619024
+10:33:28.032 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 仙气古风.cube, 大小: 7803104
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Backlight-N.cube, 大小: 950669
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: bloom.cube, 大小: 904053
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: btym.cube, 大小: 5909350
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-FX-Plady.cube, 大小: 885012
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-Plady.cube, 大小: 885009
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-Port-Plady.cube, 大小: 885014
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CNV2-Plady.cube, 大小: 885009
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CNV2-Port-Plady.cube, 大小: 885014
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Daily Life.cube, 大小: 987227
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Deep Green-L.cube, 大小: 969709
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: jasminezm-spring.cube, 大小: 132192
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Old Cinema-S.cube, 大小: 995564
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Retrostyle709.cube, 大小: 940080
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Smoky Color-S.cube, 大小: 994394
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Teal Flat-S.cube, 大小: 915180
+10:33:28.033 LutManager              cn....tlecookie.lut2photo.lut2photo  D  获取LUT文件路径: btym.cube -> /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts/btym.cube
+10:33:28.034 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件是否存在: true
+10:33:28.047 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  开始加载LUT文件
+10:33:28.075 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:28.083 System                  cn....tlecookie.lut2photo.lut2photo  W  A resource failed to call close. 
+10:33:28.225 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  读取到 274628 行数据
+10:33:28.225 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 1 行: TITLE "Generated by Resolve"
+10:33:28.225 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 2 行: LUT_3D_SIZE 65
+10:33:28.225 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  找到LUT_3D_SIZE行: LUT_3D_SIZE 65
+10:33:28.225 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT尺寸: 65
+10:33:28.262 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数组初始化完成
+10:33:28.584 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:28.943 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:29.269 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:29.605 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:29.956 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:30.056 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数据加载完成，期望数据点: 274625，实际数据点: 274625
+10:33:30.056 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT文件加载成功
+10:33:30.058 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  开始加载LUT文件
+10:33:30.146 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  读取到 274628 行数据
+10:33:30.146 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 1 行: TITLE "Generated by Resolve"
+10:33:30.146 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 2 行: LUT_3D_SIZE 65
+10:33:30.146 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  找到LUT_3D_SIZE行: LUT_3D_SIZE 65
+10:33:30.146 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT尺寸: 65
+10:33:30.151 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数组初始化完成
+10:33:30.336 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:30.674 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:31.013 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:31.368 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:31.735 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:33:31.736 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数据加载完成，期望数据点: 274625，实际数据点: 274625
+10:33:31.736 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT文件加载成功
+10:33:31.736 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  CPU处理器LUT加载成功，尺寸: 65
+10:33:31.783 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数据验证: 总数据点=274625, 非零数据点=274625
+10:33:31.788 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT uploaded to GPU with size: 65
+10:33:31.789 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  LUT加载成功: btym
+10:33:31.802 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug SkJpegCodec::ReadHeader: width = 5184, height = 3888, color = 10
+10:33:31.802 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug SkJpegCodec::ReadHeader: progressive_mode = 0, arith_code = 0, streamType: SkStreamRewindable
+10:33:31.802 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug SkJpegCodec::onGetPixels: dstRowBytes = 20736, 
+                                                                             dstInfo: SkImageInfo: {IsRGB = 1, ColorType = 4, AlphaType = 1, Dimensions.width = 5184, Dimensions.height = 3888};
+10:33:31.802 JpegXmCodec             cn....tlecookie.lut2photo.lut2photo  I   skia-debug JpegXmCodec::isSupported returns true
+10:33:31.802 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug SkJpegCodec::onGetPixels XmCodec start
+10:33:31.803 JpegXmCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug JpegXmCodec::decode: prepare ends
+10:33:31.985 JpegXmCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug JpegXmCodec::decode: done
+10:33:31.985 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 16] skia-debug SkJpegCodec::onGetPixels XmCodec ends with output size = 80621568
+10:33:31.986 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  开始提交GPU处理任务，图片尺寸: 5184x3888
+10:33:39.422 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360674043, downTime=360674043, phoneEventTime=10:33:39.417 } moveCount:0
+10:33:39.589 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360674212, downTime=360674043, phoneEventTime=10:33:39.586 } moveCount:16
+10:33:40.135 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360674758, downTime=360674758, phoneEventTime=10:33:40.132 } moveCount:0
+10:33:40.901 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360675525, downTime=360674758, phoneEventTime=10:33:40.899 } moveCount:82
+10:33:40.902 SplineOverScroller      cn....tlecookie.lut2photo.lut2photo  D  mFlingDuration: 1435,mFlingDistance: 486.5115966796875,mVelocity: 1096
+10:33:41.336 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360675957, downTime=360675957, phoneEventTime=10:33:41.331 } moveCount:0
+10:33:41.423 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360676046, downTime=360675957, phoneEventTime=10:33:41.421 } moveCount:0
+10:33:42.505 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360677127, downTime=360677127, phoneEventTime=10:33:42.501 } moveCount:0
+10:33:42.881 MiInputConsumer         cn....tlecookie.lut2photo.lut2photo  I  optimized resample latency: 789010 ns
+10:33:44.178 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360678802, downTime=360677127, phoneEventTime=10:33:44.177 } moveCount:157
+10:33:58.432 ContentCatcher          cn....tlecookie.lut2photo.lut2photo  I  SettingTrigger : unregister status observer cn.alittlecookie.lut2photo.lut2photo.MainActivity
+---------------------------- PROCESS ENDED (25407) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
+---------------------------- PROCESS STARTED (26331) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------
+10:34:05.536 HomeFragment            cn....tlecookie.lut2photo.lut2photo  D  LUT选择更新: btym
+10:34:05.537 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  getCurrentKeyboardType: 1
+10:34:05.537 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  getCurrentKeyboardType: 1
+10:34:05.536 RenderThread            cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320285): avc:  denied  { getattr } for  path="/sys/module/metis/parameters/minor_window_app" dev="sysfs" ino=84246 scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.android.mms
+10:34:06.960 RenderThread            cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320351): avc:  denied  { getattr } for  path="/sys/module/metis/parameters/minor_window_app" dev="sysfs" ino=84246 scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.android.mms
+10:34:06.960 RenderThread            cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320352): avc:  denied  { getattr } for  path="/sys/module/mist/parameters/mist_set_uid" dev="sysfs" ino=84182 scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.android.mms
+10:34:06.968 RenderThread            cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320353): avc:  denied  { getattr } for  path="/sys/module/metis/parameters/minor_window_app" dev="sysfs" ino=84246 scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.android.mms
+10:34:06.968 RenderThread            cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320354): avc:  denied  { getattr } for  path="/sys/module/mist/parameters/mist_set_uid" dev="sysfs" ino=84182 scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.android.mms
+10:34:06.976 RenderThread            cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320355): avc:  denied  { getattr } for  path="/sys/module/metis/parameters/minor_window_app" dev="sysfs" ino=84246 scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.android.mms
+10:34:10.947 ProfileInstaller        cn....tlecookie.lut2photo.lut2photo  D  Installing profile for cn.alittlecookie.lut2photo.lut2photo
+10:34:47.497 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:34:47.504 FinalizerDaemon         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:320387): avc:  denied  { getopt } for  path="/dev/socket/usap_pool_primary" scontext=u:r:untrusted_app:s0:c15,c258,c512,c768 tcontext=u:r:zygote:s0 tclass=unix_stream_socket permissive=0 app=com.android.mms
+10:34:47.509 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  ApkAssets: Deleting an ApkAssets object '<empty> and /product/app/ContentCatcherOS2/ContentCatcherOS2.apk' with 1 weak references
+10:34:47.509 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  ApkAssets: Deleting an ApkAssets object '<empty> and /system_ext/priv-app/RtMiCloudSDK/RtMiCloudSDK.apk' with 1 weak references
+10:34:47.509 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  ApkAssets: Deleting an ApkAssets object '<empty> and /system_ext/app/miuisystem/miuisystem.apk' with 1 weak references
+10:34:47.512 System                  cn....tlecookie.lut2photo.lut2photo  W  A resource failed to call close. 
+10:34:47.512 System                  cn....tlecookie.lut2photo.lut2photo  W  A resource failed to call close. 
+10:34:53.139 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  refreshLastKeyboardType: 1
+10:34:53.139 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  getCurrentKeyboardType: 1
+10:36:16.542 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360831156, downTime=360831156, phoneEventTime=10:36:16.530 } moveCount:0
+10:36:16.555 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360831178, downTime=360831156, phoneEventTime=10:36:16.552 } moveCount:0
+10:36:16.563 WindowOnBackDispatcher  cn....tlecookie.lut2photo.lut2photo  W  OnBackInvokedCallback is not enabled for the application.
+                                                                             Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+10:36:16.580 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
+10:36:17.745 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360832365, downTime=360832365, phoneEventTime=10:36:17.739 } moveCount:0
+10:36:17.808 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360832431, downTime=360832365, phoneEventTime=10:36:17.805 } moveCount:0
+10:36:17.817 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  refreshLastKeyboardType: 1
+10:36:17.817 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  getCurrentKeyboardType: 1
+10:36:17.822 AbsListViewStubImpl     cn....tlecookie.lut2photo.lut2photo  I  cn.alittlecookie.lut2photo.lut2photo, version: 1.1, Enable Prefetch: false
+10:36:17.844 VRI[PopupW...w:ba27348] cn....tlecookie.lut2photo.lut2photo  D  vri.reportNextDraw android.view.ViewRootImpl.performTraversals:4955 android.view.ViewRootImpl.doTraversal:3555 android.view.ViewRootImpl$TraversalRunnable.run:11583 android.view.Choreographer$CallbackRecord.run:1721 android.view.Choreographer$CallbackRecord.run:1730 
+10:36:17.844 VRI[PopupW...w:ba27348] cn....tlecookie.lut2photo.lut2photo  D  vri.Setup new sync=wmsSync-VRI[PopupWindow:ba27348]#2
+10:36:17.845 HWUI                    cn....tlecookie.lut2photo.lut2photo  D  makeCurrent grContext:0xb40000716c12deb0 reset mTextureAvailable
+10:36:17.847 VRI[PopupW...w:ba27348] cn....tlecookie.lut2photo.lut2photo  D  vri.reportDrawFinished
+10:36:17.852 VRI[PopupW...w:ba27348] cn....tlecookie.lut2photo.lut2photo  D  vri.reportNextDraw android.view.ViewRootImpl.handleResized:2768 android.view.ViewRootImpl.-$$Nest$mhandleResized:0 android.view.ViewRootImpl$W.resized:12741 android.app.servertransaction.WindowStateResizeItem.execute:64 android.app.servertransaction.WindowStateTransactionItem.execute:59 
+10:36:17.854 VRI[PopupW...w:ba27348] cn....tlecookie.lut2photo.lut2photo  D  vri.Setup new sync=wmsSync-VRI[PopupWindow:ba27348]#4
+10:36:17.855 VRI[PopupW...w:ba27348] cn....tlecookie.lut2photo.lut2photo  D  vri.reportDrawFinished
+10:36:18.812 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'PopupWindow:ba27348', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360833434, downTime=360833434, phoneEventTime=10:36:18.809 } moveCount:0
+10:36:18.891 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'PopupWindow:ba27348', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360833515, downTime=360833434, phoneEventTime=10:36:18.890 } moveCount:0
+10:36:18.897 WindowOnBackDispatcher  cn....tlecookie.lut2photo.lut2photo  W  sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda12@22eb592
+10:36:18.902 InputEventReceiver      cn....tlecookie.lut2photo.lut2photo  W  Attempted to finish an input event but the input event receiver has already been disposed.
+10:36:19.414 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360834036, downTime=360834036, phoneEventTime=10:36:19.410 } moveCount:0
+10:36:19.480 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360834103, downTime=360834036, phoneEventTime=10:36:19.477 } moveCount:0
+10:36:19.514 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
+10:36:19.546 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
+10:36:19.552 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  开始初始化处理器
+10:36:19.552 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  Processor configured from settings: CPU (user setting: CPU)
+10:36:19.552 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录路径: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts
+10:36:19.552 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  检查GPU可用性
+10:36:19.552 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  Processor setting receiver registered
+10:36:19.553 LutManager              cn....tlecookie.lut2photo.lut2photo  D  外部文件目录: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files
+10:36:19.553 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录已存在
+10:36:19.553 LutManager              cn....tlecookie.lut2photo.lut2photo  D  目录中的文件数量: 19
+10:36:19.554 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 蓝橙.cube, 大小: 422002
+10:36:19.554 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 青橙.cube, 大小: 905548
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 日系空气感.cube, 大小: 7619024
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 仙气古风.cube, 大小: 7803104
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Backlight-N.cube, 大小: 950669
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: bloom.cube, 大小: 904053
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: btym.cube, 大小: 5909350
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-FX-Plady.cube, 大小: 885012
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-Plady.cube, 大小: 885009
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-Port-Plady.cube, 大小: 885014
+10:36:19.555 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CNV2-Plady.cube, 大小: 885009
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CNV2-Port-Plady.cube, 大小: 885014
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Daily Life.cube, 大小: 987227
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Deep Green-L.cube, 大小: 969709
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: jasminezm-spring.cube, 大小: 132192
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Old Cinema-S.cube, 大小: 995564
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Retrostyle709.cube, 大小: 940080
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Smoky Color-S.cube, 大小: 994394
+10:36:19.556 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Teal Flat-S.cube, 大小: 915180
+10:36:19.568 ScrollerOp...ionManager cn....tlecookie.lut2photo.lut2photo  D  registerConfigChangedListener
+10:36:19.577 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  开始检查GPU可用性
+10:36:19.577 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  设备OpenGL ES版本: 0x30002
+10:36:19.577 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  是否支持OpenGL ES 3.0: true
+10:36:19.577 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  开始初始化GPU处理器
+10:36:19.577 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤1: 开始初始化EGL上下文
+10:36:19.577 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  EGL版本: 1.0
+10:36:19.578 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  选择了EGL配置，可用配置数: 10
+10:36:19.579 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  EGL初始化成功，使用OpenGL ES 3.0
+10:36:19.579 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤1: EGL上下文初始化成功
+10:36:19.579 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤2: 开始编译着色器
+10:36:19.579 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  着色器编译成功，类型: 35633
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  着色器编译成功，类型: 35632
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤2: 着色器编译成功，顶点着色器ID: 1, 片段着色器ID: 2
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤3: 开始创建着色器程序
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤3: 着色器程序创建成功，ID: 3
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤4: 开始获取uniform位置
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  uniform位置获取结果:
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D    u_inputTexture: 3
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D    u_lutTexture: 4
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D    u_strength: 0
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D    u_ditherType: 1
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D    u_lutSize: 2
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤4: uniform位置获取成功
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤5: 开始创建顶点缓冲区
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  顶点缓冲区创建完成
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤5: 顶点缓冲区创建成功
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  步骤6: 检查并重新上传LUT数据
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  W  没有可用的LUT数据进行重新上传
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  GPU处理器初始化完成
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  GPU处理器初始化成功
+10:36:19.580 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  GPU处理器可用性检查完成: true
+10:36:19.580 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  GPU可用性检查结果: true
+10:36:19.580 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  Processor configured from settings: CPU (user setting: CPU)
+10:36:19.712 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  refreshLastKeyboardType: 1
+10:36:19.713 ImeTracker              cn....tlecookie.lut2photo.lut2photo  I  cn.alittlecookie.lut2photo.lut2photo:3c8b9edc: onRequestHide at ORIGIN_CLIENT reason HIDE_SOFT_INPUT_CLOSE_CURRENT_SESSION fromUser false
+10:36:20.776 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360835398, downTime=360835398, phoneEventTime=10:36:20.772 } moveCount:0
+10:36:20.834 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360835457, downTime=360835398, phoneEventTime=10:36:20.831 } moveCount:0
+10:36:20.862 ContentCatcher          cn....tlecookie.lut2photo.lut2photo  I  SettingTrigger : unregister status observer cn.alittlecookie.lut2photo.lut2photo.MainActivity
+10:36:20.993 MiuiMultiWindowUtils    cn....tlecookie.lut2photo.lut2photo  D  freeform resolution args raw data:{  "wide_default":{    "freeform_args": {        "vertical_portrait":{"aspect_ratio":0.626, "original_ratio":0.5643,"original_scale":0.74,"top_margin":0.168,"left_margin":0.484},        "horizontal_portrait":{"aspect_ratio":0.626, "original_ratio":0.5643,"original_scale":0.74,"top_margin":0.1222,"left_margin":0.59745},        "vertical_landscape":{"aspect_ratio":1.6, "original_ratio":1,"original_scale":0.604,"top_margin":0.2596,"left_margin":0.2624},        "horizontal_landscape":{"aspect_ratio":1.6, "original_ratio":1,"original_scale":0.604,"top_margin":0.213,"left_margin":0.3758}    },    "mini_freeform_args":{        "vertical_portrait":{"original_ratio":0.147},        "horizontal_portrait":{"original_ratio":0.147},        "vertical_landscape":{"original_ratio":0.165},        "horizontal_landscape":{"original_ratio":0.165}    }  },  "narrow_default": {    "freeform_args": {        "vertical_portrait":{"aspect_ratio":0.626, "original_ratio":1,"original_scale":0.74,"top_margin":0.0753,"left_margin":-1},        "horizontal_portrait":{"aspect_ratio":0.626, "original_ratio":1,"original_scale":0.5756,"top_margin":-1,"left_margin":0.0753},        "vertical_landscape":{"aspect_ratio":1.6, "original_ratio":0.6847,"original_scale":0.587,"top_margin":0.0753,"left_margin":-1},        "horizontal_landscape":{"aspect_ratio":1.6, "original_ratio":0.6847,"original_scale":0.587,"top_margin":-1,"left_margin":0.0753}    },    "mini_freeform_args":{        "vertical_portrait":{"original_ratio":0.26},        "horizontal_portrait":{"original_ratio":0.26},        "vertical_landscape":{"original_ratio":0.293},        "horizontal_landscape":{"original_ratio":0.293}    }  },  "regular_default": {    "freeform_args": {      "vertical_portrait":{"aspect_ratio":0.625, "original_ratio":1,"original_scale":0.7,"top_margin":0.109,"left_margin":-1},      "horizontal_portrait":{"aspect_ratio":0.6667, "original_ratio":1,"original_scale":0.6102,"top_margin":-1,"left_margin":0.026},      "vertical_landscape":{"aspect_ratio":1.6, "original_ratio":1,"original_scale":0.4244,"top_margin":0.109,"left_margin":-1},      "horizontal_landscape":{"aspect_ratio":1.6, "original_ratio":1,"original_scale":0.4244,"top_margin":-1,"left_margin":0.026}    },    "mini_freeform_args":{      "vertical_portrait":{"original_ratio":0.25},      "horizontal_portrait":{"original_ratio":0.25},      "vertical_landscape":{"original_ratio":0.25},      "horizontal_landscape":{"original_ratio":0.25}    }  },  "pad_default": {    "freeform_args": {      "vertical_portrait":{"aspect_ratio":0.5625, "original_ratio":0.375,"original_scale":0.835,"top_margin":0.049,"left_margin":0.2775},      "horizontal_portrait":{"aspect_ratio":0.5625, "original_ratio":0.375,"original_scale":0.835,"top_margin":-1,"left_margin":0.6525},      "vertical_landscape":{"aspect_ratio":-1, "original_ratio":1,"original_scale":0.468,"top_margin":0.049,"left_margin":-1},      "horizontal_landscape":{"aspect_ratio":-1, "original_ratio":1,"original_scale":0.468,"top_margin":-1,"left_margin":0.4976}    },    "mini_freeform_args":{      "vertical_portrait":{"original_ratio":0.144},      "horizontal_portrait":{"original_ratio":0.144},      "vertical_landscape":{"original_ratio":0.2},      "horizontal_landscape":{"original_ratio":0.2}    }  }}
+10:36:20.993 MiuiMultiWindowUtils    cn....tlecookie.lut2photo.lut2photo  D  initFreeFormResolutionArgs failed, device is dada
+10:36:20.994 IS_CTS_MODE             cn....tlecookie.lut2photo.lut2photo  D  false
+10:36:20.994 MULTI_WIND...CH_ENABLED cn....tlecookie.lut2photo.lut2photo  D  false
+10:36:22.504 ActivityThread          cn....tlecookie.lut2photo.lut2photo  D  handleBoundsCompatInfoChanged remove: name=cn.alittlecookie.lut2photo.lut2photo
+10:36:22.506 ActivityThread          cn....tlecookie.lut2photo.lut2photo  E   fail in deliverResultsIfNeeded java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.String android.os.Bundle.getString(java.lang.String)' on a null object reference
+10:36:22.510 SecurityManager         cn....tlecookie.lut2photo.lut2photo  D  checkAccessControl flag1
+10:36:22.511 ContentCatcher          cn....tlecookie.lut2photo.lut2photo  I  SettingTrigger : register screen QA status observer cn.alittlecookie.lut2photo.lut2photo.MainActivity
+10:36:22.511 ContentCatcher          cn....tlecookie.lut2photo.lut2photo  I  SettingTrigger : register global collect status observer cn.alittlecookie.lut2photo.lut2photo.MainActivity
+10:36:22.521 ContentCat...ListHelper cn....tlecookie.lut2photo.lut2photo  I   blackList size: 14 package is cn.alittlecookie.lut2photo.lut2photo isInTaplusWhiteList: true
+10:36:22.522 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  refreshLastKeyboardType: 1
+10:36:22.522 HandWritingStubImpl     cn....tlecookie.lut2photo.lut2photo  I  getCurrentKeyboardType: 1
+10:36:22.525 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 4] skia-debug SkJpegCodec::ReadHeader: width = 5184, height = 3888, color = 10
+10:36:22.525 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 4] skia-debug SkJpegCodec::ReadHeader: progressive_mode = 0, arith_code = 0, streamType: SkStreamRewindable
+10:36:22.530 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 5] skia-debug SkJpegCodec::ReadHeader: width = 5184, height = 3888, color = 10
+10:36:22.530 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 5] skia-debug SkJpegCodec::ReadHeader: progressive_mode = 0, arith_code = 0, streamType: SkStreamRewindable
+10:36:22.530 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 5] skia-debug SkJpegCodec::onGetScaledDimensions: desiredScale = 0.125000
+10:36:22.530 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 5] skia-debug SkJpegCodec::onGetScaledDimensions: desiredScale = 0.125000
+10:36:22.644 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 6] skia-debug SkJpegCodec::ReadHeader: width = 5184, height = 3888, color = 10
+10:36:22.644 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 6] skia-debug SkJpegCodec::ReadHeader: progressive_mode = 0, arith_code = 0, streamType: SkStreamRewindable
+10:36:22.647 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 7] skia-debug SkJpegCodec::ReadHeader: width = 5184, height = 3888, color = 10
+10:36:22.647 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 7] skia-debug SkJpegCodec::ReadHeader: progressive_mode = 0, arith_code = 0, streamType: SkStreamRewindable
+10:36:22.647 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 7] skia-debug SkJpegCodec::onGetScaledDimensions: desiredScale = 0.125000
+10:36:22.647 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 7] skia-debug SkJpegCodec::onGetScaledDimensions: desiredScale = 0.125000
+10:36:23.536 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360838158, downTime=360838158, phoneEventTime=10:36:23.532 } moveCount:0
+10:36:23.631 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360838255, downTime=360838158, phoneEventTime=10:36:23.629 } moveCount:10
+10:36:23.631 SplineOverScroller      cn....tlecookie.lut2photo.lut2photo  D  mFlingDuration: 2423,mFlingDistance: 4238.6044921875,mVelocity: 9163
+10:36:24.810 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360839433, downTime=360839433, phoneEventTime=10:36:24.807 } moveCount:0
+10:36:24.853 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360839477, downTime=360839433, phoneEventTime=10:36:24.851 } moveCount:0
+10:36:25.160 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360839782, downTime=360839782, phoneEventTime=10:36:25.156 } moveCount:0
+10:36:25.300 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360839924, downTime=360839782, phoneEventTime=10:36:25.298 } moveCount:14
+10:36:25.301 SplineOverScroller      cn....tlecookie.lut2photo.lut2photo  D  mFlingDuration: 2570,mFlingDistance: 5821.39501953125,mVelocity: -12566
+10:36:26.945 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_DOWN, id[0]=0, pointerCount=1, eventTime=360841567, downTime=360841567, phoneEventTime=10:36:26.942 } moveCount:0
+10:36:26.980 MIUIInput               cn....tlecookie.lut2photo.lut2photo  I  [MotionEvent] ViewRootImpl windowName 'cn.alittlecookie.lut2photo.lut2photo/cn.alittlecookie.lut2photo.lut2photo.MainActivity', { action=ACTION_UP, id[0]=0, pointerCount=1, eventTime=360841603, downTime=360841567, phoneEventTime=10:36:26.977 } moveCount:0
+10:36:26.993 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  Updating processor settings...
+10:36:26.993 ThreadManager           cn....tlecookie.lut2photo.lut2photo  D  Processor configured from settings: CPU (user setting: CPU)
+10:36:26.993 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  处理器设置已同步
+10:36:26.995 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录路径: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts
+10:36:26.995 LutManager              cn....tlecookie.lut2photo.lut2photo  D  外部文件目录: /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files
+10:36:26.995 LutManager              cn....tlecookie.lut2photo.lut2photo  D  LUT目录已存在
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  目录中的文件数量: 19
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 蓝橙.cube, 大小: 422002
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 青橙.cube, 大小: 905548
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 日系空气感.cube, 大小: 7619024
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: 仙气古风.cube, 大小: 7803104
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Backlight-N.cube, 大小: 950669
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: bloom.cube, 大小: 904053
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: btym.cube, 大小: 5909350
+10:36:26.996 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-FX-Plady.cube, 大小: 885012
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-Plady.cube, 大小: 885009
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CCV2-Port-Plady.cube, 大小: 885014
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CNV2-Plady.cube, 大小: 885009
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: CNV2-Port-Plady.cube, 大小: 885014
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Daily Life.cube, 大小: 987227
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Deep Green-L.cube, 大小: 969709
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: jasminezm-spring.cube, 大小: 132192
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Old Cinema-S.cube, 大小: 995564
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Retrostyle709.cube, 大小: 940080
+10:36:26.997 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Smoky Color-S.cube, 大小: 994394
+10:36:26.998 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件: Teal Flat-S.cube, 大小: 915180
+10:36:26.998 LutManager              cn....tlecookie.lut2photo.lut2photo  D  获取LUT文件路径: btym.cube -> /storage/emulated/0/Android/data/cn.alittlecookie.lut2photo.lut2photo/files/android_data/luts/btym.cube
+10:36:26.998 LutManager              cn....tlecookie.lut2photo.lut2photo  D  文件是否存在: true
+10:36:27.015 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  开始加载LUT文件
+10:36:27.038 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:27.203 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  读取到 274628 行数据
+10:36:27.203 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 1 行: TITLE "Generated by Resolve"
+10:36:27.203 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 2 行: LUT_3D_SIZE 65
+10:36:27.203 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  找到LUT_3D_SIZE行: LUT_3D_SIZE 65
+10:36:27.203 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT尺寸: 65
+10:36:27.226 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:27.228 System                  cn....tlecookie.lut2photo.lut2photo  W  A resource failed to call close. 
+10:36:27.245 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数组初始化完成
+10:36:27.685 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:28.021 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:28.356 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:28.695 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:29.063 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:29.073 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数据加载完成，期望数据点: 274625，实际数据点: 274625
+10:36:29.073 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT文件加载成功
+10:36:29.074 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  开始加载LUT文件
+10:36:29.161 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  读取到 274628 行数据
+10:36:29.161 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 1 行: TITLE "Generated by Resolve"
+10:36:29.161 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  检查第 2 行: LUT_3D_SIZE 65
+10:36:29.161 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  找到LUT_3D_SIZE行: LUT_3D_SIZE 65
+10:36:29.161 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT尺寸: 65
+10:36:29.167 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数组初始化完成
+10:36:29.426 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:29.758 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:30.104 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:30.453 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:30.780 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数据加载完成，期望数据点: 274625，实际数据点: 274625
+10:36:30.780 CpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT文件加载成功
+10:36:30.780 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  CPU处理器LUT加载成功，尺寸: 65
+10:36:30.813 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  I  This is non sticky GC, maxfree is 16777216 minfree is 8388608
+10:36:30.829 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT数据验证: 总数据点=274625, 非零数据点=274625
+10:36:30.835 GpuLutProcessor         cn....tlecookie.lut2photo.lut2photo  D  LUT uploaded to GPU with size: 65
+10:36:30.835 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  LUT加载成功: btym
+10:36:30.847 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug SkJpegCodec::ReadHeader: width = 5184, height = 3888, color = 10
+10:36:30.847 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug SkJpegCodec::ReadHeader: progressive_mode = 0, arith_code = 0, streamType: SkStreamRewindable
+10:36:30.847 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug SkJpegCodec::onGetPixels: dstRowBytes = 20736, 
+                                                                             dstInfo: SkImageInfo: {IsRGB = 1, ColorType = 4, AlphaType = 1, Dimensions.width = 5184, Dimensions.height = 3888};
+10:36:30.847 JpegXmCodec             cn....tlecookie.lut2photo.lut2photo  I   skia-debug JpegXmCodec::isSupported returns true
+10:36:30.847 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug SkJpegCodec::onGetPixels XmCodec start
+10:36:30.848 JpegXmCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug JpegXmCodec::decode: prepare ends
+10:36:31.028 JpegXmCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug JpegXmCodec::decode: done
+10:36:31.028 SkJpegCodec             cn....tlecookie.lut2photo.lut2photo  I  [mId: 8] skia-debug SkJpegCodec::onGetPixels XmCodec ends with output size = 80621568
+10:36:31.029 DashboardViewModel      cn....tlecookie.lut2photo.lut2photo  D  开始提交CPU处理任务，图片尺寸: 5184x3888

@@ -3,8 +3,8 @@ package cn.alittlecookie.lut2photo.lut2photo.utils
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
 import cn.alittlecookie.lut2photo.lut2photo.R
 import com.google.android.material.color.DynamicColors
 
@@ -19,8 +19,6 @@ class ThemeManager(private val context: Context) {
         const val THEME_SYSTEM = 2
         const val THEME_DYNAMIC = 3
 
-        // 添加缺失的常量
-        private const val MODE_NIGHT_DYNAMIC = 4
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -30,7 +28,7 @@ class ThemeManager(private val context: Context) {
     }
     
     fun setTheme(themeMode: Int) {
-        prefs.edit().putInt(KEY_THEME_MODE, themeMode).apply()
+        prefs.edit { putInt(KEY_THEME_MODE, themeMode) }
         applyTheme(themeMode)
     }
     
@@ -82,15 +80,7 @@ class ThemeManager(private val context: Context) {
     }
     
     fun isDynamicColorSupported(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && DynamicColors.isDynamicColorAvailable()
+        return DynamicColors.isDynamicColorAvailable()
     }
-    
-    /**
-     * 应用动态颜色到整个应用
-     */
-    fun applyDynamicColors() {
-        if (isDynamicColorSupported()) {
-            DynamicColors.applyToActivitiesIfAvailable(context as? android.app.Application ?: return)
-        }
-    }
+
 }

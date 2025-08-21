@@ -1,7 +1,6 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.dashboard
 
-import android.graphics.BitmapFactory
-import android.net.Uri
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,12 +9,14 @@ import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.adapter.ImageAdapter
-import cn.alittlecookie.lut2photo.lut2photo.adapter.LutAdapter
+import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentDashboardBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
@@ -32,7 +33,6 @@ class DashboardFragment : Fragment() {
     private val dashboardViewModel: DashboardViewModel by viewModels()
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var imageAdapter: ImageAdapter
-    private lateinit var lutAdapter: LutAdapter
     private lateinit var lutManager: LutManager
     private var selectedLutItem: LutItem? = null
     private var availableLuts: List<LutItem> = emptyList()
@@ -41,8 +41,11 @@ class DashboardFragment : Fragment() {
     private val selectImagesLauncher = registerForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris ->
-        uris?.forEach { uri ->
-            addImageToList(uri)
+        uris.let { uriList ->
+            if (uriList.isNotEmpty()) {
+                // 使用批量添加方法而不是逐个添加
+                dashboardViewModel.addImages(uriList)
+            }
         }
     }
 
@@ -95,7 +98,7 @@ class DashboardFragment : Fragment() {
         }
 
         // 停止处理按钮
-        binding.buttonStopProcessing?.setOnClickListener {
+        binding.buttonStopProcessing.setOnClickListener {
             stopProcessing()
         }
 
@@ -109,14 +112,14 @@ class DashboardFragment : Fragment() {
 
         // 设置高级设置切换
         binding.layoutParamsHeader.setOnClickListener {
-            toggleSection(binding.layoutParamsContent, binding.buttonToggleParams as ImageView)
+            toggleSection(binding.layoutParamsContent, binding.buttonToggleParams)
         }
 
         // 设置文件设置切换
         binding.layoutFileSettingsHeader.setOnClickListener {
             toggleSection(
                 binding.layoutFileSettingsContent,
-                binding.buttonToggleFileSettings as ImageView
+                binding.buttonToggleFileSettings
             )
         }
 
@@ -135,20 +138,6 @@ class DashboardFragment : Fragment() {
                 }
                 preferencesManager.dashboardDitherType = ditherType.name
             }
-        }
-    }
-
-    private fun addImageToList(uri: Uri) {
-        try {
-            val inputStream = requireContext().contentResolver.openInputStream(uri)
-            BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-
-            // 直接传递 Uri 给 ViewModel，让 ViewModel 处理 ImageItem 的创建
-            dashboardViewModel.addImage(uri)
-        } catch (e: Exception) {
-            Toast.makeText(requireContext(), "添加图片失败: ${e.message}", Toast.LENGTH_SHORT)
-                .show()
         }
     }
 
@@ -250,128 +239,54 @@ class DashboardFragment : Fragment() {
         dashboardViewModel.clearImages()
     }
 
+    private fun getDitherType(): ILutProcessor.DitherType {
+        val savedDitherType = preferencesManager.dashboardDitherType
+        return try {
+            ILutProcessor.DitherType.valueOf(savedDitherType.uppercase())
+        } catch (_: Exception) {
+            ILutProcessor.DitherType.NONE
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
     private fun loadSavedSettings() {
-        // 加载强度设置 - 修复：将0-1范围转换为0-100范围
+        // 加载强度设置
         binding.sliderStrength.value = preferencesManager.dashboardStrength * 100f
 
-        // 加载质量设置 - 修复类型问题
+        // 加载质量设置
         binding.sliderQuality.value = preferencesManager.dashboardQuality
 
-        // 加载抖动类型设置
+        // 加载抖动类型设置 - 修复枚举类型比较
         val ditherType = getDitherType()
         val buttonId = when (ditherType) {
-            LutProcessor.DitherType.FLOYD_STEINBERG -> R.id.button_dither_floyd
-            LutProcessor.DitherType.RANDOM -> R.id.button_dither_random
-            LutProcessor.DitherType.NONE -> R.id.button_dither_none
+            ILutProcessor.DitherType.FLOYD_STEINBERG -> R.id.button_dither_floyd
+            ILutProcessor.DitherType.RANDOM -> R.id.button_dither_random
+            ILutProcessor.DitherType.NONE -> R.id.button_dither_none
         }
         binding.toggleGroupDither.check(buttonId)
 
         // 更新显示值
-        binding.textStrengthValue?.text = "${(preferencesManager.dashboardStrength * 100).toInt()}%"
-        binding.textQualityValue?.text = "${preferencesManager.dashboardQuality.toInt()}"
+        binding.textStrengthValue.text = "${(preferencesManager.dashboardStrength * 100).toInt()}%"
+        binding.textQualityValue.text = "${preferencesManager.dashboardQuality.toInt()}"
 
         // 加载输出文件夹
         updateOutputFolderDisplay()
     }
 
-    private fun setupSliders() {
-        // 强度滑块 - 修复：将0-100范围转换为0-1范围存储
-        binding.sliderStrength.addOnChangeListener { _, value, _ ->
-            preferencesManager.dashboardStrength = value / 100f
-            binding.textStrengthValue?.text = "${value.toInt()}%"
-        }
-
-        // 质量滑块 - 修复类型问题
-        binding.sliderQuality.addOnChangeListener { _, value, _ ->
-            preferencesManager.dashboardQuality = value
-            binding.textQualityValue?.text = "${value.toInt()}"
-        }
-    }
-
-    private fun saveCurrentSettings() {
-        // 修复：将slider值（0-100）转换为存储值（0-1）
-        preferencesManager.dashboardStrength = binding.sliderStrength.value / 100f
-        preferencesManager.dashboardQuality = binding.sliderQuality.value
-        preferencesManager.dashboardDitherType = getDitherType().name
-    }
-
     private fun updateOutputFolderDisplay() {
-        val folderUri = preferencesManager.dashboardOutputFolder
-        val displayName = if (folderUri.isNotEmpty()) {
-            getDisplayNameFromUri(folderUri)
+        val outputFolder = preferencesManager.dashboardOutputFolder
+        binding.textOutputFolder.text = if (outputFolder.isNotEmpty()) {
+            getDisplayNameFromUri(outputFolder)
         } else {
-            getString(R.string.no_folder_selected)
+            getString(R.string.folder_not_set)
         }
-        binding.textOutputFolder?.text = displayName
-    }
-
-    private fun restoreUIState() {
-        // 恢复高级设置展开状态
-        binding.layoutParamsContent.visibility = if (preferencesManager.dashboardParamsExpanded) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-
-        // 恢复文件设置展开状态
-        binding.layoutFileSettingsContent.visibility =
-            if (preferencesManager.dashboardFileSettingsExpanded) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-
-        // 更新按钮图标
-        updateToggleButtonIcon(
-            binding.buttonToggleParams as ImageView,
-            preferencesManager.dashboardParamsExpanded
-        )
-        updateToggleButtonIcon(
-            binding.buttonToggleFileSettings as ImageView,
-            preferencesManager.dashboardFileSettingsExpanded
-        )
-    }
-
-    private fun toggleSection(layout: View, button: ImageView) {
-        val isExpanded = layout.visibility == View.VISIBLE
-
-        if (isExpanded) {
-            layout.visibility = View.GONE
-            when (layout.id) {
-                R.id.layout_params_content -> preferencesManager.dashboardParamsExpanded = false
-                R.id.layout_file_settings_content -> preferencesManager.dashboardFileSettingsExpanded =
-                    false
-            }
-        } else {
-            layout.visibility = View.VISIBLE
-            when (layout.id) {
-                R.id.layout_params_content -> preferencesManager.dashboardParamsExpanded = true
-                R.id.layout_file_settings_content -> preferencesManager.dashboardFileSettingsExpanded =
-                    true
-            }
-        }
-
-        updateToggleButtonIcon(button, !isExpanded)
-    }
-
-    private fun updateToggleButtonIcon(button: ImageView, isExpanded: Boolean) {
-        val iconRes = if (isExpanded) {
-            R.drawable.ic_expand_less
-        } else {
-            R.drawable.ic_expand_more
-        }
-        button.setImageResource(iconRes)
-    }
-
-    private fun getFileNameFromUri(uri: Uri): String {
-        return uri.lastPathSegment ?: "未知文件"
     }
 
     private fun getDisplayNameFromUri(uriString: String): String {
         return try {
-            val uri = Uri.parse(uriString)
+            val uri = uriString.toUri()
             uri.lastPathSegment?.replace(":", "/") ?: "未知文件夹"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "未知文件夹"
         }
     }
@@ -380,77 +295,117 @@ class DashboardFragment : Fragment() {
         imageAdapter = ImageAdapter { imageItem ->
             dashboardViewModel.removeImage(imageItem)
         }
-
         binding.recyclerViewImages.apply {
-            layoutManager = WrapContentGridLayoutManager(requireContext(), 2)
             adapter = imageAdapter
+            layoutManager = WrapContentGridLayoutManager(requireContext(), 3)
+        }
+    }
+
+    private fun restoreUIState() {
+        // 恢复UI状态，如折叠面板的展开/收起状态
+        val isParamsExpanded = preferencesManager.dashboardParamsExpanded
+        val isFileSettingsExpanded = preferencesManager.dashboardFileSettingsExpanded
+
+        if (!isParamsExpanded) {
+            binding.layoutParamsContent.visibility = View.GONE
+            binding.buttonToggleParams.rotation = 180f
+        }
+
+        if (!isFileSettingsExpanded) {
+            binding.layoutFileSettingsContent.visibility = View.GONE
+            binding.buttonToggleFileSettings.rotation = 180f
+        }
+    }
+
+    private fun toggleSection(contentLayout: View, toggleButton: ImageView) {
+        val isVisible = contentLayout.isVisible
+
+        if (isVisible) {
+            contentLayout.visibility = View.GONE
+            toggleButton.animate().rotation(180f).setDuration(200).start()
+        } else {
+            contentLayout.visibility = View.VISIBLE
+            toggleButton.animate().rotation(0f).setDuration(200).start()
+        }
+
+        // 保存状态
+        when (contentLayout.id) {
+            R.id.layout_params_content -> {
+                preferencesManager.dashboardParamsExpanded = !isVisible
+            }
+
+            R.id.layout_file_settings_content -> {
+                preferencesManager.dashboardFileSettingsExpanded = !isVisible
+            }
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun setupSliders() {
+        // 设置强度滑块
+        binding.sliderStrength.addOnChangeListener { _, value, _ ->
+            val strengthValue = (value / 100f)
+            preferencesManager.dashboardStrength = strengthValue
+            binding.textStrengthValue.text = "${value.toInt()}%"
+        }
+
+        // 设置质量滑块
+        binding.sliderQuality.addOnChangeListener { _, value, _ ->
+            preferencesManager.dashboardQuality = value
+            binding.textQualityValue.text = "${value.toInt()}"
         }
     }
 
     private fun updateImageCount(count: Int) {
-        binding.textImageCount?.text = getString(R.string.selected_images_count, count)
+        binding.textImageCount.text = getString(R.string.image_count_format, count)
     }
 
     private fun updateProcessingStatus(status: String) {
-        binding.textProcessingStatus?.text = status
+        binding.textProcessingStatus.text = status
     }
 
     private fun updateProcessedCount(processed: Int, total: Int) {
-        binding.textProcessedCount?.text = getString(R.string.processed_count, processed, total)
+        binding.textProcessedCount.text =
+            getString(R.string.processed_count_format, processed, total)
+
+        // 更新进度条
+        if (total > 0) {
+            val progress = (processed * 100) / total
+            binding.progressBar.progress = progress
+            binding.progressBar.visibility = if (processed < total) View.VISIBLE else View.GONE
+        }
     }
 
-    private fun getDitherType(): LutProcessor.DitherType {
-        return when (preferencesManager.dashboardDitherType.lowercase()) {
-            "floyd_steinberg" -> LutProcessor.DitherType.FLOYD_STEINBERG
-            "random" -> LutProcessor.DitherType.RANDOM
-            else -> LutProcessor.DitherType.NONE
+    private fun saveCurrentSettings() {
+        // 当前设置已经通过滑块监听器实时保存，这里可以做额外的保存操作
+        preferencesManager.apply {
+            // 保存当前选中的LUT
+            selectedLutItem?.let {
+                dashboardLutUri = it.filePath
+            }
         }
     }
 
     private fun startProcessing() {
-        val images = dashboardViewModel.selectedImages.value ?: emptyList()
-        val lutItem = selectedLutItem
+        val selectedLut = selectedLutItem ?: return
+        val outputFolderUri = preferencesManager.dashboardOutputFolder
 
-        if (images.isEmpty()) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.no_images_selected),
-                Toast.LENGTH_SHORT
-            ).show()
+        if (outputFolderUri.isEmpty()) {
+            Toast.makeText(requireContext(), "请选择输出文件夹", Toast.LENGTH_SHORT).show()
             return
         }
 
-        if (lutItem == null) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.no_lut_selected),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
 
-        val outputFolder = preferencesManager.dashboardOutputFolder
-        if (outputFolder.isEmpty()) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.no_output_folder_selected),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        val params = LutProcessor.ProcessingParams(
-            strength = (preferencesManager.dashboardStrength * 100).toInt(), // 修复：转换为0-100范围
+        // 修复参数创建
+        val params = ILutProcessor.ProcessingParams(
+            strength = preferencesManager.dashboardStrength,
             quality = preferencesManager.dashboardQuality.toInt(),
             ditherType = getDitherType()
         )
 
-        dashboardViewModel.startProcessing(
-            images = images,
-            lutItem = lutItem,
-            params = params,
-            outputFolderUri = outputFolder
-        )
+        // 修复方法调用参数顺序
+        val images = dashboardViewModel.selectedImages.value ?: emptyList()
+        dashboardViewModel.startProcessing(images, selectedLut, params, outputFolderUri)
     }
 
     override fun onPause() {

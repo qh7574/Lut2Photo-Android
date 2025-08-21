@@ -3,6 +3,7 @@ package cn.alittlecookie.lut2photo.lut2photo.ui.home
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -71,9 +72,19 @@ class HomeFragment : Fragment() {
         
         setupViews()
         setupLutSpinner()
-        observeViewModel()
         loadSavedSettings()
         restoreUIState()
+
+        // 修复：延迟观察ViewModel，确保LUT加载完成
+        // 等待LUT异步加载完成后再设置观察者
+        lifecycleScope.launch {
+            // 等待一个短暂的延迟，确保setupLutSpinner中的异步操作有时间完成
+            kotlinx.coroutines.delay(100)
+            observeViewModel()
+
+            // 然后进行状态恢复
+            homeViewModel.restoreMonitoringState()
+        }
     }
 
     private fun setupViews() {
@@ -87,15 +98,8 @@ class HomeFragment : Fragment() {
             selectOutputFolderLauncher.launch(null)
         }
 
-        // 开始监控按钮
-        binding.buttonStartMonitoring.setOnClickListener {
-            startMonitoring()
-        }
-
-        // 停止监控按钮
-        binding.buttonStopMonitoring.setOnClickListener {
-            stopMonitoring()
-        }
+        // 设置监控开关监听器 - 简化版本
+        setupSwitchListener()
 
         // 参数设置折叠/展开
         binding.layoutParamsHeader.setOnClickListener {
@@ -112,6 +116,72 @@ class HomeFragment : Fragment() {
 
         // 设置抖动按钮
         setupDitherButtons()
+    }
+
+    private fun setupSwitchListener() {
+        binding.switchMonitoring.setOnCheckedChangeListener { _, isChecked ->
+            Log.d("HomeFragment", "开关状态改变: $isChecked")
+
+            if (isChecked) {
+                // 添加详细的调试信息
+                val hasInputFolder = preferencesManager.homeInputFolder.isNotEmpty()
+                val hasOutputFolder = preferencesManager.homeOutputFolder.isNotEmpty()
+                val hasLutFile = selectedLutItem != null
+
+                Log.d("HomeFragment", "检查监控启动条件:")
+                Log.d(
+                    "HomeFragment",
+                    "  输入文件夹: $hasInputFolder (${preferencesManager.homeInputFolder})"
+                )
+                Log.d(
+                    "HomeFragment",
+                    "  输出文件夹: $hasOutputFolder (${preferencesManager.homeOutputFolder})"
+                )
+                Log.d(
+                    "HomeFragment",
+                    "  LUT文件: $hasLutFile (${selectedLutItem?.name ?: "未选择"})"
+                )
+
+                if (canStartMonitoring()) {
+                    Log.d("HomeFragment", "条件满足，开始启动监控服务")
+                    startMonitoring()
+                } else {
+                    Log.w("HomeFragment", "条件不满足，重置开关状态")
+                    if (!hasLutFile && availableLuts.isNotEmpty()) {
+                        showToast("LUT文件正在加载中，请稍后再试")
+                    } else {
+                        showToast("读取设置中。。。")
+                    }
+
+                    // 临时移除监听器，重置状态，然后恢复监听器
+                    binding.switchMonitoring.setOnCheckedChangeListener(null)
+                    binding.switchMonitoring.isChecked = false
+                    setupSwitchListener()
+                }
+            } else {
+                Log.d("HomeFragment", "停止监控服务")
+                stopMonitoring()
+            }
+
+            // 修复：只有在成功操作后才保存开关状态
+            if (isChecked && canStartMonitoring() || !isChecked) {
+                preferencesManager.monitoringSwitchEnabled = binding.switchMonitoring.isChecked
+                Log.d("HomeFragment", "开关状态已保存: ${binding.switchMonitoring.isChecked}")
+            }
+        }
+    }
+
+    private fun observeViewModel() {
+        homeViewModel.statusText.observe(viewLifecycleOwner) { status ->
+            binding.textMonitoringStatus.text = status
+        }
+
+        homeViewModel.isMonitoring.observe(viewLifecycleOwner) { isMonitoring ->
+            // 只更新开关状态，不重新设置监听器
+            binding.switchMonitoring.setOnCheckedChangeListener(null)
+            binding.switchMonitoring.isChecked = isMonitoring
+            setupSwitchListener() // 恢复监听器
+        }
     }
 
     private fun setupDitherToggleGroup() {
@@ -159,6 +229,10 @@ class HomeFragment : Fragment() {
                                 preferencesManager.homeLutUri = it.filePath
                             }
                             updateMonitoringButtonState()
+                            Log.d(
+                                "HomeFragment",
+                                "LUT选择更新: ${selectedLutItem?.name ?: "未选择"}"
+                            )
                     }
 
                         override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
@@ -174,9 +248,13 @@ class HomeFragment : Fragment() {
                     if (savedLutIndex >= 0) {
                         binding.spinnerLut.setSelection(savedLutIndex + 1)
                         selectedLutItem = availableLuts[savedLutIndex]
+                        Log.d("HomeFragment", "恢复LUT选择: ${selectedLutItem?.name}")
                     }
                 }
+
+                Log.d("HomeFragment", "LUT加载完成，共${availableLuts.size}个文件")
             } catch (e: Exception) {
+                Log.e("HomeFragment", "加载LUT文件失败", e)
                 Toast.makeText(
                     requireContext(),
                     "加载LUT文件失败: ${e.message}",
@@ -186,69 +264,6 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun observeViewModel() {
-        homeViewModel.statusText.observe(viewLifecycleOwner) { status ->
-            binding.textMonitoringStatus.text = status
-            updateMonitoringButtonState()
-        }
-
-        homeViewModel.isMonitoring.observe(viewLifecycleOwner) { isMonitoring ->
-            binding.buttonStartMonitoring.isEnabled = !isMonitoring && canStartMonitoring()
-            binding.buttonStopMonitoring.isEnabled = isMonitoring
-        }
-    }
-
-    private fun updateMonitoringButtonState() {
-        val isMonitoring = homeViewModel.isMonitoring.value == true
-        binding.buttonStartMonitoring.isEnabled = !isMonitoring && canStartMonitoring()
-        binding.buttonStopMonitoring.isEnabled = isMonitoring
-    }
-
-    private fun canStartMonitoring(): Boolean {
-        return preferencesManager.homeInputFolder.isNotEmpty() &&
-                preferencesManager.homeOutputFolder.isNotEmpty() &&
-                selectedLutItem != null
-    }
-
-    private fun startMonitoring() {
-        if (!canStartMonitoring()) {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.monitoring_requirements_not_met),
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
-        // 添加空值检查
-        val lutItem = selectedLutItem
-        if (lutItem == null) {
-            Toast.makeText(requireContext(), "请先选择LUT文件", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val intent = Intent(requireContext(), FolderMonitorService::class.java).apply {
-            action = FolderMonitorService.ACTION_START_MONITORING
-            putExtra(FolderMonitorService.EXTRA_INPUT_FOLDER, preferencesManager.homeInputFolder)
-            putExtra(FolderMonitorService.EXTRA_OUTPUT_FOLDER, preferencesManager.homeOutputFolder)
-            putExtra(FolderMonitorService.EXTRA_LUT_FILE_PATH, lutManager.getLutFilePath(lutItem))
-            // 修复强度参数传递 - 直接传递原始值，不要乘以100
-            putExtra(FolderMonitorService.EXTRA_STRENGTH, preferencesManager.homeStrength.toInt())
-            putExtra(FolderMonitorService.EXTRA_QUALITY, preferencesManager.homeQuality.toInt())
-            putExtra(FolderMonitorService.EXTRA_DITHER, getDitherType().name)
-        }
-        requireContext().startForegroundService(intent)
-        homeViewModel.setMonitoring(true)
-    }
-
-    private fun stopMonitoring() {
-        val intent = Intent(requireContext(), FolderMonitorService::class.java)
-        intent.action = FolderMonitorService.ACTION_STOP_MONITORING
-        requireContext().startService(intent)
-        homeViewModel.setMonitoring(false)
-    }
-
-    @SuppressLint("SetTextI18n")
     private fun loadSavedSettings() {
         // 加载强度设置
         binding.sliderStrength.value = preferencesManager.homeStrength
@@ -265,18 +280,36 @@ class HomeFragment : Fragment() {
         }
         binding.toggleGroupDither.check(buttonId)
 
-        // 更新显示值 - 修复强度显示问题
+        // 加载文件夹路径显示
+        updateInputFolderDisplay()
+        updateOutputFolderDisplay()
+
+        // 修复：不要在启动时自动设置开关状态，让HomeViewModel来控制
+        // 移除这行：binding.switchMonitoring.isChecked = savedSwitchState
+
+        Log.d("HomeFragment", "设置加载完成，等待ViewModel状态检查")
+    }
+
+    private fun saveCurrentSettings() {
+        // 保存滑块设置
+        preferencesManager.homeStrength = binding.sliderStrength.value
+        preferencesManager.homeQuality = binding.sliderQuality.value
+        preferencesManager.homeDitherType = getDitherType().name
+
+        // 保存开关状态
+        preferencesManager.monitoringSwitchEnabled = binding.switchMonitoring.isChecked
+
+        // 更新显示值
         binding.textStrengthValue.text = "${preferencesManager.homeStrength.toInt()}%"
         binding.textQualityValue.text = "${preferencesManager.homeQuality.toInt()}"
 
-        // 加载文件夹
+        // 确保文件夹显示是最新的
         updateInputFolderDisplay()
         updateOutputFolderDisplay()
     }
 
     @SuppressLint("SetTextI18n")
     private fun setupSliders() {
-        // 强度滑块 - 修复显示问题
         binding.sliderStrength.addOnChangeListener { _, value, _ ->
             preferencesManager.homeStrength = value
             binding.textStrengthValue.text = "${value.toInt()}%"
@@ -389,10 +422,46 @@ class HomeFragment : Fragment() {
         saveCurrentSettings()
     }
 
-    private fun saveCurrentSettings() {
-        preferencesManager.homeStrength = binding.sliderStrength.value
-        preferencesManager.homeQuality = binding.sliderQuality.value
-        preferencesManager.homeDitherType = getDitherType().name
+    private fun showToast(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun canStartMonitoring(): Boolean {
+        val hasInputFolder = preferencesManager.homeInputFolder.isNotEmpty()
+        val hasOutputFolder = preferencesManager.homeOutputFolder.isNotEmpty()
+        val hasLutFile = selectedLutItem != null
+        return hasInputFolder && hasOutputFolder && hasLutFile
+    }
+
+    private fun startMonitoring() {
+        val intent = Intent(requireContext(), FolderMonitorService::class.java).apply {
+            action = FolderMonitorService.ACTION_START_MONITORING
+            putExtra(FolderMonitorService.EXTRA_INPUT_FOLDER, preferencesManager.homeInputFolder)
+            putExtra(FolderMonitorService.EXTRA_OUTPUT_FOLDER, preferencesManager.homeOutputFolder)
+            // 修复：使用LutManager获取完整路径
+            putExtra(
+                FolderMonitorService.EXTRA_LUT_FILE_PATH,
+                selectedLutItem?.let { lutManager.getLutFilePath(it) } ?: "")
+            // 修复：转换为Integer类型
+            putExtra(FolderMonitorService.EXTRA_STRENGTH, preferencesManager.homeStrength.toInt())
+            putExtra(FolderMonitorService.EXTRA_QUALITY, preferencesManager.homeQuality.toInt())
+            putExtra(FolderMonitorService.EXTRA_DITHER, getDitherType().name)
+        }
+        requireContext().startForegroundService(intent)
+        homeViewModel.setMonitoring(true)
+    }
+
+    private fun stopMonitoring() {
+        val intent = Intent(requireContext(), FolderMonitorService::class.java).apply {
+            action = FolderMonitorService.ACTION_STOP_MONITORING
+        }
+        requireContext().startService(intent)
+        homeViewModel.setMonitoring(false)
+    }
+
+    private fun updateMonitoringButtonState() {
+        // 这个方法在新的实现中不再需要，因为我们使用开关控件
+        // 开关的状态会通过observeViewModel()中的逻辑自动更新
     }
 
     override fun onDestroyView() {

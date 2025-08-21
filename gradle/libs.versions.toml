@@ -7,11 +7,11 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.6.1"
-exifinterface = "1.3.7"  # 添加这行
+exifinterface = "1.3.7"
 kotlinxCoroutinesAndroid = "1.10.2"
 lifecycleServiceVersion = "2.9.2"
-material = "1.12.0"  # 更新到支持动态颜色的版本
-navigationFragmentKtx = "2.7.6"  # 更新导航组件
+material = "1.12.0"
+navigationFragmentKtx = "2.7.6"
 navigationUiKtx = "2.7.6"
 constraintlayout = "2.1.4"
 lifecycleLivedataKtx = "2.9.2"
@@ -22,11 +22,14 @@ activityResult = "1.2.4"
 documentfile = "1.0.1"
 kotlinxCoroutines = "1.7.3"
 lifecycleService = "2.7.0"
+# GPU相关依赖版本
+openglWrapper = "1.0.0"
+glide = "4.16.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }  # 添加这行
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 androidx-lifecycle-service-v292 = { module = "androidx.lifecycle:lifecycle-service", version.ref = "lifecycleServiceVersion" }
 # androidx-renderscript-toolkit = { module = "androidx.renderscript:renderscript-toolkit", version.ref = "renderscriptToolkit" } // <-- 移除此行
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -47,6 +50,10 @@ androidx-activity-result = { group = "androidx.activity", name = "activity-resul
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+# GPU相关库定义
+androidx-opengl = { group = "androidx.opengl", name = "opengl", version.ref = "openglWrapper" }
+glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", version.ref = "glide" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
