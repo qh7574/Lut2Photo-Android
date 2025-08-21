@@ -64,6 +64,11 @@ class FolderMonitorService : Service() {
     private var processedCount = 0
     private var currentLutName = ""
 
+    // 添加图片完整性校验相关的变量
+    private val incompleteFiles = mutableSetOf<String>()
+    private val fileRetryCount = mutableMapOf<String, Int>()
+    private val maxRetryCount = 10 // 最大重试次数
+
     // 监控参数
     private var inputFolderUri: String = ""
     private var outputFolderUri: String = ""
@@ -334,6 +339,57 @@ class FolderMonitorService : Service() {
         sendBroadcast(intent)
     }
 
+    /**
+     * 检查图片文件完整性
+     * @param file 要检查的图片文件
+     * @return true表示图片完整，false表示不完整
+     */
+    private suspend fun isImageFileComplete(file: DocumentFile): Boolean {
+        return try {
+            val inputStream = contentResolver.openInputStream(file.uri)
+            if (inputStream == null) {
+                Log.w(TAG, "无法打开文件流: ${file.name}")
+                return false
+            }
+            
+            inputStream.use { stream ->
+                // 方法1: 尝试解码图片
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true // 只获取图片信息，不加载到内存
+                }
+                
+                BitmapFactory.decodeStream(stream, null, options)
+                
+                // 检查是否成功获取图片尺寸信息
+                if (options.outWidth <= 0 || options.outHeight <= 0) {
+                    Log.w(TAG, "图片尺寸信息无效: ${file.name}, width=${options.outWidth}, height=${options.outHeight}")
+                    return false
+                }
+                
+                // 方法2: 检查文件大小是否稳定
+                val fileSize = file.length()
+                if (fileSize <= 0) {
+                    Log.w(TAG, "文件大小无效: ${file.name}, size=$fileSize")
+                    return false
+                }
+                
+                // 等待一小段时间后再次检查文件大小
+                kotlinx.coroutines.delay(500)
+                val newFileSize = file.length()
+                if (fileSize != newFileSize) {
+                    Log.w(TAG, "文件大小不稳定，可能仍在写入: ${file.name}, 之前=$fileSize, 现在=$newFileSize")
+                    return false
+                }
+                
+                Log.d(TAG, "图片完整性校验通过: ${file.name}, size=$fileSize, ${options.outWidth}x${options.outHeight}")
+                return true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "图片完整性校验失败: ${file.name}", e)
+            false
+        }
+    }
+
     private suspend fun startContinuousMonitoring() {
         val inputUri = inputFolderUri.toUri()
         val outputUri = outputFolderUri.toUri()
@@ -387,16 +443,41 @@ class FolderMonitorService : Service() {
                     if (!isMonitoring) break
 
                     imageFile.name?.let { fileName ->
-                        startProcessingFile(fileName)
+                        // 检查图片完整性
+                        if (isImageFileComplete(imageFile)) {
+                            // 图片完整，可以处理
+                            Log.d(TAG, "图片完整性校验通过，开始处理: $fileName")
+                            
+                            // 清理重试记录
+                            incompleteFiles.remove(fileName)
+                            fileRetryCount.remove(fileName)
+                            
+                            startProcessingFile(fileName)
 
-                        try {
-                            processingParams?.let { params ->
-                                processDocumentFile(imageFile, outputDir, params)
+                            try {
+                                processingParams?.let { params ->
+                                    processDocumentFile(imageFile, outputDir, params)
+                                }
+                                completeProcessingFile(fileName)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "处理文件失败: $fileName", e)
+                                completeProcessingFile(fileName)
                             }
-                            completeProcessingFile(fileName)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "处理文件失败: $fileName", e)
-                            completeProcessingFile(fileName)
+                        } else {
+                            // 图片不完整，记录并跳过
+                            val retryCount = fileRetryCount.getOrDefault(fileName, 0) + 1
+                            fileRetryCount[fileName] = retryCount
+                            incompleteFiles.add(fileName)
+                            
+                            if (retryCount >= maxRetryCount) {
+                                Log.w(TAG, "图片 $fileName 重试次数已达上限($maxRetryCount)，跳过处理")
+                                // 将其标记为已处理，避免无限重试
+                                completedFiles.add(fileName)
+                                fileRetryCount.remove(fileName)
+                                incompleteFiles.remove(fileName)
+                            } else {
+                                Log.d(TAG, "图片 $fileName 未完整加载，跳过本次处理 (重试次数: $retryCount/$maxRetryCount)")
+                            }
                         }
                     }
                 }
