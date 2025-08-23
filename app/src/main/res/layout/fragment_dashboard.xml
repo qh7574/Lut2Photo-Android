@@ -365,7 +365,7 @@
                                 android:id="@+id/toggle_group_dither"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="0dp"
+                                android:layout_marginBottom="16dp"
                                 app:selectionRequired="true"
                                 app:singleSelection="true">
 
@@ -394,6 +394,54 @@
                                     android:text="None" />
 
                             </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                            <!-- 水印设置 -->
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <ImageView
+                                        android:layout_width="24dp"
+                                        android:layout_height="24dp"
+                                        android:layout_marginEnd="8dp"
+                                        android:contentDescription="@string/watermark_icon"
+                                        android:src="@drawable/ic_watermark_24" />
+
+                                    <com.google.android.material.textview.MaterialTextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/watermark_enable"
+                                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                                </LinearLayout>
+
+                                <com.google.android.material.materialswitch.MaterialSwitch
+                                    android:id="@+id/switch_watermark"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:checked="false" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_watermark_settings"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:layout_marginTop="8dp"
+                                android:enabled="false"
+                                android:text="@string/watermark_settings"
+                                android:textSize="14sp" />
                         </LinearLayout>
                     </LinearLayout>
 

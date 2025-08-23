@@ -12,8 +12,8 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 31
         targetSdk = 36
-        versionCode = 10003
-        versionName = "2.0.2"
+        versionCode = 10004
+        versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21
@@ -70,6 +70,10 @@ dependencies {
     // GPU相关依赖
     implementation(libs.glide)
     kapt(libs.glide.compiler)
+
+    // Coil图像处理库 - 用于水印功能
+    implementation("io.coil-kt:coil:2.7.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

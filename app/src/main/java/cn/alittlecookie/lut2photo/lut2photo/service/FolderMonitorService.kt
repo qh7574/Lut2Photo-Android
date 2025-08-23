@@ -28,6 +28,8 @@ import cn.alittlecookie.lut2photo.lut2photo.MainActivity
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
+import cn.alittlecookie.lut2photo.lut2photo.core.WatermarkProcessor
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -90,6 +92,8 @@ class FolderMonitorService : Service() {
     }
 
     private lateinit var threadManager: ThreadManager
+    private lateinit var watermarkProcessor: WatermarkProcessor
+    private lateinit var preferencesManager: PreferencesManager
 
     // 处理器设置变化广播接收器
     private val processorSettingReceiver = object : BroadcastReceiver() {
@@ -110,6 +114,8 @@ class FolderMonitorService : Service() {
         super.onCreate()
         createNotificationChannel()
         threadManager = ThreadManager(this)
+        watermarkProcessor = WatermarkProcessor(this)
+        preferencesManager = PreferencesManager(this)
 
         // 注册广播接收器
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -532,6 +538,23 @@ class FolderMonitorService : Service() {
                         }
 
                         if (processedBitmap != null) {
+                            // 添加水印处理逻辑
+                            val finalBitmap = if (preferencesManager.homeWatermarkEnabled) {
+                                try {
+                                    val watermarkPreferences =
+                                        preferencesManager.getHomeWatermarkPreferences()
+                                    watermarkProcessor.addWatermark(
+                                        processedBitmap,
+                                        watermarkPreferences
+                                    )
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "水印处理失败，使用原始处理结果", e)
+                                    processedBitmap
+                                }
+                            } else {
+                                processedBitmap
+                            }
+
                             // 修复：使用正确的文件命名格式
                             val originalName = inputFile.name?.substringBeforeLast(".") ?: "unknown"
                             val outputFileName = "${originalName}-${currentLutName}.jpg"
@@ -539,7 +562,7 @@ class FolderMonitorService : Service() {
 
                             outputFile?.let { file ->
                                 contentResolver.openOutputStream(file.uri)?.use { outputStream ->
-                                    processedBitmap.compress(
+                                    finalBitmap.compress(
                                         Bitmap.CompressFormat.JPEG,
                                         params.quality,
                                         outputStream

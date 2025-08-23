@@ -1,7 +1,10 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.dashboard
 
+
+// 在文件顶部添加导入
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -22,8 +25,10 @@ import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentDashboardBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
+import cn.alittlecookie.lut2photo.lut2photo.ui.dialog.WatermarkSettingsDialog
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkImageManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WrapContentGridLayoutManager
 import kotlinx.coroutines.launch
 
@@ -31,13 +36,14 @@ class DashboardFragment : Fragment() {
 
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
-
     private val dashboardViewModel: DashboardViewModel by viewModels()
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var imageAdapter: ImageAdapter
     private lateinit var lutManager: LutManager
     private var selectedLutItem: LutItem? = null
     private var availableLuts: List<LutItem> = emptyList()
+    private var watermarkDialog: WatermarkSettingsDialog? = null // 添加这行
+    private lateinit var watermarkImageManager: WatermarkImageManager
 
     // Activity Result Launchers
     private val selectImagesLauncher = registerForActivityResult(
@@ -76,13 +82,18 @@ class DashboardFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
-        return binding.root
+        val root: View = binding.root
+
+        // 初始化WatermarkImageManager
+        watermarkImageManager = WatermarkImageManager(requireContext())
+        return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
         preferencesManager = PreferencesManager(requireContext())
+        watermarkImageManager = WatermarkImageManager(requireContext())
         lutManager = LutManager(requireContext())
 
         setupViews()
@@ -137,6 +148,57 @@ class DashboardFragment : Fragment() {
 
         // 设置滑块
         setupSliders()
+
+        // 设置水印开关监听器
+        binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.dashboardWatermarkEnabled = isChecked
+            binding.buttonWatermarkSettings.isEnabled = isChecked
+        }
+
+        val selectWatermarkImageLauncher = registerForActivityResult(
+            ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            uri?.let {
+                try {
+                    // 复制图片到私有目录
+                    val localPath = watermarkImageManager.copyWatermarkImage(uri, false)
+
+                    if (localPath != null) {
+                        // 保存本地路径到偏好设置
+                        preferencesManager.dashboardWatermarkImagePath = localPath
+                        watermarkDialog?.setSelectedImagePath(localPath)
+                        Log.d("DashboardFragment", "水印图片复制成功: $localPath")
+                        Toast.makeText(requireContext(), "水印图片设置成功", Toast.LENGTH_SHORT)
+                            .show()
+                    } else {
+                        Log.e("DashboardFragment", "水印图片复制失败")
+                        Toast.makeText(
+                            requireContext(),
+                            "图片复制失败，请重新选择",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } catch (e: Exception) {
+                    Log.e("DashboardFragment", "处理水印图片时发生错误", e)
+                    Toast.makeText(
+                        requireContext(),
+                        "处理图片时发生错误，请重新选择",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
+        // 设置水印设置按钮监听器
+        binding.buttonWatermarkSettings.setOnClickListener {
+            watermarkDialog = WatermarkSettingsDialog(
+                requireContext(),
+                preferencesManager,
+                false,
+                selectWatermarkImageLauncher
+            )
+            watermarkDialog?.show()
+        }
     }
 
     private fun setupDitherToggleGroup() {
@@ -283,6 +345,10 @@ class DashboardFragment : Fragment() {
 
         // 加载输出文件夹
         updateOutputFolderDisplay()
+
+        // 加载水印设置
+        binding.switchWatermark.isChecked = preferencesManager.dashboardWatermarkEnabled
+        binding.buttonWatermarkSettings.isEnabled = preferencesManager.dashboardWatermarkEnabled
     }
 
     private fun updateOutputFolderDisplay() {
@@ -395,6 +461,9 @@ class DashboardFragment : Fragment() {
             selectedLutItem?.let {
                 dashboardLutUri = it.filePath
             }
+
+            // 保存水印设置
+            dashboardWatermarkEnabled = binding.switchWatermark.isChecked
         }
     }
 

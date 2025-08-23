@@ -224,4 +224,28 @@
     <string name="monitoring_inactive">未启动</string>
     <!-- 处理器设置相关 -->
     <string name="processor_setting_changed">处理器已切换到: %s</string>
+
+    <!-- 在现有的strings.xml中添加以下内容 -->
+    <string name="watermark_settings_title">水印设置</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="watermark_type">水印类型</string>
+    <string name="text_watermark">文字水印</string>
+    <string name="image_watermark">图片水印</string>
+    <string name="watermark_text">水印文字</string>
+    <string name="select_image">选择图片</string>
+    <string name="no_image_selected">未选择图片</string>
+    <string name="position_x">水平位置</string>
+    <string name="position_y">垂直位置</string>
+    <string name="watermark_size">水印大小</string>
+    <string name="position_x_format">水平: %d%%</string>
+    <string name="position_y_format">垂直: %d%%</string>
+    <string name="size_format">大小: %d%%</string>
+    <string name="ok">确定</string>
+    <string name="watermark_text_hint">请输入水印文字</string>
+    <string name="select_watermark_image">选择水印图片</string>
+    <string name="watermark_position">水印位置</string>
+    <string name="watermark_icon">水印图标</string>
+    <string name="watermark_enable">启用水印</string>
+    <string name="watermark_settings">水印设置</string>
 </resources>

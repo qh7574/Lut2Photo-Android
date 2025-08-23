@@ -23,10 +23,12 @@ import androidx.lifecycle.viewModelScope
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
+import cn.alittlecookie.lut2photo.lut2photo.core.WatermarkProcessor
 import cn.alittlecookie.lut2photo.lut2photo.model.ImageItem
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -89,6 +91,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val threadManager = ThreadManager(application)
     private val lutManager = LutManager(application)
+    private val watermarkProcessor = WatermarkProcessor(application)
+    private val preferencesManager = PreferencesManager(application)
     private var processingJob: Job? = null
     private val processedCounter = AtomicInteger(0)
 
@@ -466,10 +470,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             )
 
                             if (processedBitmap != null) {
+                                Log.d("DashboardViewModel", "LUT处理完成，开始水印处理")
+
+                                // 检查是否需要添加水印
+                                val finalBitmap =
+                                    if (preferencesManager.dashboardWatermarkEnabled) {
+                                        Log.d("DashboardViewModel", "水印已启用，开始添加水印")
+                                        val watermarkPreferences =
+                                            preferencesManager.getWatermarkPreferences()
+                                        watermarkProcessor.addWatermark(
+                                            processedBitmap,
+                                            watermarkPreferences
+                                        )
+                                    } else {
+                                        Log.d("DashboardViewModel", "水印未启用，跳过水印处理")
+                                        processedBitmap
+                                    }
+                                
                                 Log.d("DashboardViewModel", "开始保存处理后的图片")
                                 // 修改saveProcessedImage方法调用
                                 val outputPath = saveProcessedImage(
-                                    processedBitmap,
+                                    finalBitmap,
                                     imageItem,
                                     outputFolderUri,
                                     params,

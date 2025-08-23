@@ -2,6 +2,7 @@ package cn.alittlecookie.lut2photo.lut2photo.ui.home
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -21,21 +22,24 @@ import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentHomeBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
+import cn.alittlecookie.lut2photo.lut2photo.ui.dialog.WatermarkSettingsDialog
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkImageManager
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-
     private val homeViewModel: HomeViewModel by viewModels()
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var lutManager: LutManager
     private var selectedLutItem: LutItem? = null
     private var availableLuts: List<LutItem> = emptyList()
-
+    private var watermarkDialog: WatermarkSettingsDialog? = null // 添加这行
+    private lateinit var watermarkImageManager: WatermarkImageManager
+    
     // Activity Result Launchers
     private val selectInputFolderLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -81,13 +85,18 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
-        return binding.root
+        val root: View = binding.root
+
+        // 初始化WatermarkImageManager
+        watermarkImageManager = WatermarkImageManager(requireContext())
+        return root
     }
 
+    // 在 onViewCreated 中初始化
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
         preferencesManager = PreferencesManager(requireContext())
+        watermarkImageManager = WatermarkImageManager(requireContext())
         lutManager = LutManager(requireContext())
         
         setupViews()
@@ -137,6 +146,59 @@ class HomeFragment : Fragment() {
 
         // 设置抖动按钮
         setupDitherButtons()
+
+        // 设置水印开关监听器
+        binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.homeWatermarkEnabled = isChecked
+            binding.buttonWatermarkSettings.isEnabled = isChecked
+        }
+
+        // 添加图片选择器
+        val selectWatermarkImageLauncher = registerForActivityResult(
+            ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            uri?.let {
+                try {
+                    // 复制图片到私有目录
+                    val localPath = watermarkImageManager.copyWatermarkImage(uri, false)
+
+                    if (localPath != null) {
+                        // 保存本地路径到偏好设置
+                        preferencesManager.homeWatermarkImagePath = localPath
+                        watermarkDialog?.setSelectedImagePath(localPath)
+                        Log.d("HomeFragment", "水印图片复制成功: $localPath")
+                        Toast.makeText(requireContext(), "水印图片设置成功", Toast.LENGTH_SHORT)
+                            .show()
+                    } else {
+                        Log.e("HomeFragment", "水印图片复制失败")
+                        Toast.makeText(
+                            requireContext(),
+                            "图片复制失败，请重新选择",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } catch (e: Exception) {
+                    Log.e("HomeFragment", "处理水印图片时发生错误", e)
+                    Toast.makeText(
+                        requireContext(),
+                        "处理图片时发生错误，请重新选择",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+        // 删除这行：var watermarkDialog: WatermarkSettingsDialog? = null
+
+        // 设置水印设置按钮监听器
+        binding.buttonWatermarkSettings.setOnClickListener {
+            watermarkDialog = WatermarkSettingsDialog(
+                requireContext(),
+                preferencesManager,
+                true,
+                selectWatermarkImageLauncher
+            )
+            watermarkDialog?.show()
+        }
     }
 
     private fun setupSwitchListener() {
@@ -319,6 +381,9 @@ class HomeFragment : Fragment() {
 
         // 保存开关状态
         preferencesManager.monitoringSwitchEnabled = binding.switchMonitoring.isChecked
+
+        // 保存水印设置
+        preferencesManager.homeWatermarkEnabled = binding.switchWatermark.isChecked
 
         // 更新显示值
         binding.textStrengthValue.text = "${preferencesManager.homeStrength.toInt()}%"
