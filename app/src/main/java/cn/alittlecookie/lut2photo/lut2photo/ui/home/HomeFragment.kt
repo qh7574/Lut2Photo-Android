@@ -23,6 +23,7 @@ import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
+import cn.alittlecookie.lut2photo.ui.dialog.WatermarkSettingsDialog
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
@@ -119,6 +120,18 @@ class HomeFragment : Fragment() {
             selectOutputFolderLauncher.launch(null)
         }
 
+        // 水印设置按钮
+        binding.buttonWatermarkSettings.setOnClickListener {
+            showWatermarkSettingsDialog()
+        }
+
+        // 添加水印开关监听器
+        binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.folderMonitorWatermarkEnabled = isChecked
+            binding.buttonWatermarkSettings.isEnabled = isChecked
+            Log.d("HomeFragment", "文件夹监控水印开关状态改变: $isChecked")
+        }
+    
         // 设置监控开关监听器 - 简化版本
         setupSwitchListener()
 
@@ -301,6 +314,10 @@ class HomeFragment : Fragment() {
         }
         binding.toggleGroupDither.check(buttonId)
 
+        // 加载水印开关状态
+        binding.switchWatermark.isChecked = preferencesManager.folderMonitorWatermarkEnabled
+        binding.buttonWatermarkSettings.isEnabled = preferencesManager.folderMonitorWatermarkEnabled
+    
         // 加载文件夹路径显示
         updateInputFolderDisplay()
         updateOutputFolderDisplay()
@@ -488,5 +505,13 @@ class HomeFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun showWatermarkSettingsDialog() {
+        val dialog = WatermarkSettingsDialog.newInstance { config ->
+            // 配置保存后的回调
+            Log.d("HomeFragment", "水印配置已保存: $config")
+        }
+        dialog.show(parentFragmentManager, "WatermarkSettingsDialog")
     }
 }

@@ -13,6 +13,7 @@ import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -28,6 +29,9 @@ import cn.alittlecookie.lut2photo.lut2photo.MainActivity
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
+// 添加水印处理相关导入
+import cn.alittlecookie.lut2photo.lut2photo.core.WatermarkProcessor
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -91,6 +95,10 @@ class FolderMonitorService : Service() {
 
     private lateinit var threadManager: ThreadManager
 
+    // 添加水印处理器和偏好设置管理器
+    private lateinit var watermarkProcessor: WatermarkProcessor
+    private lateinit var preferencesManager: PreferencesManager
+    
     // 处理器设置变化广播接收器
     private val processorSettingReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -108,9 +116,16 @@ class FolderMonitorService : Service() {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        Log.d(TAG, "FolderMonitorService onCreate")
+
+        // 初始化ThreadManager
         threadManager = ThreadManager(this)
 
+        // 初始化水印处理器和偏好设置管理器
+        watermarkProcessor = WatermarkProcessor(this)
+        preferencesManager = PreferencesManager(this)
+
+        createNotificationChannel()
         // 注册广播接收器
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(
@@ -520,8 +535,8 @@ class FolderMonitorService : Service() {
                         // 应用EXIF方向变换
                         val correctedBitmap = applyExifOrientation(bitmap, orientation)
 
-                        // 使用submitTask处理图片
-                        val processedBitmap = suspendCoroutine { continuation ->
+                        // 使用submitTask处理图片（LUT处理）
+                        val lutProcessedBitmap = suspendCoroutine { continuation ->
                             threadManager.submitTask(
                                 bitmap = correctedBitmap,
                                 params = params,
@@ -531,21 +546,44 @@ class FolderMonitorService : Service() {
                             )
                         }
 
-                        if (processedBitmap != null) {
+                        if (lutProcessedBitmap != null) {
+                            // 检查是否需要添加水印
+                            val watermarkConfig =
+                                preferencesManager.getWatermarkConfig(forFolderMonitor = true)  // 明确指定是文件夹监控
+                            val finalBitmap =
+                                if (watermarkConfig.isEnabled) {  // 这里会使用folderMonitorWatermarkEnabled
+                                    Log.d(TAG, "开始添加水印: ${inputFile.name}")
+                                    try {
+                                        val watermarkedBitmap = watermarkProcessor.addWatermark(
+                                            lutProcessedBitmap,
+                                            watermarkConfig,
+                                            inputFile.uri
+                                        )
+                                        Log.d(TAG, "水印添加完成: ${inputFile.name}")
+                                        watermarkedBitmap
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "添加水印失败: ${inputFile.name}", e)
+                                        lutProcessedBitmap
+                                    }
+                                } else {
+                                    lutProcessedBitmap
+                                }
+
                             // 修复：使用正确的文件命名格式
                             val originalName = inputFile.name?.substringBeforeLast(".") ?: "unknown"
                             val outputFileName = "${originalName}-${currentLutName}.jpg"
                             val outputFile = outputDir.createFile("image/jpeg", outputFileName)
 
+                            // 在processDocumentFile方法中，替换原来的保存逻辑
                             outputFile?.let { file ->
-                                contentResolver.openOutputStream(file.uri)?.use { outputStream ->
-                                    processedBitmap.compress(
-                                        Bitmap.CompressFormat.JPEG,
-                                        params.quality,
-                                        outputStream
-                                    )
-                                }
-
+                                // 直接保存带EXIF信息的图片，而不是分两步
+                                saveBitmapWithExif(
+                                    finalBitmap,
+                                    inputFile.uri,
+                                    file.uri,
+                                    params.quality
+                                )
+                                
                                 // 保存处理记录到历史
                                 saveProcessingRecord(
                                     fileName = inputFile.name ?: "unknown",
@@ -555,13 +593,10 @@ class FolderMonitorService : Service() {
                                     params = params
                                 )
                             }
-
-                            Log.d(TAG, "文件处理完成: ${inputFile.name}")
                         }
                     }
                 }
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "处理文档文件失败: ${inputFile.name}", e)
             throw e
@@ -599,7 +634,8 @@ class FolderMonitorService : Service() {
         monitoringJob = null
 
         // 添加状态同步到PreferencesManager
-        val preferencesManager = cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager(this)
+        val preferencesManager =
+            PreferencesManager(this)
         preferencesManager.isMonitoring = false
         // 修复：同时清理UI开关状态，防止状态不一致
         preferencesManager.monitoringSwitchEnabled = false
@@ -620,7 +656,8 @@ class FolderMonitorService : Service() {
         }
 
         // 修复：确保状态完全清理，防止服务残留
-        val preferencesManager = cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager(this)
+        val preferencesManager =
+            PreferencesManager(this)
         preferencesManager.isMonitoring = false
         preferencesManager.monitoringSwitchEnabled = false
 
@@ -641,7 +678,7 @@ class FolderMonitorService : Service() {
         //if (isMonitoring) {
         //  restartService()
         //}
-        
+
         stopMonitoring()
         serviceScope.cancel()
     }
@@ -681,6 +718,88 @@ class FolderMonitorService : Service() {
         }
     }
 
+    private fun saveBitmapWithExif(
+        bitmap: Bitmap,
+        sourceUri: Uri,
+        targetUri: Uri,
+        quality: Int
+    ) {
+        try {
+            // 读取原始图片的EXIF信息
+            val sourceExif = contentResolver.openInputStream(sourceUri)?.use { inputStream ->
+                ExifInterface(inputStream)
+            }
+
+            // 创建临时文件来保存带EXIF的图片
+            val tempFile = File(cacheDir, "temp_with_exif_${System.currentTimeMillis()}.jpg")
+
+            // 先将bitmap保存到临时文件
+            tempFile.outputStream().use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+            }
+
+            // 如果有EXIF信息，则添加到临时文件
+            sourceExif?.let { exif ->
+                val targetExif = ExifInterface(tempFile.absolutePath)
+
+                // 复制所有重要的EXIF标签
+                val exifTags = arrayOf(
+                    ExifInterface.TAG_DATETIME,
+                    ExifInterface.TAG_DATETIME_DIGITIZED,
+                    ExifInterface.TAG_DATETIME_ORIGINAL,
+                    ExifInterface.TAG_MAKE,
+                    ExifInterface.TAG_MODEL,
+                    ExifInterface.TAG_APERTURE_VALUE,
+                    ExifInterface.TAG_EXPOSURE_TIME,
+                    ExifInterface.TAG_FOCAL_LENGTH,
+                    ExifInterface.TAG_ISO_SPEED_RATINGS,
+                    ExifInterface.TAG_WHITE_BALANCE,
+                    ExifInterface.TAG_FLASH,
+                    ExifInterface.TAG_GPS_LATITUDE,
+                    ExifInterface.TAG_GPS_LONGITUDE,
+                    ExifInterface.TAG_GPS_LATITUDE_REF,
+                    ExifInterface.TAG_GPS_LONGITUDE_REF,
+                    ExifInterface.TAG_GPS_ALTITUDE,
+                    ExifInterface.TAG_GPS_ALTITUDE_REF,
+                    ExifInterface.TAG_GPS_TIMESTAMP,
+                    ExifInterface.TAG_GPS_DATESTAMP,
+                    ExifInterface.TAG_LENS_MAKE,
+                    ExifInterface.TAG_LENS_MODEL,
+                    ExifInterface.TAG_F_NUMBER,
+                    ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY
+                )
+
+                for (tag in exifTags) {
+                    val value = exif.getAttribute(tag)
+                    if (value != null) {
+                        targetExif.setAttribute(tag, value)
+                    }
+                }
+
+                // 保存EXIF信息到临时文件
+                targetExif.saveAttributes()
+            }
+
+            // 将带有EXIF信息的临时文件复制到目标URI
+            contentResolver.openOutputStream(targetUri)?.use { output ->
+                tempFile.inputStream().use { input ->
+                    input.copyTo(output)
+                }
+            }
+
+            // 清理临时文件
+            tempFile.delete()
+
+            Log.d(TAG, "图片已保存并包含EXIF信息")
+        } catch (e: Exception) {
+            Log.e(TAG, "保存带EXIF信息的图片时发生错误", e)
+            // 如果失败，则回退到普通保存
+            contentResolver.openOutputStream(targetUri)?.use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+            }
+        }
+    }
+
     private fun restartService() {
         val restartIntent = Intent(this, FolderMonitorService::class.java).apply {
             action = ACTION_START_MONITORING
@@ -700,4 +819,6 @@ class FolderMonitorService : Service() {
             Log.e(TAG, "重启服务失败", e)
         }
     }
+
+
 }

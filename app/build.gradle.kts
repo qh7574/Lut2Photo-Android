@@ -12,8 +12,8 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 31
         targetSdk = 36
-        versionCode = 10003
-        versionName = "2.0.2"
+        versionCode = 10005
+        versionName = "2.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21
@@ -70,6 +70,9 @@ dependencies {
     // GPU相关依赖
     implementation(libs.glide)
     kapt(libs.glide.compiler)
+
+    // 水印处理相关依赖
+    implementation(libs.coil)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

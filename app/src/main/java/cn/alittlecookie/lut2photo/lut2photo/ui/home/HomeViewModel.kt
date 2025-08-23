@@ -49,7 +49,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 if (currentTime - lastUpdateTime > 3000) {
                     val processedCount = try {
                         intent.getIntExtra("processed_count", 0)
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         0
                     }
                 _processedCount.value = processedCount

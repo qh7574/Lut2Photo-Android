@@ -224,4 +224,6 @@
     <string name="monitoring_inactive">未启动</string>
     <!-- 处理器设置相关 -->
     <string name="processor_setting_changed">处理器已切换到: %s</string>
+    <string name="enable_watermark">启用水印</string>
+    <string name="watermark_settings">水印设置</string>
 </resources>

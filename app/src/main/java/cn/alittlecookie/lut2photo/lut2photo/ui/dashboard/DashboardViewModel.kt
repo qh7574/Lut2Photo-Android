@@ -23,10 +23,13 @@ import androidx.lifecycle.viewModelScope
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
+import cn.alittlecookie.lut2photo.lut2photo.core.WatermarkProcessor
 import cn.alittlecookie.lut2photo.lut2photo.model.ImageItem
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
+import cn.alittlecookie.lut2photo.lut2photo.utils.ExifReader
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -89,6 +92,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val threadManager = ThreadManager(application)
     private val lutManager = LutManager(application)
+    private val preferencesManager = PreferencesManager(application)
+    private val watermarkProcessor = WatermarkProcessor(application)
+    private val exifReader = ExifReader(application)
     private var processingJob: Job? = null
     private val processedCounter = AtomicInteger(0)
 
@@ -467,9 +473,36 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
                             if (processedBitmap != null) {
                                 Log.d("DashboardViewModel", "开始保存处理后的图片")
+
+                                // 应用水印（如果启用）
+                                val finalBitmap =
+                                    if (preferencesManager.dashboardWatermarkEnabled) {  // 使用分离的开关
+                                        try {
+                                            val watermarkConfig =
+                                                preferencesManager.getWatermarkConfig(
+                                                    forFolderMonitor = false
+                                                )  // 明确指定不是文件夹监控
+                                            exifReader.readExifFromUri(imageItem.uri)
+                                            watermarkProcessor.addWatermark(
+                                                processedBitmap,
+                                                watermarkConfig,
+                                                imageItem.uri
+                                            )
+                                        } catch (e: Exception) {
+                                            Log.e(
+                                                "DashboardViewModel",
+                                                "应用水印失败: ${e.message}",
+                                                e
+                                            )
+                                            processedBitmap // 如果水印失败，使用原始处理后的图片
+                                        }
+                                    } else {
+                                        processedBitmap
+                                    }
+                                
                                 // 修改saveProcessedImage方法调用
                                 val outputPath = saveProcessedImage(
-                                    processedBitmap,
+                                    finalBitmap,
                                     imageItem,
                                     outputFolderUri,
                                     params,

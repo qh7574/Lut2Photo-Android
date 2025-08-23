@@ -25,6 +25,7 @@ import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WrapContentGridLayoutManager
+import cn.alittlecookie.lut2photo.ui.dialog.WatermarkSettingsDialog
 import kotlinx.coroutines.launch
 
 class DashboardFragment : Fragment() {
@@ -137,6 +138,24 @@ class DashboardFragment : Fragment() {
 
         // 设置滑块
         setupSliders()
+
+        // 水印开关监听器
+        binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.dashboardWatermarkEnabled = isChecked  // 使用分离的开关
+            binding.buttonWatermarkSettings.isEnabled = isChecked
+        }
+
+        // 在loadSavedSettings方法中
+        binding.switchWatermark.isChecked =
+            preferencesManager.dashboardWatermarkEnabled  // 加载分离的开关状态
+        binding.buttonWatermarkSettings.isEnabled = preferencesManager.dashboardWatermarkEnabled
+        // 水印设置按钮
+        binding.buttonWatermarkSettings.setOnClickListener {
+            val dialog = WatermarkSettingsDialog.newInstance { config ->
+                // 设置保存后的回调
+            }
+            dialog.show(parentFragmentManager, "WatermarkSettingsDialog")
+        }
     }
 
     private fun setupDitherToggleGroup() {
@@ -283,6 +302,10 @@ class DashboardFragment : Fragment() {
 
         // 加载输出文件夹
         updateOutputFolderDisplay()
+
+        // 修复：加载水印设置 - 使用分离的开关
+        binding.switchWatermark.isChecked = preferencesManager.dashboardWatermarkEnabled
+        binding.buttonWatermarkSettings.isEnabled = preferencesManager.dashboardWatermarkEnabled
     }
 
     private fun updateOutputFolderDisplay() {

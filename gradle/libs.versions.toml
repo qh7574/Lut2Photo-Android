@@ -25,6 +25,8 @@ lifecycleService = "2.7.0"
 # GPU相关依赖版本
 openglWrapper = "1.0.0"
 glide = "4.16.0"
+# 水印处理相关依赖版本
+coil = "2.5.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
@@ -54,6 +56,9 @@ androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-s
 androidx-opengl = { group = "androidx.opengl", name = "opengl", version.ref = "openglWrapper" }
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", version.ref = "glide" }
+# 水印处理相关库定义
+coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

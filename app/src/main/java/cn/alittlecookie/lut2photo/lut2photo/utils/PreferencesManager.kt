@@ -2,6 +2,7 @@ package cn.alittlecookie.lut2photo.lut2photo.utils
 
 import android.content.Context
 import androidx.core.content.edit
+import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
 
 class PreferencesManager(context: Context) {
     private val sharedPreferences =
@@ -108,4 +109,72 @@ class PreferencesManager(context: Context) {
     var monitoringSwitchEnabled: Boolean
         get() = sharedPreferences.getBoolean("monitoring_switch_enabled", false)
         set(value) = sharedPreferences.edit { putBoolean("monitoring_switch_enabled", value) }
+
+    // 水印配置设置
+    fun saveWatermarkConfig(config: WatermarkConfig) {
+        sharedPreferences.edit {
+            putBoolean("watermark_enabled", config.isEnabled)
+            putBoolean("watermark_enable_text", config.enableTextWatermark)
+            putBoolean("watermark_enable_image", config.enableImageWatermark)
+            putFloat("watermark_position_x", config.positionX)
+            putFloat("watermark_position_y", config.positionY)
+            putFloat("watermark_text_size", config.textSize)
+            putFloat("watermark_image_size", config.imageSize)
+            putFloat("watermark_opacity", config.opacity)
+            putString("watermark_text_content", config.textContent)
+            putString("watermark_text_color", config.textColor)
+            putString("watermark_font_path", config.fontPath)
+            putString("watermark_image_path", config.imagePath)
+            putFloat("watermark_text_image_spacing", config.textImageSpacing)
+            putFloat("watermark_border_width", config.borderWidth)
+            putString("watermark_border_color", config.borderColor)
+        }
+    }
+
+    // 手动处理页面的水印开关状态
+    var dashboardWatermarkEnabled: Boolean
+        get() = sharedPreferences.getBoolean("dashboard_watermark_enabled", false)
+        set(value) = sharedPreferences.edit { putBoolean("dashboard_watermark_enabled", value) }
+
+    // 文件夹监控的水印开关状态
+    var folderMonitorWatermarkEnabled: Boolean
+        get() = sharedPreferences.getBoolean("folder_monitor_watermark_enabled", false)
+        set(value) = sharedPreferences.edit {
+            putBoolean(
+                "folder_monitor_watermark_enabled",
+                value
+            )
+        }
+
+    // 保持原有的watermarkEnabled作为向后兼容，但现在它只影响水印配置的保存
+    var watermarkEnabled: Boolean
+        get() = sharedPreferences.getBoolean("watermark_enabled", false)
+        set(value) = sharedPreferences.edit { putBoolean("watermark_enabled", value) }
+
+    // 修改水印配置的获取方法，支持指定来源
+    fun getWatermarkConfig(forFolderMonitor: Boolean = false): WatermarkConfig {
+        val isEnabled =
+            if (forFolderMonitor) folderMonitorWatermarkEnabled else dashboardWatermarkEnabled
+        return WatermarkConfig(
+            isEnabled = isEnabled,
+            enableTextWatermark = sharedPreferences.getBoolean("watermark_enable_text", false),
+            enableImageWatermark = sharedPreferences.getBoolean("watermark_enable_image", false),
+            positionX = sharedPreferences.getFloat("watermark_position_x", 50f),
+            positionY = sharedPreferences.getFloat("watermark_position_y", 90f),
+            textSize = sharedPreferences.getFloat("watermark_text_size", 10f),
+            imageSize = sharedPreferences.getFloat("watermark_image_size", 10f),
+            opacity = sharedPreferences.getFloat("watermark_opacity", 80f),
+            textContent = sharedPreferences.getString(
+                "watermark_text_content",
+                "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"
+            ) ?: "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}",
+            textColor = sharedPreferences.getString("watermark_text_color", "#FFFFFF") ?: "#FFFFFF",
+            fontPath = sharedPreferences.getString("watermark_font_path", "") ?: "",
+            imagePath = sharedPreferences.getString("watermark_image_path", "") ?: "",
+            textImageSpacing = sharedPreferences.getFloat("watermark_text_image_spacing", 5f),
+            borderWidth = sharedPreferences.getFloat("watermark_border_width", 0f),
+            borderColor = sharedPreferences.getString("watermark_border_color", "#000000")
+                ?: "#000000"
+        )
+    }
 }
