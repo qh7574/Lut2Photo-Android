@@ -276,7 +276,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         }
 
         binding.sliderTextSize.addOnChangeListener { _, value, _ ->
-            binding.textTextSizeValue.text = "${value.toInt()}dp"
+            binding.textTextSizeValue.text = "${String.format("%.1f", value)}%"
         }
 
         binding.sliderImageSize.addOnChangeListener { _, value, _ ->
@@ -302,7 +302,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 新增字间距和行间距滑块监听器
         binding.sliderLetterSpacing.addOnChangeListener { _, value, _ ->
-            binding.textLetterSpacingValue.text = "${value.toInt()}dp"
+            binding.textLetterSpacingValue.text = "${String.format("%.1f", value)}%"
         }
 
         binding.sliderLineSpacing.addOnChangeListener { _, value, _ ->

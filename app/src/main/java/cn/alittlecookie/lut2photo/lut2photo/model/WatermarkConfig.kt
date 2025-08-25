@@ -47,7 +47,7 @@ data class WatermarkConfig(
     val borderColor: String = "#000000", // 边框颜色
 
     // 文字间距设置
-    val letterSpacing: Float = 0f, // 字间距，单位dp
+    val letterSpacing: Float = 0f, // 字间距，使用背景图宽度的百分比（0.1%-100%）
     val lineSpacing: Float = 0f, // 行间距，使用图片高度的百分比
 
     // 向后兼容性字段（已弃用）

@@ -3,20 +3,27 @@ package cn.alittlecookie.lut2photo.lut2photo.adapter
 import android.content.Intent
 import android.net.Uri
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ItemProcessingRecordBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
+import cn.alittlecookie.lut2photo.lut2photo.utils.ThumbnailManager
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistoryAdapter.HistoryViewHolder>(HistoryDiffCallback()) {
+class ProcessingHistoryAdapter(
+    private val thumbnailManager: ThumbnailManager,
+    private val lifecycleScope: LifecycleCoroutineScope
+) : ListAdapter<ProcessingRecord, ProcessingHistoryAdapter.HistoryViewHolder>(HistoryDiffCallback()) {
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HistoryViewHolder {
         val binding = ItemProcessingRecordBinding.inflate(
@@ -36,6 +43,9 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
         
         fun bind(record: ProcessingRecord) {
             with(binding) {
+                // 加载缩略图背景
+                loadThumbnailBackground(record.outputPath)
+                
                 // 1. 只显示文件名，不显示完整路径
                 textFileName.text = getFileNameFromPath(record.fileName)
 
@@ -164,6 +174,60 @@ class ProcessingHistoryAdapter : ListAdapter<ProcessingRecord, ProcessingHistory
             } catch (_: Exception) {
                 // 如果解码失败，返回文件名
                 path.substringAfterLast("/").substringAfterLast("\\")
+            }
+        }
+
+        /**
+         * 加载缩略图背景
+         */
+        private fun loadThumbnailBackground(outputPath: String) {
+            with(binding) {
+                // 初始化状态：隐藏背景图片和覆盖层
+                imageThumbnailBackground.visibility = View.GONE
+                overlayBackground.visibility = View.GONE
+                imageThumbnailBackground.setImageBitmap(null)
+
+                // 检查输出路径是否有效
+                if (outputPath.isBlank()) {
+                    android.util.Log.d("ProcessingHistoryAdapter", "输出路径为空，跳过缩略图加载")
+                    return
+                }
+
+                android.util.Log.d("ProcessingHistoryAdapter", "开始加载缩略图: $outputPath")
+
+                // 异步加载缩略图
+                lifecycleScope.launch {
+                    try {
+                        val thumbnail = thumbnailManager.getThumbnail(outputPath)
+                        if (thumbnail != null && !thumbnail.isRecycled) {
+                            android.util.Log.d(
+                                "ProcessingHistoryAdapter",
+                                "缩略图加载成功: $outputPath, 尺寸: ${thumbnail.width}x${thumbnail.height}"
+                            )
+                            // 显示缩略图背景
+                            imageThumbnailBackground.setImageBitmap(thumbnail)
+                            imageThumbnailBackground.visibility = View.VISIBLE
+                            overlayBackground.visibility = View.VISIBLE
+                        } else {
+                            android.util.Log.w(
+                                "ProcessingHistoryAdapter",
+                                "缩略图为null或已回收: $outputPath"
+                            )
+                            // 保持隐藏状态
+                            imageThumbnailBackground.visibility = View.GONE
+                            overlayBackground.visibility = View.GONE
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e(
+                            "ProcessingHistoryAdapter",
+                            "加载缩略图失败: $outputPath",
+                            e
+                        )
+                        // 加载失败，保持隐藏状态
+                        imageThumbnailBackground.visibility = View.GONE
+                        overlayBackground.visibility = View.GONE
+                    }
+                }
             }
         }
         

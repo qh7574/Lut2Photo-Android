@@ -233,7 +233,7 @@ class WatermarkProcessor(private val context: Context) {
         text: String,
         centerX: Float,
         centerY: Float,
-        textSizeDp: Float,
+        textSizePercent: Float,
         bitmap: Bitmap,
         config: WatermarkConfig
     ) {
@@ -241,8 +241,8 @@ class WatermarkProcessor(private val context: Context) {
         val lines = text.split("\n")
         if (lines.isEmpty()) return
 
-        // 将dp转换为像素作为基础文字大小
-        val baseTextSizePx = textSizeDp * density
+        // 根据背景图宽度计算文字大小
+        val baseTextSizePx = bitmap.width * textSizePercent / 100f
 
         // 确保基础文字大小有效
         if (baseTextSizePx <= 0) return
@@ -295,9 +295,9 @@ class WatermarkProcessor(private val context: Context) {
         // 设置最终的字体大小
         paint.textSize = finalTextSize
 
-        // 设置字间距（转换为相对单位）
+        // 设置字间距（使用背景图宽度百分比）
         if (config.letterSpacing > 0 && finalTextSize > 0) {
-            val letterSpacingPx = config.letterSpacing * density
+            val letterSpacingPx = bitmap.width * config.letterSpacing / 100f
             paint.letterSpacing = letterSpacingPx / finalTextSize
         } else {
             paint.letterSpacing = 0f

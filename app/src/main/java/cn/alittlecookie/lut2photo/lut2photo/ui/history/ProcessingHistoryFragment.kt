@@ -14,10 +14,12 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import cn.alittlecookie.lut2photo.lut2photo.adapter.ProcessingHistoryAdapter
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentProcessingHistoryBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
+import cn.alittlecookie.lut2photo.lut2photo.utils.ThumbnailManager
 
 class ProcessingHistoryFragment : Fragment() {
     
@@ -25,6 +27,7 @@ class ProcessingHistoryFragment : Fragment() {
     private val binding get() = _binding!!
     
     private lateinit var historyAdapter: ProcessingHistoryAdapter
+    private lateinit var thumbnailManager: ThumbnailManager
     
     private val processingUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -41,6 +44,9 @@ class ProcessingHistoryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentProcessingHistoryBinding.inflate(inflater, container, false)
+
+        // 初始化ThumbnailManager
+        thumbnailManager = ThumbnailManager(requireContext())
         
         setupRecyclerView()
         setupViews()
@@ -101,7 +107,7 @@ class ProcessingHistoryFragment : Fragment() {
     }
     
     private fun setupRecyclerView() {
-        historyAdapter = ProcessingHistoryAdapter()
+        historyAdapter = ProcessingHistoryAdapter(thumbnailManager, lifecycleScope)
         binding.recyclerViewHistory.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = historyAdapter
@@ -179,11 +185,14 @@ class ProcessingHistoryFragment : Fragment() {
     private fun clearHistory() {
         val prefs = requireContext().getSharedPreferences("processing_history", Context.MODE_PRIVATE)
         prefs.edit { remove("records") }
+
+        // 清空缩略图缓存
+        thumbnailManager.clearAllCache()
         
         historyAdapter.submitList(emptyList())
         binding.textHistoryCount.text = "共 0 条记录"
-        
-        Toast.makeText(requireContext(), "历史记录已清空", Toast.LENGTH_SHORT).show()
+
+        Toast.makeText(requireContext(), "历史记录和缓存已清空", Toast.LENGTH_SHORT).show()
     }
     
     override fun onDestroyView() {

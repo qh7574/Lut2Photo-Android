@@ -47,7 +47,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:text="导入"
-                app:icon="@drawable/ic_menu_upload" />
+                app:icon="@drawable/outline_downloading_24" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_export_config"
@@ -220,7 +220,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="4dp"
-                        android:text="文字大小 (dp)"
+                        android:text="文字大小 (背景图宽度百分比)"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <LinearLayout
@@ -236,10 +236,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:layout_weight="1"
-                            android:stepSize="1"
-                            android:value="10"
-                            android:valueFrom="1"
-                            android:valueTo="200" />
+                            android:stepSize="0.1"
+                            android:value="5.0"
+                            android:valueFrom="0.1"
+                            android:valueTo="100.0" />
 
                         <TextView
                             android:id="@+id/text_text_size_value"
@@ -247,7 +247,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:minWidth="48dp"
-                            android:text="10dp"
+                            android:text="5.0%"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
                     </LinearLayout>
 
@@ -256,7 +256,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="4dp"
-                        android:text="字间距 (dp)"
+                        android:text="字间距 (背景图宽度百分比)"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <LinearLayout
@@ -272,10 +272,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:layout_weight="1"
-                            android:stepSize="1"
-                            android:value="0"
-                            android:valueFrom="0"
-                            android:valueTo="100" />
+                            android:stepSize="0.1"
+                            android:value="0.0"
+                            android:valueFrom="0.1"
+                            android:valueTo="100.0" />
 
                         <TextView
                             android:id="@+id/text_letter_spacing_value"
@@ -283,7 +283,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:minWidth="48dp"
-                            android:text="0dp"
+                            android:text="0.1%"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
                     </LinearLayout>
 

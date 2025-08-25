@@ -8,11 +8,34 @@
     style="@style/Widget.Material3.CardView.Outlined"
     app:cardElevation="0dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
+
+        <!-- 背景缩略图 -->
+        <ImageView
+            android:id="@+id/image_thumbnail_background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="1"
+            android:contentDescription="输出图片预览"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
+        <!-- 半透明覆盖层，确保文字可读性 -->
+        <View
+            android:id="@+id/overlay_background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.2"
+            android:background="@color/material_dynamic_neutral_variant10"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -27,6 +50,11 @@
                 android:layout_weight="1"
                 android:text="文件名"
                 android:textSize="16sp"
+                android:shadowColor="#ff000000"
+                android:shadowDx="0"
+                android:shadowDy="2"
+                android:shadowRadius="10"
+                android:textColor="#ffffffff"
                 android:textStyle="bold" />
 
             <TextView
@@ -36,6 +64,7 @@
                 android:text="状态"
                 android:textSize="12sp"
                 android:background="@drawable/status_background"
+                android:textColor="#ffffffff"
                 android:padding="4dp" />
 
         </LinearLayout>
@@ -46,7 +75,11 @@
             android:layout_height="wrap_content"
             android:text="时间"
             android:textSize="12sp"
-            android:textColor="?android:attr/textColorSecondary"
+            android:shadowColor="#ff000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="10"
+            android:textColor="#ffffffff"
             android:layout_marginTop="4dp" />
 
         <TextView
@@ -55,9 +88,15 @@
             android:layout_height="wrap_content"
             android:text="路径信息"
             android:textSize="12sp"
-            android:textColor="?android:attr/textColorSecondary"
+            android:shadowColor="#ff000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="10"
+            android:textColor="#ffffffff"
             android:layout_marginTop="4dp" />
 
-    </LinearLayout>
+        </LinearLayout>
+
+    </FrameLayout>
 
 </com.google.android.material.card.MaterialCardView>

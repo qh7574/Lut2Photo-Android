@@ -33,6 +33,10 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         // 添加CPU处理器作为后备
         private val cpuProcessor = CpuLutProcessor()
 
+        // ByteBuffer缓存池，复用内存
+        private val bufferCache = mutableMapOf<String, ByteBuffer>()
+        private const val MAX_CACHE_SIZE = 3 // 最多缓存3个不同尺寸的buffer
+
         private fun checkGLError(operation: String) {
             val error = GLES30.glGetError()
             if (error != GLES30.GL_NO_ERROR) {
@@ -47,6 +51,42 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 Log.e(TAG, "OpenGL错误在 $operation: $errorMsg")
                 throw RuntimeException("OpenGL错误在 $operation: $errorMsg")
             }
+        }
+
+        /**
+         * 获取或创建指定尺寸的ByteBuffer
+         */
+        private fun getOrCreateBuffer(width: Int, height: Int, name: String): ByteBuffer {
+            val size = width * height * 4
+            val key = "${name}_${width}_${height}"
+
+            var buffer = bufferCache[key]
+            if (buffer == null || buffer.capacity() < size) {
+                // 清理旧缓存
+                if (bufferCache.size >= MAX_CACHE_SIZE) {
+                    val oldestKey = bufferCache.keys.first()
+                    bufferCache.remove(oldestKey)
+                    Log.d(TAG, "清理旧ByteBuffer缓存: $oldestKey")
+                }
+
+                buffer = ByteBuffer.allocateDirect(size)
+                buffer.order(ByteOrder.nativeOrder())
+                bufferCache[key] = buffer
+                Log.d(TAG, "创建新ByteBuffer: $key, 大小: ${size / 1024 / 1024}MB")
+            } else {
+                buffer.clear() // 重置位置
+                Log.d(TAG, "复用ByteBuffer: $key")
+            }
+
+            return buffer
+        }
+
+        /**
+         * 清理所有缓存的ByteBuffer
+         */
+        private fun clearBufferCache() {
+            bufferCache.clear()
+            Log.d(TAG, "清理所有ByteBuffer缓存")
         }
 
         // Vertex shader for full-screen quad
@@ -316,11 +356,52 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     ): Bitmap? {
         Log.d(TAG, "开始GPU处理，图片尺寸: ${bitmap.width}x${bitmap.height}")
 
+        // 内存预检查：计算所需内存并检查可用性
+        val requiredMemory = calculateRequiredMemory(bitmap)
+        val availableMemory = getAvailableMemory()
+
+        Log.d(TAG, "图片尺寸: ${bitmap.width}x${bitmap.height}")
+        Log.d(TAG, "预估所需GPU内存: ${requiredMemory / 1024 / 1024}MB")
+        Log.d(TAG, "可用内存: ${availableMemory / 1024 / 1024}MB")
+
+        // 如果需要的内存超过可用内存的85%，则回退到CPU处理
+        if (requiredMemory > availableMemory * 0.85) {
+            Log.w(TAG, "内存不足，直接回退到CPU处理器")
+            Log.w(
+                TAG,
+                "需要: ${requiredMemory / 1024 / 1024}MB, 安全阈值: ${(availableMemory * 0.85) / 1024 / 1024}MB"
+            )
+
+            // 确保CPU处理器有正确的LUT数据
+            if (currentLut != null) {
+                cpuProcessor.setLutData(currentLut, currentLutSize)
+            }
+
+            return cpuProcessor.processImage(bitmap, params)
+        }
+
         return try {
             val result = processImageOnGpu(bitmap, params)
             Log.d(TAG, "GPU处理成功")
             Log.i(TAG, "最终处理结果：GPU处理成功")
             result
+        } catch (e: OutOfMemoryError) {
+            Log.w(TAG, "GPU处理OOM，回退到CPU处理器", e)
+            // 清理GPU资源并回退到CPU处理
+            try {
+                cleanupGpu()
+                System.gc() // 建议垃圾回收
+                Thread.sleep(100) // 等待垃圾回收
+            } catch (cleanupException: Exception) {
+                Log.w(TAG, "GPU资源清理失败", cleanupException)
+            }
+
+            // 确保CPU处理器有正确的LUT数据
+            if (currentLut != null) {
+                cpuProcessor.setLutData(currentLut, currentLutSize)
+            }
+
+            return cpuProcessor.processImage(bitmap, params)
         } catch (e: Exception) {
             Log.w(TAG, "GPU处理失败，回退到CPU处理: ${e.message}")
 
@@ -357,10 +438,77 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         }
     }
 
+    /**
+     * 计算处理指定图片所需的GPU内存
+     */
+    private fun calculateRequiredMemory(bitmap: Bitmap): Long {
+        val width = bitmap.width.toLong()
+        val height = bitmap.height.toLong()
+
+        // GPU处理所需内存估算：
+        // 1. 输入纹理：width * height * 4 (RGBA)
+        // 2. 输出纹理：width * height * 4 (RGBA) 
+        // 3. ByteBuffer for pixel reading: width * height * 4
+        // 4. 临时处理缓冲区：width * height * 4 (翻转操作)
+        // 5. 安全系数：根据设备内存动态调整
+
+        val baseMemory = width * height * 4 // 单个RGBA纹理大小
+        val coreMemory = baseMemory * 4 // 输入、输出、读取、翻转缓冲区
+
+        // 根据设备内存级别动态调整安全系数
+        val deviceMemoryClass = getDeviceMemoryClass()
+        val safetyFactor = when {
+            deviceMemoryClass >= 512 -> 1.15 // 高端设备，较小的安全系数
+            deviceMemoryClass >= 256 -> 1.25 // 中端设备
+            else -> 1.4 // 低端设备，较大的安全系数
+        }
+
+        return (coreMemory * safetyFactor).toLong()
+    }
+
+    /**
+     * 获取设备内存级别（MB）
+     */
+    private fun getDeviceMemoryClass(): Int {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+
+        // 返回大约的内存级别（MB）
+        val totalMemoryMB = memoryInfo.totalMem / 1024 / 1024
+        Log.d(TAG, "设备总内存: ${totalMemoryMB}MB")
+
+        return totalMemoryMB.toInt()
+    }
+
+    /**
+     * 获取当前可用内存
+     */
+    private fun getAvailableMemory(): Long {
+        val runtime = Runtime.getRuntime()
+        val maxMemory = runtime.maxMemory()
+        val totalMemory = runtime.totalMemory()
+        val freeMemory = runtime.freeMemory()
+
+        // 可用内存 = 最大内存 - 已使用内存
+        val usedMemory = totalMemory - freeMemory
+        val availableMemory = maxMemory - usedMemory
+
+        Log.d(
+            TAG, "内存状态 - 最大: ${maxMemory / 1024 / 1024}MB, " +
+                    "已分配: ${totalMemory / 1024 / 1024}MB, " +
+                    "空闲: ${freeMemory / 1024 / 1024}MB, " +
+                    "可用: ${availableMemory / 1024 / 1024}MB"
+        )
+
+        return availableMemory
+    }
+
     // 添加 release 方法
     override suspend fun release() {
         withContext(Dispatchers.Main) {
             cleanupGpu()
+            clearBufferCache() // 清理ByteBuffer缓存
         }
     }
 
@@ -703,8 +851,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
         // 读取结果
         Log.d(TAG, "开始读取像素数据")
-        val pixels = ByteBuffer.allocateDirect(bitmap.width * bitmap.height * 4)
-        pixels.order(ByteOrder.nativeOrder())
+        val pixels = getOrCreateBuffer(bitmap.width, bitmap.height, "pixels")
 
         // 确保从正确的帧缓冲区读取
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
@@ -723,8 +870,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         pixels.rewind()
 
         // 修复：手动翻转像素数据以解决上下翻转问题
-        val flippedPixels = ByteBuffer.allocateDirect(width * height * 4)
-        flippedPixels.order(ByteOrder.nativeOrder())
+        val flippedPixels = getOrCreateBuffer(width, height, "flipped")
 
         // 逐行翻转像素数据
         val rowSize = width * 4 // 每行字节数（RGBA = 4字节/像素）
