@@ -146,7 +146,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
             // 修改这里：更新 _selectedImages 而不是 _images
-            _selectedImages.value = _selectedImages.value + newImages
+            _selectedImages.value = _selectedImages.value?.plus(newImages)
         }
     }
 
@@ -214,7 +214,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         _processingCompleted.value = null
     }
 
-    fun addProcessingRecord(
+    private fun addProcessingRecord(
         timestamp: Long = System.currentTimeMillis(),
         fileName: String,
         inputPath: String,
@@ -239,7 +239,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         saveProcessingRecord(record)
     }
 
-    fun saveProcessingRecord(record: ProcessingRecord) {
+    private fun saveProcessingRecord(record: ProcessingRecord) {
         viewModelScope.launch {
             // 保存到内存
             val currentHistory = _processingHistory.value?.toMutableList() ?: mutableListOf()
@@ -440,7 +440,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             )
 
                             // 使用suspendCoroutine正确处理异步回调
-                            val processedBitmap = suspendCoroutine<Bitmap?> { continuation ->
+                            val processedBitmap = suspendCoroutine { continuation ->
                                 threadManager.submitTask(
                                     bitmap = bitmap,
                                     params = params,
@@ -598,8 +598,31 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 val fileName = "${baseFileName}-${lutFileName}.jpg"
                 Log.d("DashboardViewModel", "文件名: $fileName")
 
-                val outputPath: String
                 val context = getApplication<Application>()
+
+                // **新增：在保存前压缩图片防止OOM**
+                val compressedBitmap = threadManager.compressBitmapForSaving(
+                    bitmap = bitmap,
+                    fileName = fileName,
+                    onCompressed = { compressedFileName, newWidth, newHeight ->
+                        // 在主线程显示Toast
+                        viewModelScope.launch {
+                            withContext(Dispatchers.Main) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "${compressedFileName}尺寸过大，已压缩至${newWidth}×${newHeight}",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    }
+                )
+                Log.d(
+                    "DashboardViewModel",
+                    "图片压缩完成，将保存尺寸: ${compressedBitmap.width}x${compressedBitmap.height}"
+                )
+                
+                val outputPath: String
 
                 if (!outputFolderUri.isNullOrEmpty() && outputFolderUri.startsWith("content://")) {
                     // 使用SAF处理content URI
@@ -612,10 +635,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         if (newFile != null) {
                             outputPath = newFile.uri.toString()
 
-                            // 保存图片
+                            // 保存图片（使用压缩后的bitmap）
                             context.contentResolver.openOutputStream(newFile.uri)
                                 ?.use { outputStream ->
-                                    bitmap.compress(
+                                    compressedBitmap.compress(
                                         Bitmap.CompressFormat.JPEG,
                                         params.quality,
                                         outputStream
@@ -649,9 +672,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     val outputFile = File(outputDir, fileName)
                     outputPath = outputFile.absolutePath
 
-                    // 保存图片
+                    // 保存图片（使用压缩后的bitmap）
                     FileOutputStream(outputFile).use { outputStream ->
-                        bitmap.compress(
+                        compressedBitmap.compress(
                             Bitmap.CompressFormat.JPEG,
                             params.quality,
                             outputStream
@@ -666,6 +689,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     }
 
                     Log.d("DashboardViewModel", "图片保存成功: $outputPath")
+                }
+
+                // **清理资源：如果创建了新的压缩bitmap，则释放它**
+                if (compressedBitmap != bitmap && !compressedBitmap.isRecycled) {
+                    compressedBitmap.recycle()
                 }
 
                 outputPath

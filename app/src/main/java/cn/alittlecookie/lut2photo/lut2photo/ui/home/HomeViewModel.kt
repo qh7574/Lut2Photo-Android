@@ -54,7 +54,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 _processedCount.value = processedCount
                 if (_isMonitoring.value == true) {
-                    _statusText.value = "status_monitoring"
+                    _statusText.value =
+                        getApplication<Application>().getString(R.string.status_monitoring)
                 }
                     lastUpdateTime = currentTime
                 }

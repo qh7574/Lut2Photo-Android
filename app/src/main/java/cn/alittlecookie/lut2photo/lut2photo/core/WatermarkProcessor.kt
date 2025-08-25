@@ -15,12 +15,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.min
+import kotlin.math.sqrt
 
 /**
  * 水印处理器
  * 使用Canvas进行水印绘制
  */
 class WatermarkProcessor(private val context: Context) {
+
+    companion object {
+        private const val TAG = "WatermarkProcessor"
+
+        // 图片处理时的尺寸限制，防止OOM
+        private const val MAX_PROCESSING_PIXELS = 200_000_000L // 2亿像素
+    }
 
     private val exifReader = ExifReader(context)
     private val density = context.resources.displayMetrics.density
@@ -42,7 +50,7 @@ class WatermarkProcessor(private val context: Context) {
             return@withContext addBorderOnly(originalBitmap, config)
         }
 
-        // 先添加边框
+        // 先添加边框（内部已处理压缩逻辑）
         val bitmapWithBorder = addBorderOnly(originalBitmap, config)
 
         // 创建可变的Bitmap用于绘制水印
@@ -97,12 +105,13 @@ class WatermarkProcessor(private val context: Context) {
     /**
      * 仅添加边框
      */
-    private fun addBorderOnly(originalBitmap: Bitmap, config: WatermarkConfig): Bitmap {
+    private suspend fun addBorderOnly(originalBitmap: Bitmap, config: WatermarkConfig): Bitmap =
+        withContext(Dispatchers.Default) {
         // 检查是否有任意边框宽度大于0
         if (config.borderTopWidth <= 0 && config.borderBottomWidth <= 0 &&
             config.borderLeftWidth <= 0 && config.borderRightWidth <= 0
         ) {
-            return originalBitmap
+            return@withContext originalBitmap
         }
 
         val shortSide = min(originalBitmap.width, originalBitmap.height)
@@ -113,31 +122,151 @@ class WatermarkProcessor(private val context: Context) {
         val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
         val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
 
+            // 计算添加边框后的最终尺寸
+            val finalWidth = originalBitmap.width + borderLeftPx + borderRightPx
+            val finalHeight = originalBitmap.height + borderTopPx + borderBottomPx
+            val finalPixels = finalWidth.toLong() * finalHeight.toLong()
+
+            // 如果最终尺寸超过限制，需要预先压缩原图
+            val processedBitmap = if (finalPixels > MAX_PROCESSING_PIXELS) {
+                android.util.Log.d(
+                    TAG,
+                    "边框后尺寸${finalWidth}x${finalHeight}($finalPixels)超过限制，预压缩原图"
+                )
+
+                // 计算需要的压缩比例，确保边框后的尺寸在限制内
+                val scale = sqrt(MAX_PROCESSING_PIXELS.toDouble() / finalPixels.toDouble())
+                val newOriginalWidth = (originalBitmap.width * scale).toInt()
+                val newOriginalHeight = (originalBitmap.height * scale).toInt()
+
+                android.util.Log.d(
+                    TAG,
+                    "压缩原图从${originalBitmap.width}x${originalBitmap.height}到${newOriginalWidth}x${newOriginalHeight}"
+                )
+
+                try {
+                    val compressedBitmap = Bitmap.createScaledBitmap(
+                        originalBitmap,
+                        newOriginalWidth,
+                        newOriginalHeight,
+                        true
+                    )
+
+                    // 如果创建了新的bitmap，且与原始的不同，则释放原始的
+                    if (compressedBitmap != originalBitmap && !originalBitmap.isRecycled) {
+                        originalBitmap.recycle()
+                    }
+
+                    compressedBitmap
+                } catch (e: OutOfMemoryError) {
+                    android.util.Log.e(TAG, "预压缩原图时发生OOM，使用原图", e)
+                    originalBitmap
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "预压缩原图失败，使用原图", e)
+                    originalBitmap
+                }
+            } else {
+                android.util.Log.d(
+                    TAG,
+                    "边框后尺寸${finalWidth}x${finalHeight}($finalPixels)在安全范围内"
+                )
+                originalBitmap
+            }
+
+            // 重新计算边框像素（基于可能已压缩的图片）
+            val processedShortSide = min(processedBitmap.width, processedBitmap.height)
+            val newBorderTopPx = (processedShortSide * config.borderTopWidth / 100).toInt()
+            val newBorderBottomPx = (processedShortSide * config.borderBottomWidth / 100).toInt()
+            val newBorderLeftPx = (processedShortSide * config.borderLeftWidth / 100).toInt()
+            val newBorderRightPx = (processedShortSide * config.borderRightWidth / 100).toInt()
+
         // 计算新的图片尺寸
-        val newWidth = originalBitmap.width + borderLeftPx + borderRightPx
-        val newHeight = originalBitmap.height + borderTopPx + borderBottomPx
+            val newWidth = processedBitmap.width + newBorderLeftPx + newBorderRightPx
+            val newHeight = processedBitmap.height + newBorderTopPx + newBorderBottomPx
 
-        val resultBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(resultBitmap)
+            try {
+                val resultBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(resultBitmap)
 
-        // 绘制边框背景
-        val borderPaint = Paint().apply {
-            color = config.getBorderColorInt()
-            style = Paint.Style.FILL
+                // 绘制边框背景
+                val borderPaint = Paint().apply {
+                    color = config.getBorderColorInt()
+                    style = Paint.Style.FILL
+                }
+
+                // 绘制整个背景
+                canvas.drawRect(0f, 0f, newWidth.toFloat(), newHeight.toFloat(), borderPaint)
+
+                // 绘制原图（放置在边框内），使用重新计算的边框值
+                canvas.drawBitmap(
+                    processedBitmap,  // 使用可能已压缩的图片
+                    newBorderLeftPx.toFloat(),
+                    newBorderTopPx.toFloat(),
+                    null
+                )
+
+                android.util.Log.d(
+                    TAG,
+                    "边框添加成功: ${processedBitmap.width}x${processedBitmap.height} -> ${newWidth}x${newHeight}"
+                )
+                return@withContext resultBitmap
+            } catch (e: OutOfMemoryError) {
+                android.util.Log.e(TAG, "创建边框时发生OOM: ${newWidth}x${newHeight}", e)
+                // OOM时返回处理后的图片（可能已压缩）
+                return@withContext processedBitmap
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "创建边框时发生错误", e)
+                return@withContext processedBitmap
+            }
         }
 
-        // 绘制整个背景
-        canvas.drawRect(0f, 0f, newWidth.toFloat(), newHeight.toFloat(), borderPaint)
+    /**
+     * 压缩图片防止处理时OOM
+     * 当图片像素数超过2亿时，压缩图片到合适尺寸
+     * @param bitmap 原始图片
+     * @return 压缩后的图片（如果不需要压缩则返回原图）
+     */
+    private suspend fun compressBitmapForProcessing(bitmap: Bitmap): Bitmap =
+        withContext(Dispatchers.Default) {
+            val currentPixels = bitmap.width.toLong() * bitmap.height.toLong()
 
-        // 绘制原图（放置在边框内）
-        canvas.drawBitmap(
-            originalBitmap,
-            borderLeftPx.toFloat(),
-            borderTopPx.toFloat(),
-            null
-        )
+            if (currentPixels <= MAX_PROCESSING_PIXELS) {
+                android.util.Log.d(TAG, "图片像素数($currentPixels)在处理安全范围内，无需压缩")
+                return@withContext bitmap
+            }
 
-        return resultBitmap
+            // 计算压缩比例
+            val scale = sqrt(MAX_PROCESSING_PIXELS.toDouble() / currentPixels.toDouble())
+            val newWidth = (bitmap.width * scale).toInt()
+            val newHeight = (bitmap.height * scale).toInt()
+
+            android.util.Log.d(
+                TAG,
+                "图片像素数($currentPixels)超过处理限制($MAX_PROCESSING_PIXELS)，将压缩至${newWidth}x${newHeight}"
+            )
+
+            try {
+                val compressedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+                val compressedPixels =
+                    compressedBitmap.width.toLong() * compressedBitmap.height.toLong()
+                android.util.Log.d(
+                    TAG,
+                    "图片压缩成功：${bitmap.width}x${bitmap.height}($currentPixels) -> ${compressedBitmap.width}x${compressedBitmap.height}($compressedPixels)"
+                )
+
+                // 如果创建了新的bitmap，且与原始的不同，则释放原始的
+                if (compressedBitmap != bitmap && !bitmap.isRecycled) {
+                    bitmap.recycle()
+                }
+
+                return@withContext compressedBitmap
+            } catch (e: OutOfMemoryError) {
+                android.util.Log.e(TAG, "压缩图片时发生OOM，返回原图", e)
+                return@withContext bitmap
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "压缩图片失败，返回原图", e)
+                return@withContext bitmap
+            }
     }
 
     /**

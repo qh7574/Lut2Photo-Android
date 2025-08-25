@@ -1,5 +1,6 @@
 package cn.alittlecookie.lut2photo.lut2photo.service
 
+// 添加水印处理相关导入
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -29,7 +30,6 @@ import cn.alittlecookie.lut2photo.lut2photo.MainActivity
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
-// 添加水印处理相关导入
 import cn.alittlecookie.lut2photo.lut2photo.core.WatermarkProcessor
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
@@ -581,7 +581,8 @@ class FolderMonitorService : Service() {
                                     finalBitmap,
                                     inputFile.uri,
                                     file.uri,
-                                    params.quality
+                                    params.quality,
+                                    outputFileName
                                 )
                                 
                                 // 保存处理记录到历史
@@ -718,13 +719,36 @@ class FolderMonitorService : Service() {
         }
     }
 
-    private fun saveBitmapWithExif(
+    private suspend fun saveBitmapWithExif(
         bitmap: Bitmap,
         sourceUri: Uri,
         targetUri: Uri,
-        quality: Int
+        quality: Int,
+        fileName: String = "image.jpg"
     ) {
         try {
+            // **新增：在保存前压缩图片防止OOM**
+            val compressedBitmap = threadManager.compressBitmapForSaving(
+                bitmap = bitmap,
+                fileName = fileName,
+                onCompressed = { compressedFileName, newWidth, newHeight ->
+                    // 在主线程显示Toast
+                    serviceScope.launch {
+                        kotlinx.coroutines.withContext(Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                this@FolderMonitorService,
+                                "${compressedFileName}尺寸过大，已压缩至${newWidth}×${newHeight}",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+            )
+            Log.d(
+                TAG,
+                "图片压缩完成，将保存尺寸: ${compressedBitmap.width}x${compressedBitmap.height}"
+            )
+            
             // 读取原始图片的EXIF信息
             val sourceExif = contentResolver.openInputStream(sourceUri)?.use { inputStream ->
                 ExifInterface(inputStream)
@@ -733,9 +757,9 @@ class FolderMonitorService : Service() {
             // 创建临时文件来保存带EXIF的图片
             val tempFile = File(cacheDir, "temp_with_exif_${System.currentTimeMillis()}.jpg")
 
-            // 先将bitmap保存到临时文件
+            // 先将压缩后bitmap保存到临时文件
             tempFile.outputStream().use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+                compressedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
             }
 
             // 如果有EXIF信息，则添加到临时文件
@@ -790,12 +814,25 @@ class FolderMonitorService : Service() {
             // 清理临时文件
             tempFile.delete()
 
+            // **清理资源：如果创建了新的压缩bitmap，则释放它**
+            if (compressedBitmap != bitmap && !compressedBitmap.isRecycled) {
+                compressedBitmap.recycle()
+            }
+
             Log.d(TAG, "图片已保存并包含EXIF信息")
         } catch (e: Exception) {
             Log.e(TAG, "保存带EXIF信息的图片时发生错误", e)
-            // 如果失败，则回退到普通保存
-            contentResolver.openOutputStream(targetUri)?.use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+            // 如果失败，则回退到普通保存（使用压缩后bitmap）
+            try {
+                val compressedBitmap = threadManager.compressBitmapForSaving(bitmap)
+                contentResolver.openOutputStream(targetUri)?.use { outputStream ->
+                    compressedBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+                }
+                if (compressedBitmap != bitmap && !compressedBitmap.isRecycled) {
+                    compressedBitmap.recycle()
+                }
+            } catch (fallbackException: Exception) {
+                Log.e(TAG, "回退保存也失败", fallbackException)
             }
         }
     }

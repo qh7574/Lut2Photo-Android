@@ -13,10 +13,12 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.sqrt
 
 /**
  * Thread manager for handling CPU parallel and GPU serial processing
@@ -27,6 +29,9 @@ class ThreadManager(context: Context) {
     companion object {
         private const val TAG = "ThreadManager"
         private const val MAX_CPU_CONCURRENT = 5
+
+        // 图片保存时的尺寸限制，防止OOM
+        private const val MAX_SAVE_PIXELS = 200_000_000L // 2亿像素
     }
 
     data class ProcessingTask(
@@ -73,13 +78,10 @@ class ThreadManager(context: Context) {
     private fun initializeProcessors() {
         Log.d(TAG, "开始初始化处理器")
 
-        // 添加：立即进行一次同步配置，确保有默认设置
-        configureProcessorFromSettings()
-
         // 添加：立即启动GPU处理循环
         startGpuProcessingLoop()
 
-        // 在协程中异步检查GPU可用性并重新配置
+        // 在协程中同步检查GPU可用性，然后配置处理器
         managerScope.launch {
             try {
                 Log.d(TAG, "检查GPU可用性")
@@ -91,16 +93,16 @@ class ThreadManager(context: Context) {
 
                 if (!gpuAvailable) {
                     Log.w(TAG, "GPU不可用，回退到CPU处理器")
-                    preferredProcessor = ILutProcessor.ProcessorType.CPU
                 }
 
-                // 重新根据用户设置配置处理器
+                // GPU检查完成后再根据用户设置配置处理器
                 configureProcessorFromSettings()
 
             } catch (e: Exception) {
                 Log.e(TAG, "初始化处理器时发生错误", e)
                 isGpuAvailable = false  // 修复：确保错误时也更新变量
-                preferredProcessor = ILutProcessor.ProcessorType.CPU
+                // 即使出错也要配置处理器，确保有默认设置
+                configureProcessorFromSettings()
             }
         }
     }
@@ -154,7 +156,30 @@ class ThreadManager(context: Context) {
      */
     fun updateProcessorFromSettings() {
         Log.d(TAG, "Updating processor settings...")
-        configureProcessorFromSettings()
+
+        // 如果用户选择GPU但当前不可用，重新检查GPU可用性
+        if (preferencesManager.processorType.uppercase() == "GPU" && !isGpuAvailable) {
+            Log.d(
+                TAG,
+                "User selected GPU but currently unavailable, rechecking GPU availability..."
+            )
+            managerScope.launch {
+                try {
+                    val gpuAvailable = gpuProcessor.isAvailable()
+                    Log.d(TAG, "GPU重新检查结果: $gpuAvailable")
+                    isGpuAvailable = gpuAvailable
+
+                    // 重新配置处理器
+                    configureProcessorFromSettings()
+                } catch (e: Exception) {
+                    Log.e(TAG, "GPU重新检查失败", e)
+                    configureProcessorFromSettings()
+                }
+            }
+        } else {
+            // 直接配置
+            configureProcessorFromSettings()
+        }
     }
 
     private fun startGpuProcessingLoop() {
@@ -349,5 +374,62 @@ class ThreadManager(context: Context) {
         val preferredProcessor: ILutProcessor.ProcessorType,
         val isGpuAvailable: Boolean
     )
+
+    /**
+     * 压缩图片防止保存时OOM
+     * 当图片像素数超过2亿时，压缩图片到合适尺寸
+     * @param bitmap 原始图片
+     * @param fileName 文件名（用于提示）
+     * @param onCompressed 压缩回调（fileName, newWidth, newHeight）
+     * @return 压缩后的图片（如果不需要压缩则返回原图）
+     */
+    suspend fun compressBitmapForSaving(
+        bitmap: Bitmap,
+        fileName: String = "image.jpg",
+        onCompressed: ((String, Int, Int) -> Unit)? = null
+    ): Bitmap = withContext(Dispatchers.Default) {
+        val currentPixels = bitmap.width.toLong() * bitmap.height.toLong()
+
+        if (currentPixels <= MAX_SAVE_PIXELS) {
+            Log.d(TAG, "图片像素数($currentPixels)在安全范围内，无需压缩")
+            return@withContext bitmap
+        }
+
+        // 计算压缩比例
+        val scale = sqrt(MAX_SAVE_PIXELS.toDouble() / currentPixels.toDouble())
+        val newWidth = (bitmap.width * scale).toInt()
+        val newHeight = (bitmap.height * scale).toInt()
+
+        Log.d(
+            TAG,
+            "图片像素数($currentPixels)超过限制($MAX_SAVE_PIXELS)，将压缩至${newWidth}x${newHeight}"
+        )
+
+        try {
+            val compressedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+            val compressedPixels =
+                compressedBitmap.width.toLong() * compressedBitmap.height.toLong()
+            Log.d(
+                TAG,
+                "图片压缩成功：${bitmap.width}x${bitmap.height}($currentPixels) -> ${compressedBitmap.width}x${compressedBitmap.height}($compressedPixels)"
+            )
+
+            // 触发压缩回调
+            onCompressed?.invoke(fileName, newWidth, newHeight)
+
+            // 如果创建了新的bitmap，且与原始的不同，则释放原始的
+            if (compressedBitmap != bitmap && !bitmap.isRecycled) {
+                bitmap.recycle()
+            }
+
+            compressedBitmap
+        } catch (e: OutOfMemoryError) {
+            Log.e(TAG, "压缩图片时发生OOM，返回原图", e)
+            bitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "压缩图片失败，返回原图", e)
+            bitmap
+        }
+    }
 
 }

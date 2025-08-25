@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LUT2Photo</string>
+
+    <!-- 导航标题 -->
     <string name="title_home">文件夹监控</string>
     <string name="title_dashboard">手动处理</string>
     <string name="title_notifications">设置</string>
     <string name="title_processing_history">处理历史</string>
     <string name="title_lut_manager">LUT管理</string>
 
-    <!-- 通用 -->
+    <!-- 通用操作 -->
     <string name="select_lut_file">选择LUT文件</string>
     <string name="lut_file_not_selected">未选择LUT文件</string>
     <string name="processing">处理中…</string>
@@ -35,6 +37,7 @@
     <string name="processor_gpu">GPU</string>
     <string name="processor_cpu">CPU</string>
     <string name="processor_description">选择图像处理使用的处理器类型</string>
+    <string name="processor_setting_changed">处理器已切换到: %s</string>
 
     <!-- 文件夹监控 -->
     <string name="folder_monitoring">文件夹监控</string>
@@ -68,7 +71,6 @@
     <string name="images_selected_zero">已选择: 0 张图片</string>
     <string name="status_completed">处理完成</string>
     <string name="status_error">处理失败</string>
-    <string name="processing_completed">处理完成</string>
     <string name="status_stopped">已停止</string>
 
     <!-- 参数设置 -->
@@ -94,7 +96,7 @@
 
     <!-- 应用信息 -->
     <string name="app_version_format">App版本: %s</string>
-    <string name="app_description">LUT2Photo\n一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 支持标准CUBE格式LUT文件\n• Material 3 动态颜色主题\n\n基于Python版本的LUT处理算法移植，Python版本项目地址：\nhttps://github.com/qh7574/Lut2Photo-Py\n\n作者：偷光你的小鱼干（某些情况下也叫 狸花饺子喵）</string>
+    <string name="app_description">LUT2Photo\n一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• 支持标准CUBE格式LUT文件\n• Material 3 动态颜色主题\n\n基于Python版本的LUT处理算法移植，Python版本项目地址：\nhttps://github.com/qh7574/Lut2Photo-Py\n\n作者：偷光你的小鱼干（某些情况下也叫 狸花饺子喵）</string>
 
     <!-- 权限状态格式化 -->
     <string name="permission_status_format">权限状态: %1$d/%2$d 已授权</string>
@@ -147,7 +149,7 @@
     <string name="toast_lut_import_success">LUT文件导入成功</string>
     <string name="toast_lut_import_failed">LUT文件导入失败</string>
 
-    <!-- 状态消息 -->
+    <!-- 状态消息 (整合重复项) -->
     <string name="status_ready">准备就绪</string>
     <string name="status_monitoring">监控中</string>
     <string name="status_monitoring_stopped">监控已停止</string>
@@ -222,8 +224,13 @@
     <string name="selected_images_count">已选择: %d 张图片</string>
     <string name="monitoring_active">监控中...</string>
     <string name="monitoring_inactive">未启动</string>
-    <!-- 处理器设置相关 -->
-    <string name="processor_setting_changed">处理器已切换到: %s</string>
+    <!-- GPU处理相关 -->
+    <string name="gpu_block_processing_started">GPU分块处理开始</string>
+    <string name="gpu_block_processing_complete">GPU分块处理完成</string>
+    <string name="gpu_memory_insufficient">GPU内存不足，回退到CPU处理</string>
+    <string name="gpu_processing_fallback_cpu">GPU处理失败，回退到CPU处理</string>
+
+    <!-- 水印设置相关 -->
     <string name="enable_watermark">启用水印</string>
     <string name="watermark_settings">水印设置</string>
 </resources>

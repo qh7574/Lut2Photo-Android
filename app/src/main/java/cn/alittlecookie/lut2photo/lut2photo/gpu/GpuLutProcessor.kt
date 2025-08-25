@@ -28,14 +28,16 @@ import java.nio.FloatBuffer
 class GpuLutProcessor(private val context: Context) : ILutProcessor {
     companion object {
         private const val TAG = "GpuLutProcessor"
-        // 移除固定的LUT_3D_SIZE，改为动态获取
 
-        // 添加CPU处理器作为后备
-        private val cpuProcessor = CpuLutProcessor()
-
-        // ByteBuffer缓存池，复用内存
-        private val bufferCache = mutableMapOf<String, ByteBuffer>()
+        // 2410万像素限制（24.1 megapixels）
+        private const val MAX_PIXELS_FOR_DIRECT_PROCESSING = 24_100_000L
         private const val MAX_CACHE_SIZE = 3 // 最多缓存3个不同尺寸的buffer
+
+        // GPU纹理尺寸安全限制（大多数设备支持4096，但使用更保守的值）
+        private const val SAFE_TEXTURE_SIZE = 2048
+
+        // 分块处理的最大像素数（1600万像素）
+        private const val MAX_BLOCK_PIXELS = 16_000_000L
 
         private fun checkGLError(operation: String) {
             val error = GLES30.glGetError()
@@ -51,42 +53,6 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 Log.e(TAG, "OpenGL错误在 $operation: $errorMsg")
                 throw RuntimeException("OpenGL错误在 $operation: $errorMsg")
             }
-        }
-
-        /**
-         * 获取或创建指定尺寸的ByteBuffer
-         */
-        private fun getOrCreateBuffer(width: Int, height: Int, name: String): ByteBuffer {
-            val size = width * height * 4
-            val key = "${name}_${width}_${height}"
-
-            var buffer = bufferCache[key]
-            if (buffer == null || buffer.capacity() < size) {
-                // 清理旧缓存
-                if (bufferCache.size >= MAX_CACHE_SIZE) {
-                    val oldestKey = bufferCache.keys.first()
-                    bufferCache.remove(oldestKey)
-                    Log.d(TAG, "清理旧ByteBuffer缓存: $oldestKey")
-                }
-
-                buffer = ByteBuffer.allocateDirect(size)
-                buffer.order(ByteOrder.nativeOrder())
-                bufferCache[key] = buffer
-                Log.d(TAG, "创建新ByteBuffer: $key, 大小: ${size / 1024 / 1024}MB")
-            } else {
-                buffer.clear() // 重置位置
-                Log.d(TAG, "复用ByteBuffer: $key")
-            }
-
-            return buffer
-        }
-
-        /**
-         * 清理所有缓存的ByteBuffer
-         */
-        private fun clearBufferCache() {
-            bufferCache.clear()
-            Log.d(TAG, "清理所有ByteBuffer缓存")
         }
 
         // Vertex shader for full-screen quad
@@ -124,15 +90,21 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
                 }
                 
-                // Floyd-Steinberg dithering approximation
+                // Floyd-Steinberg dithering approximation - 修复分块处理时的坐标问题
                 vec3 applyFloydSteinbergDither(vec3 color, vec2 coord) {
-                    float noise = (random(coord) - 0.5) / 255.0;
+                    // 使用纹理坐标而非屏幕坐标，避免分块时的坐标不连续问题
+                    vec2 texelSize = vec2(1.0) / vec2(textureSize(u_inputTexture, 0));
+                    vec2 ditherCoord = coord / texelSize;
+                    float noise = (random(ditherCoord) - 0.5) / 255.0;
                     return color + vec3(noise);
                 }
                 
-                // Random dithering
+                // Random dithering - 修复分块处理时的坐标问题
                 vec3 applyRandomDither(vec3 color, vec2 coord) {
-                    float noise = (random(coord) - 0.5) / 128.0;
+                    // 使用纹理坐标而非屏幕坐标，避免分块时的坐标不连续问题
+                    vec2 texelSize = vec2(1.0) / vec2(textureSize(u_inputTexture, 0));
+                    vec2 ditherCoord = coord / texelSize;
+                    float noise = (random(ditherCoord) - 0.5) / 128.0;
                     return color + vec3(noise);
                 }
                 
@@ -153,12 +125,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     float clampedStrength = clamp(u_strength, 0.0, 1.0);
                     vec3 blendedColor = mix(originalColor.rgb, lutColor, clampedStrength);
                     
-                    // Apply dithering if enabled
+                    // Apply dithering if enabled - 使用纹理坐标而非屏幕坐标
                     vec3 finalColor = blendedColor;
                     if (u_ditherType == 1) { // Floyd-Steinberg
-                        finalColor = applyFloydSteinbergDither(blendedColor, gl_FragCoord.xy);
+                        finalColor = applyFloydSteinbergDither(blendedColor, v_texCoord);
                     } else if (u_ditherType == 2) { // Random
-                        finalColor = applyRandomDither(blendedColor, gl_FragCoord.xy);
+                        finalColor = applyRandomDither(blendedColor, v_texCoord);
                     }
                     
                     fragColor = vec4(clamp(finalColor, 0.0, 1.0), originalColor.a);
@@ -166,6 +138,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             """
         }
     }
+
+    // CPU处理器作为实例变量，用于OOM回退
+    private val cpuProcessor = CpuLutProcessor()
+
+    // ByteBuffer缓存池，复用内存
+    private val bufferCache = mutableMapOf<String, ByteBuffer>()
 
     // 删除这行：private var egl: EGL10? = null
     private var eglDisplay: EGLDisplay? = null
@@ -187,6 +165,46 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     private var lutTexture: Int = 0
     private var currentLut: Array<Array<Array<FloatArray>>>? = null
     private var currentLutSize: Int = 0
+
+    // GPU最大纹理尺寸（初始化时获取）
+    private var maxTextureSize: Int = SAFE_TEXTURE_SIZE
+
+    /**
+     * 获取或创建指定尺寸的ByteBuffer
+     */
+    private fun getOrCreateBuffer(width: Int, height: Int, name: String): ByteBuffer {
+        val size = width * height * 4
+        val key = "${name}_${width}_${height}"
+
+        var buffer = bufferCache[key]
+        if (buffer == null || buffer.capacity() < size) {
+            // 清理旧缓存
+            if (bufferCache.size >= MAX_CACHE_SIZE) {
+                val oldestKey = bufferCache.keys.first()
+                bufferCache.remove(oldestKey)
+                Log.d(TAG, "清理旧ByteBuffer缓存: $oldestKey")
+            }
+
+            buffer = ByteBuffer.allocateDirect(size)
+            buffer.order(ByteOrder.nativeOrder())
+            bufferCache[key] = buffer
+            Log.d(TAG, "创建新ByteBuffer: $key, 大小: ${size / 1024 / 1024}MB")
+        } else {
+            buffer.clear() // 重置位置
+            Log.d(TAG, "复用ByteBuffer: $key")
+        }
+
+        // 确保返回非空buffer
+        return buffer ?: throw RuntimeException("无法创建或获取ByteBuffer")
+    }
+
+    /**
+     * 清理所有缓存的ByteBuffer
+     */
+    private fun clearBufferCache() {
+        bufferCache.clear()
+        Log.d(TAG, "清理所有ByteBuffer缓存")
+    }
 
 
     override fun getProcessorType(): ILutProcessor.ProcessorType {
@@ -218,9 +236,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                         initializeGpu()
                         Log.d(TAG, "GPU处理器初始化成功")
                     } catch (e: Exception) {
-                        Log.e(TAG, "GPU处理器初始化失败", e)
-                        throw e
+                        Log.e(TAG, "GPU处理器初始化失败: ${e.message}", e)
+                        // 不要重新抛出异常，而是返回 false
+                        return@withContext false
                     }
+                } else {
+                    Log.d(TAG, "GPU处理器已初始化")
                 }
 
                 Log.d(TAG, "GPU处理器可用性检查完成: $isInitialized")
@@ -356,55 +377,69 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     ): Bitmap? {
         Log.d(TAG, "开始GPU处理，图片尺寸: ${bitmap.width}x${bitmap.height}")
 
-        // 内存预检查：计算所需内存并检查可用性
-        val requiredMemory = calculateRequiredMemory(bitmap)
-        val availableMemory = getAvailableMemory()
-
-        Log.d(TAG, "图片尺寸: ${bitmap.width}x${bitmap.height}")
-        Log.d(TAG, "预估所需GPU内存: ${requiredMemory / 1024 / 1024}MB")
-        Log.d(TAG, "可用内存: ${availableMemory / 1024 / 1024}MB")
-
-        // 如果需要的内存超过可用内存的85%，则回退到CPU处理
-        if (requiredMemory > availableMemory * 0.85) {
-            Log.w(TAG, "内存不足，直接回退到CPU处理器")
-            Log.w(
-                TAG,
-                "需要: ${requiredMemory / 1024 / 1024}MB, 安全阈值: ${(availableMemory * 0.85) / 1024 / 1024}MB"
-            )
-
-            // 确保CPU处理器有正确的LUT数据
-            if (currentLut != null) {
-                cpuProcessor.setLutData(currentLut, currentLutSize)
-            }
-
-            return cpuProcessor.processImage(bitmap, params)
-        }
+        val totalPixels = bitmap.width.toLong() * bitmap.height.toLong()
+        Log.d(TAG, "总像素数: $totalPixels, 限制: $MAX_PIXELS_FOR_DIRECT_PROCESSING")
 
         return try {
-            val result = processImageOnGpu(bitmap, params)
-            Log.d(TAG, "GPU处理成功")
-            Log.i(TAG, "最终处理结果：GPU处理成功")
-            result
-        } catch (e: OutOfMemoryError) {
-            Log.w(TAG, "GPU处理OOM，回退到CPU处理器", e)
-            // 清理GPU资源并回退到CPU处理
-            try {
-                cleanupGpu()
-                System.gc() // 建议垃圾回收
-                Thread.sleep(100) // 等待垃圾回收
-            } catch (cleanupException: Exception) {
-                Log.w(TAG, "GPU资源清理失败", cleanupException)
+            // 1. 判断像素数量决定处理方式
+            if (totalPixels <= MAX_PIXELS_FOR_DIRECT_PROCESSING) {
+                // 直接GPU处理（≤2410万像素）
+                Log.d(TAG, "图片像素数($totalPixels)在直接处理范围内，使用GPU直接处理")
+                processImageOnGpu(bitmap, params)
+            } else {
+                // 分块GPU处理（>2410万像素）
+                Log.d(TAG, "图片像素数($totalPixels)超过直接处理限制，使用GPU分块处理")
+                processImageInBlocks(bitmap, params)
             }
+        } catch (e: OutOfMemoryError) {
+            // 2. 只有在真正OOM时才回退到CPU
+            Log.w(TAG, "GPU处理发生OOM，回退到CPU处理器", e)
+            handleGpuOomFallback(bitmap, params)
+        } catch (e: Exception) {
+            // 3. 其他异常也尝试CPU回退
+            Log.w(TAG, "GPU处理失败，回退到CPU处理: ${e.message}")
+            handleGpuErrorFallback(bitmap, params, e)
+        }
+    }
 
+    /**
+     * 处理GPU OOM情况的回退逻辑
+     */
+    private suspend fun handleGpuOomFallback(
+        bitmap: Bitmap,
+        params: ILutProcessor.ProcessingParams
+    ): Bitmap? {
+        return try {
+            // 清理GPU资源
+            cleanupGpu()
+            System.gc()
+            Thread.sleep(100)
+
+            Log.d(TAG, "GPU OOM后清理完成，回退到CPU处理器")
+            
             // 确保CPU处理器有正确的LUT数据
             if (currentLut != null) {
                 cpuProcessor.setLutData(currentLut, currentLutSize)
             }
 
-            return cpuProcessor.processImage(bitmap, params)
+            cpuProcessor.processImage(bitmap, params)
         } catch (e: Exception) {
-            Log.w(TAG, "GPU处理失败，回退到CPU处理: ${e.message}")
+            Log.e(TAG, "CPU回退处理也失败", e)
+            null
+        }
+    }
 
+    /**
+     * 处理GPU其他错误的回退逻辑
+     */
+    private suspend fun handleGpuErrorFallback(
+        bitmap: Bitmap,
+        params: ILutProcessor.ProcessingParams,
+        originalError: Exception
+    ): Bitmap? {
+        return try {
+            Log.d(TAG, "GPU处理错误，准备CPU回退: ${originalError.message}")
+            
             // 确保CPU处理器有正确的LUT数据
             if (currentLut != null) {
                 Log.d(
@@ -415,7 +450,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
                 // 验证同步是否成功
                 if (cpuProcessor.getLutData() != null) {
-                    Log.d(TAG, "LUT数据同步成功，CPU处理器LUT尺寸: ${cpuProcessor.getLutSize()}")
+                    Log.d(TAG, "LUT数据同步成功")
                 } else {
                     Log.e(TAG, "LUT数据同步失败")
                     return null
@@ -425,84 +460,21 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 return null
             }
 
-            Log.d(TAG, "使用CPU处理器进行回退处理")
             val cpuResult = cpuProcessor.processImage(bitmap, params)
             if (cpuResult != null) {
                 Log.d(TAG, "CPU回退处理成功")
-                Log.i(TAG, "最终处理结果：CPU回退处理成功")
             } else {
                 Log.e(TAG, "CPU回退处理失败")
-                Log.e(TAG, "最终处理结果：处理失败")
             }
             cpuResult
+        } catch (e: Exception) {
+            Log.e(TAG, "CPU回退处理过程中发生异常", e)
+            null
         }
     }
 
-    /**
-     * 计算处理指定图片所需的GPU内存
-     */
-    private fun calculateRequiredMemory(bitmap: Bitmap): Long {
-        val width = bitmap.width.toLong()
-        val height = bitmap.height.toLong()
-
-        // GPU处理所需内存估算：
-        // 1. 输入纹理：width * height * 4 (RGBA)
-        // 2. 输出纹理：width * height * 4 (RGBA) 
-        // 3. ByteBuffer for pixel reading: width * height * 4
-        // 4. 临时处理缓冲区：width * height * 4 (翻转操作)
-        // 5. 安全系数：根据设备内存动态调整
-
-        val baseMemory = width * height * 4 // 单个RGBA纹理大小
-        val coreMemory = baseMemory * 4 // 输入、输出、读取、翻转缓冲区
-
-        // 根据设备内存级别动态调整安全系数
-        val deviceMemoryClass = getDeviceMemoryClass()
-        val safetyFactor = when {
-            deviceMemoryClass >= 512 -> 1.15 // 高端设备，较小的安全系数
-            deviceMemoryClass >= 256 -> 1.25 // 中端设备
-            else -> 1.4 // 低端设备，较大的安全系数
-        }
-
-        return (coreMemory * safetyFactor).toLong()
-    }
-
-    /**
-     * 获取设备内存级别（MB）
-     */
-    private fun getDeviceMemoryClass(): Int {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val memoryInfo = ActivityManager.MemoryInfo()
-        activityManager.getMemoryInfo(memoryInfo)
-
-        // 返回大约的内存级别（MB）
-        val totalMemoryMB = memoryInfo.totalMem / 1024 / 1024
-        Log.d(TAG, "设备总内存: ${totalMemoryMB}MB")
-
-        return totalMemoryMB.toInt()
-    }
-
-    /**
-     * 获取当前可用内存
-     */
-    private fun getAvailableMemory(): Long {
-        val runtime = Runtime.getRuntime()
-        val maxMemory = runtime.maxMemory()
-        val totalMemory = runtime.totalMemory()
-        val freeMemory = runtime.freeMemory()
-
-        // 可用内存 = 最大内存 - 已使用内存
-        val usedMemory = totalMemory - freeMemory
-        val availableMemory = maxMemory - usedMemory
-
-        Log.d(
-            TAG, "内存状态 - 最大: ${maxMemory / 1024 / 1024}MB, " +
-                    "已分配: ${totalMemory / 1024 / 1024}MB, " +
-                    "空闲: ${freeMemory / 1024 / 1024}MB, " +
-                    "可用: ${availableMemory / 1024 / 1024}MB"
-        )
-
-        return availableMemory
-    }
+    // 删除calculateRequiredMemory、getDeviceMemoryClass、getAvailableMemory等内存预检查方法
+    // 这些方法会导致不必要的CPU回退，现在只在真正OOM时才回退
 
     // 添加 release 方法
     override suspend fun release() {
@@ -512,10 +484,417 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         }
     }
 
+    /**
+     * GPU二维分块处理方法
+     * 当图片超过2410万像素或单边超过GPU最大纹理尺寸时，使用X和Y轴二维分块处理
+     * 支持田字形/9宫格分块，优先GPU处理，只在OOM时才回退CPU
+     */
+    private suspend fun processImageInBlocks(
+        bitmap: Bitmap,
+        params: ILutProcessor.ProcessingParams
+    ): Bitmap? = withContext(Dispatchers.Default) {
+        val width = bitmap.width
+        val height = bitmap.height
+
+        Log.d(TAG, "开始GPU二维分块处理，图片尺寸: ${width}x${height}")
+        Log.d(TAG, "GPU最大纹理尺寸: $maxTextureSize, 最大块像素数: $MAX_BLOCK_PIXELS")
+
+        // 计算合适的块尺寸
+        val blockDimensions = calculateOptimalBlockSize(width, height)
+        val blockWidth = blockDimensions.first
+        val blockHeight = blockDimensions.second
+        val blocksX = (width + blockWidth - 1) / blockWidth // 向上取整
+        val blocksY = (height + blockHeight - 1) / blockHeight // 向上取整
+
+        Log.d(
+            TAG,
+            "分块参数: 块尺寸=${blockWidth}x${blockHeight}, 分块数=${blocksX}x${blocksY}, 总块数=${blocksX * blocksY}"
+        )
+
+        // 创建结果bitmap
+        val resultBitmap = createBitmap(width, height)
+
+        var blockIndex = 0
+        var hasOomOccurred = false // 标记是否已发生OOM
+
+        try {
+            // 遍历所有块（Y轴优先）
+            for (blockY in 0 until blocksY) {
+                for (blockX in 0 until blocksX) {
+                    // 计算当前块的实际尺寸和位置
+                    val currentX = blockX * blockWidth
+                    val currentY = blockY * blockHeight
+                    val currentBlockWidth = minOf(blockWidth, width - currentX)
+                    val currentBlockHeight = minOf(blockHeight, height - currentY)
+
+                    Log.d(
+                        TAG,
+                        "处理块 $blockIndex (${blockX},${blockY}): 位置=($currentX,$currentY), 尺寸=${currentBlockWidth}x${currentBlockHeight}"
+                    )
+
+                    // 验证块参数有效性
+                    if (currentX + currentBlockWidth > width || currentY + currentBlockHeight > height) {
+                        Log.e(
+                            TAG,
+                            "块参数越界: currentX=$currentX, currentY=$currentY, blockWidth=$currentBlockWidth, blockHeight=$currentBlockHeight, totalSize=${width}x${height}"
+                        )
+                        throw RuntimeException("块参数越界")
+                    }
+
+                    if (currentBlockWidth <= 0 || currentBlockHeight <= 0) {
+                        Log.e(
+                            TAG,
+                            "块尺寸无效: width=$currentBlockWidth, height=$currentBlockHeight"
+                        )
+                        throw RuntimeException("块尺寸无效")
+                    }
+
+                    // 创建当前块的bitmap
+                    val blockBitmap = try {
+                        Log.d(
+                            TAG,
+                            "创建块bitmap: x=$currentX, y=$currentY, width=$currentBlockWidth, height=$currentBlockHeight"
+                        )
+                        Bitmap.createBitmap(
+                            bitmap,
+                            currentX,
+                            currentY,
+                            currentBlockWidth,
+                            currentBlockHeight
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "创建块bitmap失败: ${e.message}")
+                        throw RuntimeException("创建块bitmap失败: ${e.message}", e)
+                    }
+
+                    // 验证创建的块bitmap
+                    if (blockBitmap == null || blockBitmap.isRecycled ||
+                        blockBitmap.width != currentBlockWidth || blockBitmap.height != currentBlockHeight
+                    ) {
+                        Log.e(
+                            TAG,
+                            "块bitmap创建异常: width=${blockBitmap?.width}, height=${blockBitmap?.height}, isRecycled=${blockBitmap?.isRecycled}"
+                        )
+                        blockBitmap?.recycle()
+                        throw RuntimeException("块bitmap创建异常")
+                    }
+
+                    Log.d(
+                        TAG,
+                        "块bitmap创建成功: ${blockBitmap.width}x${blockBitmap.height}, 格式: ${blockBitmap.config}"
+                    )
+
+                    // 如果之前没有发生OOM，优先尝试GPU处理
+                    val processedBlock = if (!hasOomOccurred) {
+                        try {
+                            Log.d(TAG, "块 $blockIndex 使用GPU处理")
+                            processImageOnGpu(blockBitmap, params)
+                        } catch (e: OutOfMemoryError) {
+                            Log.w(TAG, "块 $blockIndex GPU处理OOM，标记回退状态并使用CPU处理", e)
+                            hasOomOccurred = true // 标记已发生OOM
+
+                            // 清理GPU资源
+                            try {
+                                Log.d(TAG, "OOM后清理GPU资源并重新初始化")
+                                cleanupGpu()
+                                System.gc()
+                                Thread.sleep(100)
+                                Log.d(TAG, "GPU资源清理完成，等待下次重新初始化")
+                            } catch (cleanupException: Exception) {
+                                Log.w(TAG, "GPU资源清理失败", cleanupException)
+                            }
+
+                            // 回退到CPU处理当前块
+                            processSingleBlockWithCpu(blockBitmap, params)
+                        }
+                    } else {
+                        // 如果之前已发生OOM，后续块直接使用CPU处理
+                        Log.d(TAG, "块 $blockIndex 使用CPU处理（之前OOM回退）")
+                        processSingleBlockWithCpu(blockBitmap, params)
+                    }
+
+                    if (processedBlock == null) {
+                        Log.e(TAG, "块 $blockIndex 处理失败")
+                        // 清理已创建的资源
+                        cleanupBitmaps(resultBitmap, blockBitmap)
+                        return@withContext null
+                    }
+
+                    // 将处理后的块拷贝到结果bitmap
+                    try {
+                        val canvas = android.graphics.Canvas(resultBitmap)
+                        canvas.drawBitmap(
+                            processedBlock,
+                            currentX.toFloat(),
+                            currentY.toFloat(),
+                            null
+                        )
+                        Log.d(TAG, "块 $blockIndex 已拷贝到结果bitmap")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "拷贝块 $blockIndex 到结果bitmap失败", e)
+                        // 清理资源并返回失败
+                        cleanupBitmaps(resultBitmap, blockBitmap, processedBlock)
+                        return@withContext null
+                    }
+
+                    // 释放临时bitmap
+                    cleanupBitmaps(blockBitmap, processedBlock)
+
+                    blockIndex++
+
+                    // 让出CPU时间，避免阻塞UI
+                    kotlinx.coroutines.yield()
+
+                    Log.d(
+                        TAG,
+                        "块 ${blockIndex - 1} 处理完成，进度: $blockIndex/${blocksX * blocksY}"
+                    )
+                }
+            }
+
+            if (hasOomOccurred) {
+                Log.i(TAG, "GPU二维分块处理完成（部分块回退到CPU），总共处理了 $blockIndex 个块")
+            } else {
+                Log.d(TAG, "GPU二维分块处理完成（全GPU处理），总共处理了 $blockIndex 个块")
+            }
+            return@withContext resultBitmap
+
+        } catch (e: Exception) {
+            Log.e(TAG, "GPU二维分块处理过程中出错", e)
+            if (!resultBitmap.isRecycled) {
+                resultBitmap.recycle()
+            }
+
+            // 完全回退到CPU处理器
+            Log.w(TAG, "GPU二维分块处理失败，完全回退到CPU处理器")
+            return@withContext fallbackToCpuProcessor(bitmap, params)
+        }
+    }
+
+    /**
+     * 计算最佳分块尺寸
+     * 考虑GPU最大纹理尺寸限制和像素数量限制，智能选择X和Y轴的分块方案
+     */
+    private fun calculateOptimalBlockSize(width: Int, height: Int): Pair<Int, Int> {
+        Log.d(
+            TAG,
+            "计算最佳分块尺寸，原图尺寸: ${width}x${height}, GPU最大纹理尺寸: $maxTextureSize"
+        )
+
+        // 1. 检查是否需要因为尺寸限制进行分块
+        val needWidthSplit = width > maxTextureSize
+        val needHeightSplit = height > maxTextureSize
+
+        // 2. 计算基于尺寸限制的分块数量
+        val minBlocksX = if (needWidthSplit) {
+            (width + maxTextureSize - 1) / maxTextureSize // 向上取整
+        } else {
+            1
+        }
+
+        val minBlocksY = if (needHeightSplit) {
+            (height + maxTextureSize - 1) / maxTextureSize // 向上取整
+        } else {
+            1
+        }
+
+        // 3. 基于尺寸限制计算的初始块尺寸
+        var blockWidth = width / minBlocksX
+        var blockHeight = height / minBlocksY
+
+        Log.d(
+            TAG,
+            "基于尺寸限制的分块: ${minBlocksX}x${minBlocksY}, 块尺寸: ${blockWidth}x${blockHeight}"
+        )
+
+        // 4. 检查像素数量是否超过限制，如果超过则需要进一步分块
+        val blockPixels = blockWidth.toLong() * blockHeight.toLong()
+        if (blockPixels > MAX_BLOCK_PIXELS) {
+            Log.d(TAG, "块像素数($blockPixels)超过限制($MAX_BLOCK_PIXELS)，需要进一步分块")
+
+            // 计算需要额外分块的倍数
+            val pixelRatio = blockPixels.toDouble() / MAX_BLOCK_PIXELS.toDouble()
+            val additionalBlocks = kotlin.math.ceil(kotlin.math.sqrt(pixelRatio)).toInt()
+
+            // 优先在较长的边上进行分块
+            if (blockWidth >= blockHeight) {
+                // 宽度较大，优先在X轴分块
+                val totalBlocksX = minBlocksX * additionalBlocks
+                blockWidth = width / totalBlocksX
+
+                // 如果还是太大，也在Y轴分块
+                val newBlockPixels = blockWidth.toLong() * blockHeight.toLong()
+                if (newBlockPixels > MAX_BLOCK_PIXELS) {
+                    val remainingRatio = newBlockPixels.toDouble() / MAX_BLOCK_PIXELS.toDouble()
+                    val additionalYBlocks = kotlin.math.ceil(remainingRatio).toInt()
+                    val totalBlocksY = minBlocksY * additionalYBlocks
+                    blockHeight = height / totalBlocksY
+                }
+            } else {
+                // 高度较大，优先在Y轴分块
+                val totalBlocksY = minBlocksY * additionalBlocks
+                blockHeight = height / totalBlocksY
+
+                // 如果还是太大，也在X轴分块
+                val newBlockPixels = blockWidth.toLong() * blockHeight.toLong()
+                if (newBlockPixels > MAX_BLOCK_PIXELS) {
+                    val remainingRatio = newBlockPixels.toDouble() / MAX_BLOCK_PIXELS.toDouble()
+                    val additionalXBlocks = kotlin.math.ceil(remainingRatio).toInt()
+                    val totalBlocksX = minBlocksX * additionalXBlocks
+                    blockWidth = width / totalBlocksX
+                }
+            }
+        }
+
+        // 5. 确保块尺寸不超过GPU限制
+        blockWidth = blockWidth.coerceAtMost(maxTextureSize)
+        blockHeight = blockHeight.coerceAtMost(maxTextureSize)
+
+        // 6. 确保块尺寸至少为1
+        blockWidth = blockWidth.coerceAtLeast(1)
+        blockHeight = blockHeight.coerceAtLeast(1)
+
+        val finalBlockPixels = blockWidth.toLong() * blockHeight.toLong()
+        val finalBlocksX = (width + blockWidth - 1) / blockWidth
+        val finalBlocksY = (height + blockHeight - 1) / blockHeight
+
+        Log.d(
+            TAG,
+            "最终分块方案: 块尺寸=${blockWidth}x${blockHeight}, 分块数=${finalBlocksX}x${finalBlocksY}, 块像素数=$finalBlockPixels"
+        )
+
+        // 7. 验证分块方案的合理性
+        if (blockWidth > maxTextureSize || blockHeight > maxTextureSize) {
+            Log.w(TAG, "警告：计算出的块尺寸仍超过GPU限制，可能导致纹理创建失败")
+        }
+
+        if (finalBlockPixels > MAX_BLOCK_PIXELS) {
+            Log.w(TAG, "警告：计算出的块像素数仍超过限制，可能导致OOM")
+        }
+
+        return Pair(blockWidth, blockHeight)
+    }
+
+    /**
+     * 使用CPU处理单个块
+     */
+    private suspend fun processSingleBlockWithCpu(
+        blockBitmap: Bitmap,
+        params: ILutProcessor.ProcessingParams
+    ): Bitmap? {
+        return try {
+            // 确保CPU处理器有LUT数据
+            if (currentLut != null) {
+                cpuProcessor.setLutData(currentLut, currentLutSize)
+            }
+
+            cpuProcessor.processImage(blockBitmap, params)
+        } catch (e: Exception) {
+            Log.e(TAG, "CPU处理单个块失败", e)
+            null
+        }
+    }
+
+    /**
+     * 完全回退到CPU处理器
+     */
+    private suspend fun fallbackToCpuProcessor(
+        bitmap: Bitmap,
+        params: ILutProcessor.ProcessingParams
+    ): Bitmap? {
+        return try {
+            Log.d(TAG, "完全回退到CPU处理器")
+
+            if (currentLut != null) {
+                cpuProcessor.setLutData(currentLut, currentLutSize)
+            }
+
+            cpuProcessor.processImage(bitmap, params)
+        } catch (e: Exception) {
+            Log.e(TAG, "CPU回退处理失败", e)
+            null
+        }
+    }
+
+    /**
+     * 清理bitmap资源
+     */
+    private fun cleanupBitmaps(vararg bitmaps: Bitmap?) {
+        bitmaps.forEach { bitmap ->
+            try {
+                if (bitmap != null && !bitmap.isRecycled) {
+                    bitmap.recycle()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Bitmap清理失败", e)
+            }
+        }
+    }
+
     private suspend fun processImageOnGpu(
         bitmap: Bitmap,
         params: ILutProcessor.ProcessingParams
     ): Bitmap = withContext(Dispatchers.Main) {
+        // 验证bitmap有效性
+        if (bitmap.isRecycled) {
+            throw RuntimeException("Bitmap已被回收，无法处理")
+        }
+
+        val width = bitmap.width
+        val height = bitmap.height
+
+        if (width <= 0 || height <= 0) {
+            throw RuntimeException("Bitmap尺寸无效: ${width}x${height}")
+        }
+
+        Log.d(TAG, "开始GPU处理，bitmap尺寸: ${width}x${height}, 格式: ${bitmap.config}")
+
+        // 检查GPU初始化状态
+        if (!isInitialized) {
+            Log.w(TAG, "GPU未初始化，尝试重新初始化")
+            initializeGpu()
+            if (!isInitialized) {
+                throw RuntimeException("GPU重新初始化失败")
+            }
+        }
+
+        // 验证bitmap格式是否支持
+        Log.d(TAG, "Bitmap原始格式: ${bitmap.config}")
+
+        // 对于所有非ARGB_8888格式，都转换为ARGB_8888以确保兼容性
+        val processableBitmap = if (bitmap.config != Bitmap.Config.ARGB_8888) {
+            Log.w(TAG, "Bitmap格式不是ARGB_8888: ${bitmap.config}，转换为ARGB_8888")
+            try {
+                val convertedBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, false)
+                if (convertedBitmap == null) {
+                    throw RuntimeException("无法转换Bitmap格式从${bitmap.config}到ARGB_8888")
+                }
+                Log.d(TAG, "Bitmap格式转换成功: ${bitmap.config} -> ${convertedBitmap.config}")
+                convertedBitmap
+            } catch (e: Exception) {
+                Log.e(TAG, "Bitmap格式转换失败", e)
+                throw RuntimeException("Bitmap格式转换失败: ${e.message}", e)
+            }
+        } else {
+            bitmap
+        }
+
+        // 再次验证转换后的bitmap
+        if (processableBitmap.isRecycled) {
+            throw RuntimeException("转换后的Bitmap已被回收")
+        }
+
+        if (processableBitmap.width != width || processableBitmap.height != height) {
+            Log.w(
+                TAG,
+                "Bitmap尺寸在转换后发生变化: ${width}x${height} -> ${processableBitmap.width}x${processableBitmap.height}"
+            )
+        }
+
+        // 如果转换了bitmap，递归调用处理新的bitmap
+        if (processableBitmap !== bitmap) {
+            return@withContext processImageOnGpu(processableBitmap, params)
+        }
         // 增强EGL上下文验证和线程安全处理
         synchronized(this@GpuLutProcessor) {
             // 验证EGL上下文是否有效
@@ -580,9 +959,6 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             }
         }
 
-        val width = bitmap.width
-        val height = bitmap.height
-
         // **关键修复：验证LUT纹理是否有效**
         if (lutTexture == 0) {
             Log.e(TAG, "LUT纹理无效，尝试重新上传")
@@ -608,10 +984,36 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
         Log.d(TAG, "LUT纹理验证通过，ID: $lutTexture")
 
+        // 创建输入纹理前的额外检查
+        Log.d(TAG, "开始创建输入纹理，尺寸: ${width}x${height}")
+
+        // 检查OpenGL状态
+        val glError = GLES30.glGetError()
+        if (glError != GLES30.GL_NO_ERROR) {
+            Log.w(TAG, "创建输入纹理前检测到OpenGL错误: $glError，清除状态")
+        }
+
+        // 检查bitmap的可访问性
+        try {
+            val testPixel = bitmap.getPixel(0, 0)
+            Log.d(TAG, "Bitmap可访问，测试像素值: 0x${testPixel.toString(16)}")
+        } catch (e: Exception) {
+            throw RuntimeException("Bitmap不可访问: ${e.message}")
+        }
+
         // 创建输入纹理
         val inputTexture = IntArray(1)
         GLES30.glGenTextures(1, inputTexture, 0)
+
+        if (inputTexture[0] == 0) {
+            throw RuntimeException("无法生成输入纹理ID")
+        }
+
+        Log.d(TAG, "生成输入纹理ID: ${inputTexture[0]}")
+        
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, inputTexture[0])
+        checkGLError("绑定输入纹理")
+        
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
         GLES30.glTexParameteri(
@@ -624,8 +1026,17 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             GLES30.GL_TEXTURE_WRAP_T,
             GLES30.GL_CLAMP_TO_EDGE
         )
+        checkGLError("设置输入纹理参数")
 
-        GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0)
+        // 使用GLUtils上传bitmap数据
+        Log.d(TAG, "开始上传bitmap数据到GPU纹理")
+        try {
+            GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0)
+            Log.d(TAG, "Bitmap数据上传成功")
+        } catch (e: Exception) {
+            Log.e(TAG, "GLUtils.texImage2D失败: ${e.message}")
+            throw RuntimeException("GLUtils.texImage2D失败: ${e.message}", e)
+        }
         checkGLError("创建输入纹理")
 
         // 创建帧缓冲区
@@ -896,8 +1307,10 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         resultBitmap.copyPixelsFromBuffer(flippedPixels)
 
         // 验证输出不是纯黑色
-        val testPixels = IntArray(100)
-        resultBitmap.getPixels(testPixels, 0, 10, 0, 0, 10, 10)
+        val testWidth = minOf(10, resultBitmap.width)
+        val testHeight = minOf(10, resultBitmap.height)
+        val testPixels = IntArray(testWidth * testHeight)
+        resultBitmap.getPixels(testPixels, 0, testWidth, 0, 0, testWidth, testHeight)
         val hasNonBlackPixels = testPixels.any { (it and 0xFFFFFF) != 0 }
         Log.d(TAG, "输出验证: 是否包含非黑色像素: $hasNonBlackPixels")
 
@@ -915,9 +1328,20 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             )
 
             // 读取一些像素进行详细分析
-            val debugPixels = IntArray(16)
-            resultBitmap.getPixels(debugPixels, 0, 4, 0, 0, 4, 4)
-            Log.d(TAG, "前16个像素值: ${debugPixels.joinToString { "0x${it.toString(16)}" }}")
+            val debugWidth = minOf(4, resultBitmap.width)
+            val debugHeight = minOf(4, resultBitmap.height)
+            val debugPixels = IntArray(debugWidth * debugHeight)
+            resultBitmap.getPixels(debugPixels, 0, debugWidth, 0, 0, debugWidth, debugHeight)
+            Log.d(
+                TAG,
+                "前${debugWidth * debugHeight}个像素值: ${
+                    debugPixels.joinToString {
+                        "0x${
+                            it.toString(16)
+                        }"
+                    }
+                }"
+            )
         }
 
         Log.d(TAG, "GPU处理完成，输出图片尺寸: ${resultBitmap.width}x${resultBitmap.height}")
@@ -1011,6 +1435,13 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             } else {
                 Log.w(TAG, "没有可用的LUT数据进行重新上传")
             }
+
+            // **新增：获取GPU最大纹理尺寸**
+            Log.d(TAG, "步骤7: 获取GPU最大纹理尺寸")
+            val maxTextureSizeArray = IntArray(1)
+            GLES30.glGetIntegerv(GLES30.GL_MAX_TEXTURE_SIZE, maxTextureSizeArray, 0)
+            maxTextureSize = maxTextureSizeArray[0].coerceAtMost(8192) // 限制在合理范围内
+            Log.d(TAG, "GPU最大纹理尺寸: $maxTextureSize")
 
             isInitialized = true
             Log.d(TAG, "GPU处理器初始化完成")
