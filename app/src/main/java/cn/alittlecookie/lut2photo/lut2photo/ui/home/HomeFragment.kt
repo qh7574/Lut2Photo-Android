@@ -23,7 +23,7 @@ import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
-import cn.alittlecookie.lut2photo.ui.dialog.WatermarkSettingsDialog
+import cn.alittlecookie.lut2photo.ui.bottomsheet.WatermarkSettingsBottomSheet
 import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
@@ -508,10 +508,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun showWatermarkSettingsDialog() {
-        val dialog = WatermarkSettingsDialog.newInstance { config ->
+        val bottomSheet = WatermarkSettingsBottomSheet.newInstance { config ->
             // 配置保存后的回调
             Log.d("HomeFragment", "水印配置已保存: $config")
         }
-        dialog.show(parentFragmentManager, "WatermarkSettingsDialog")
+        bottomSheet.show(parentFragmentManager, "WatermarkSettingsBottomSheet")
     }
 }

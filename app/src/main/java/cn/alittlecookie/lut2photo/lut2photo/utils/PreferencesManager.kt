@@ -116,18 +116,37 @@ class PreferencesManager(context: Context) {
             putBoolean("watermark_enabled", config.isEnabled)
             putBoolean("watermark_enable_text", config.enableTextWatermark)
             putBoolean("watermark_enable_image", config.enableImageWatermark)
-            putFloat("watermark_position_x", config.positionX)
-            putFloat("watermark_position_y", config.positionY)
+            
+            // 新的分离位置参数
+            putFloat("watermark_text_position_x", config.textPositionX)
+            putFloat("watermark_text_position_y", config.textPositionY)
+            putFloat("watermark_image_position_x", config.imagePositionX)
+            putFloat("watermark_image_position_y", config.imagePositionY)
+
+            // 新的分离透明度参数
+            putFloat("watermark_text_opacity", config.textOpacity)
+            putFloat("watermark_image_opacity", config.imageOpacity)
+
+            // 向后兼容参数（使用textPosition和textOpacity作为默认值）
+            putFloat("watermark_position_x", config.textPositionX)
+            putFloat("watermark_position_y", config.textPositionY)
+            putFloat("watermark_opacity", config.textOpacity)
+            
             putFloat("watermark_text_size", config.textSize)
             putFloat("watermark_image_size", config.imageSize)
-            putFloat("watermark_opacity", config.opacity)
             putString("watermark_text_content", config.textContent)
             putString("watermark_text_color", config.textColor)
             putString("watermark_font_path", config.fontPath)
+            putString("watermark_text_alignment", config.textAlignment.name)
             putString("watermark_image_path", config.imagePath)
             putFloat("watermark_text_image_spacing", config.textImageSpacing)
-            putFloat("watermark_border_width", config.borderWidth)
+            putFloat("watermark_border_top_width", config.borderTopWidth)
+            putFloat("watermark_border_bottom_width", config.borderBottomWidth)
+            putFloat("watermark_border_left_width", config.borderLeftWidth)
+            putFloat("watermark_border_right_width", config.borderRightWidth)
             putString("watermark_border_color", config.borderColor)
+            putFloat("watermark_letter_spacing", config.letterSpacing)
+            putFloat("watermark_line_spacing", config.lineSpacing)
         }
     }
 
@@ -155,26 +174,68 @@ class PreferencesManager(context: Context) {
     fun getWatermarkConfig(forFolderMonitor: Boolean = false): WatermarkConfig {
         val isEnabled =
             if (forFolderMonitor) folderMonitorWatermarkEnabled else dashboardWatermarkEnabled
+
+        // 读取文本对齐方式
+        val textAlignmentName =
+            sharedPreferences.getString("watermark_text_alignment", "LEFT") ?: "LEFT"
+        val textAlignment = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.valueOf(textAlignmentName)
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT
+        }
+            
         return WatermarkConfig(
             isEnabled = isEnabled,
             enableTextWatermark = sharedPreferences.getBoolean("watermark_enable_text", false),
             enableImageWatermark = sharedPreferences.getBoolean("watermark_enable_image", false),
-            positionX = sharedPreferences.getFloat("watermark_position_x", 50f),
-            positionY = sharedPreferences.getFloat("watermark_position_y", 90f),
+
+            // 新的分离位置参数，如果不存在则使用旧参数作为默认值
+            textPositionX = sharedPreferences.getFloat(
+                "watermark_text_position_x",
+                sharedPreferences.getFloat("watermark_position_x", 50f)
+            ),
+            textPositionY = sharedPreferences.getFloat(
+                "watermark_text_position_y",
+                sharedPreferences.getFloat("watermark_position_y", 90f)
+            ),
+            imagePositionX = sharedPreferences.getFloat(
+                "watermark_image_position_x",
+                sharedPreferences.getFloat("watermark_position_x", 50f)
+            ),
+            imagePositionY = sharedPreferences.getFloat(
+                "watermark_image_position_y",
+                sharedPreferences.getFloat("watermark_position_y", 10f)
+            ),
+
+            // 新的分离透明度参数，如果不存在则使用旧参数作为默认值
+            textOpacity = sharedPreferences.getFloat(
+                "watermark_text_opacity",
+                sharedPreferences.getFloat("watermark_opacity", 80f)
+            ),
+            imageOpacity = sharedPreferences.getFloat(
+                "watermark_image_opacity",
+                sharedPreferences.getFloat("watermark_opacity", 80f)
+            ),
+                
             textSize = sharedPreferences.getFloat("watermark_text_size", 10f),
             imageSize = sharedPreferences.getFloat("watermark_image_size", 10f),
-            opacity = sharedPreferences.getFloat("watermark_opacity", 80f),
             textContent = sharedPreferences.getString(
                 "watermark_text_content",
                 "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"
             ) ?: "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}",
             textColor = sharedPreferences.getString("watermark_text_color", "#FFFFFF") ?: "#FFFFFF",
             fontPath = sharedPreferences.getString("watermark_font_path", "") ?: "",
+            textAlignment = textAlignment,
             imagePath = sharedPreferences.getString("watermark_image_path", "") ?: "",
             textImageSpacing = sharedPreferences.getFloat("watermark_text_image_spacing", 5f),
-            borderWidth = sharedPreferences.getFloat("watermark_border_width", 0f),
+            borderTopWidth = sharedPreferences.getFloat("watermark_border_top_width", 0f),
+            borderBottomWidth = sharedPreferences.getFloat("watermark_border_bottom_width", 0f),
+            borderLeftWidth = sharedPreferences.getFloat("watermark_border_left_width", 0f),
+            borderRightWidth = sharedPreferences.getFloat("watermark_border_right_width", 0f),
             borderColor = sharedPreferences.getString("watermark_border_color", "#000000")
-                ?: "#000000"
+                ?: "#000000",
+            letterSpacing = sharedPreferences.getFloat("watermark_letter_spacing", 0f),
+            lineSpacing = sharedPreferences.getFloat("watermark_line_spacing", 0f)
         )
     }
 }

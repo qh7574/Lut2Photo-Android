@@ -1,0 +1,891 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical">
+
+    <!-- 顶部拖拽条和标题 -->
+    <LinearLayout
+        android:id="@+id/layout_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bottomsheet_header_background"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 拖拽指示器 -->
+        <View
+            android:id="@+id/drag_handle"
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:alpha="0.4"
+            android:background="?attr/colorOnSurfaceVariant" />
+
+        <!-- 标题和操作按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="水印设置"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
+
+            <!-- 导入导出按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_import_config"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="导入"
+                app:icon="@drawable/ic_menu_upload" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_export_config"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="导出"
+                app:icon="@drawable/ic_menu_save" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 主要内容区域 -->
+    <ScrollView
+        android:id="@+id/scrollview_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <!-- 水印类型选择 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="水印类型（可多选）"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggle_group_watermark_type"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:checkedButton="@id/button_text_watermark"
+                app:selectionRequired="false"
+                app:singleSelection="false">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_text_watermark"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="文字水印"
+                    app:icon="@drawable/outline_text_fields_24" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_image_watermark"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="图片水印"
+                    app:icon="@drawable/outline_photo_24" />
+
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+            <!-- 文字水印设置 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_text_settings"
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="文字水印设置"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="可用变量：{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                    <!-- 文字内容 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:hint="水印文字内容">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_text_content"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine"
+                            android:maxLines="3"
+                            android:text="拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"
+                            android:textSize="14dp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- 文字颜色 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:hint="文字颜色 (16进制)">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_text_color"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:text="#FFFFFF" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- 字体选择 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="字体文件"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_select_font"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:text="选择"
+                            app:icon="@drawable/outline_text_fields_24" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_reset_font"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="重置"
+                            app:icon="@drawable/outline_reset_settings_24" />
+                    </LinearLayout>
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_font_path"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="未选择字体文件，使用默认字体"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <!-- 文字大小设置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="文字大小 (dp)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_text_size"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="10"
+                            android:valueFrom="1"
+                            android:valueTo="200" />
+
+                        <TextView
+                            android:id="@+id/text_text_size_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="10dp"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 字间距设置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="字间距 (dp)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_letter_spacing"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="0"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_letter_spacing_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="0dp"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 行间距设置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="行间距 (图片高度百分比)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_line_spacing"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="0"
+                            android:valueFrom="0"
+                            android:valueTo="50" />
+
+                        <TextView
+                            android:id="@+id/text_line_spacing_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="0%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 文本对齐方式 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="文本对齐方式"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggle_group_text_alignment"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        app:checkedButton="@id/button_text_align_left"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_text_align_left"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="左对齐"
+                            app:icon="@drawable/outline_format_align_left_24"
+                            app:iconGravity="top" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_text_align_center"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="居中"
+                            app:icon="@drawable/outline_format_align_center_24"
+                            app:iconGravity="top" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_text_align_right"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="右对齐"
+                            app:icon="@drawable/outline_format_align_right_24"
+                            app:iconGravity="top" />
+
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <!-- 文字水印位置设置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="水平位置 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_text_position_x"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="50"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_text_position_x_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="50%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 文字水印垂直位置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="垂直位置 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_text_position_y"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="90"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_text_position_y_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="90%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 文字水印透明度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="文字透明度 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_text_opacity"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="80"
+                            android:valueFrom="10"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_text_opacity_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="80%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 图片水印设置 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_image_settings"
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="图片水印设置"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                    <!-- 图片选择 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="水印图片"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_select_image"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="选择图片" />
+                    </LinearLayout>
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_image_path"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="未选择水印图片"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <!-- 图片大小设置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="图片大小宽度百分比 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_image_size"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="10"
+                            android:valueFrom="1"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_image_size_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="10%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 图片水印位置设置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="水平位置 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_image_position_x"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="50"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_image_position_x_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="50%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 图片水印垂直位置 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="垂直位置 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_image_position_y"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="10"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_image_position_y_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="10%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 图片水印透明度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="图片透明度 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_image_opacity"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="80"
+                            android:valueFrom="10"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/text_image_opacity_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="80%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 边框设置 -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="边框设置（图片短边百分比）"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                    <!-- 上边框宽度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="上边框宽度 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_border_top_width"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="0"
+                            android:valueFrom="0"
+                            android:valueTo="150" />
+
+                        <TextView
+                            android:id="@+id/text_border_top_width_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="0%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 下边框宽度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="下边框宽度 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_border_bottom_width"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="0"
+                            android:valueFrom="0"
+                            android:valueTo="150" />
+
+                        <TextView
+                            android:id="@+id/text_border_bottom_width_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="0%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 左边框宽度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="左边框宽度 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_border_left_width"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="0"
+                            android:valueFrom="0"
+                            android:valueTo="150" />
+
+                        <TextView
+                            android:id="@+id/text_border_left_width_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="0%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 右边框宽度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="右边框宽度 (%)"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_border_right_width"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:stepSize="1"
+                            android:value="0"
+                            android:valueFrom="0"
+                            android:valueTo="150" />
+
+                        <TextView
+                            android:id="@+id/text_border_right_width_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="0%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                    </LinearLayout>
+
+                    <!-- 边框颜色 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="边框颜色 (16进制)">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_border_color"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:text="#000000" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 底部按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurfaceVariant"
+        android:elevation="8dp"
+        android:gravity="end"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_cancel"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:text="取消" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_confirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="确定" />
+    </LinearLayout>
+</LinearLayout>

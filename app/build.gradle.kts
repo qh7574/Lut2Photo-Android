@@ -49,6 +49,10 @@ android {
 }
 
 dependencies {
+    // Kotlin 标准库 - 解决 NoClassDefFoundError 问题
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21")
+    
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

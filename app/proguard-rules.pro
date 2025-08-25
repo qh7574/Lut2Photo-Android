@@ -19,3 +19,23 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Kotlin 相关规则
+-keep class kotlin.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
+}
+
+# AndroidX Work Manager
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.InputMerger
+-keep class androidx.work.impl.WorkDatabase
+-keep class androidx.work.impl.WorkDatabase_Impl

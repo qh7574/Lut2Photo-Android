@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
+        android:name=".MyApplication"
         android:hardwareAccelerated="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -26,7 +27,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Lut2Photo">
-        
+
+        <!-- 禁用 WorkManager 自动初始化 -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

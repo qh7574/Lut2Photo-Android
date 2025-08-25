@@ -20,9 +20,10 @@ import kotlin.math.min
  * 水印处理器
  * 使用Canvas进行水印绘制
  */
-class WatermarkProcessor(context: Context) {
+class WatermarkProcessor(private val context: Context) {
 
     private val exifReader = ExifReader(context)
+    private val density = context.resources.displayMetrics.density
 
     /**
      * 为图片添加水印
@@ -51,40 +52,39 @@ class WatermarkProcessor(context: Context) {
         // 读取EXIF信息
         val exifData = imageUri?.let { exifReader.readExifFromUri(it) } ?: emptyMap()
 
-        // 计算水印位置
-        val watermarkPosition =
-            calculateWatermarkPosition(resultBitmap, config.positionX, config.positionY)
-
-        var currentY = watermarkPosition.y
-
-        // 绘制图片水印
+        // 绘制图片水印 - 使用独立的位置和透明度
         if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
             val imageWatermarkSize = calculateWatermarkSize(resultBitmap, config.imageSize)
             val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize)
             watermarkImage?.let { image ->
-                val imageX = watermarkPosition.x - image.width / 2f
-                val imageY = currentY - image.height / 2f
+                // 计算图片水印位置
+                val imagePosition = calculateWatermarkPosition(
+                    resultBitmap,
+                    config.imagePositionX,
+                    config.imagePositionY
+                )
+                val imageX = imagePosition.x - image.width / 2f
+                val imageY = imagePosition.y - image.height / 2f
 
                 val paint = Paint().apply {
-                    alpha = (config.opacity * 255 / 100).toInt()
+                    alpha = (config.imageOpacity * 255 / 100).toInt()
                 }
 
                 canvas.drawBitmap(image, imageX, imageY, paint)
-                currentY += image.height / 2f + calculateSpacing(
-                    resultBitmap,
-                    config.textImageSpacing
-                )
             }
         }
 
-        // 绘制文字水印
+        // 绘制文字水印 - 使用独立的位置和透明度
         if (config.enableTextWatermark && config.textContent.isNotEmpty()) {
             val processedText = exifReader.replaceExifVariables(config.textContent, exifData)
+            // 计算文字水印位置
+            val textPosition =
+                calculateWatermarkPosition(resultBitmap, config.textPositionX, config.textPositionY)
             drawTextWatermark(
                 canvas,
                 processedText,
-                watermarkPosition.x,
-                currentY,
+                textPosition.x,
+                textPosition.y,
                 config.textSize,
                 resultBitmap,
                 config
@@ -98,19 +98,24 @@ class WatermarkProcessor(context: Context) {
      * 仅添加边框
      */
     private fun addBorderOnly(originalBitmap: Bitmap, config: WatermarkConfig): Bitmap {
-        if (config.borderWidth <= 0) {
+        // 检查是否有任意边框宽度大于0
+        if (config.borderTopWidth <= 0 && config.borderBottomWidth <= 0 &&
+            config.borderLeftWidth <= 0 && config.borderRightWidth <= 0
+        ) {
             return originalBitmap
         }
 
         val shortSide = min(originalBitmap.width, originalBitmap.height)
-        val borderWidth = (shortSide * config.borderWidth / 100).toInt()
 
-        if (borderWidth <= 0) {
-            return originalBitmap
-        }
+        // 计算四个方向的边框宽度
+        val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
+        val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
+        val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
+        val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
 
-        val newWidth = originalBitmap.width + borderWidth * 2
-        val newHeight = originalBitmap.height + borderWidth * 2
+        // 计算新的图片尺寸
+        val newWidth = originalBitmap.width + borderLeftPx + borderRightPx
+        val newHeight = originalBitmap.height + borderTopPx + borderBottomPx
 
         val resultBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(resultBitmap)
@@ -120,10 +125,17 @@ class WatermarkProcessor(context: Context) {
             color = config.getBorderColorInt()
             style = Paint.Style.FILL
         }
+
+        // 绘制整个背景
         canvas.drawRect(0f, 0f, newWidth.toFloat(), newHeight.toFloat(), borderPaint)
 
-        // 绘制原图
-        canvas.drawBitmap(originalBitmap, borderWidth.toFloat(), borderWidth.toFloat(), null)
+        // 绘制原图（放置在边框内）
+        canvas.drawBitmap(
+            originalBitmap,
+            borderLeftPx.toFloat(),
+            borderTopPx.toFloat(),
+            null
+        )
 
         return resultBitmap
     }
@@ -221,15 +233,35 @@ class WatermarkProcessor(context: Context) {
         text: String,
         centerX: Float,
         centerY: Float,
-        targetWidthPercent: Float,
+        textSizeDp: Float,
         bitmap: Bitmap,
         config: WatermarkConfig
     ) {
+        // 处理多行文本
+        val lines = text.split("\n")
+        if (lines.isEmpty()) return
+
+        // 将dp转换为像素作为基础文字大小
+        val baseTextSizePx = textSizeDp * density
+
+        // 确保基础文字大小有效
+        if (baseTextSizePx <= 0) return
+
+        // 找到最长的行来计算合适的字体大小
+        val longestLine = lines.maxByOrNull { it.length } ?: ""
+        if (longestLine.isEmpty()) return
+        
         val paint = Paint().apply {
             color = config.getTextColorInt()
-            alpha = (config.opacity * 255 / 100).toInt()
+            alpha = (config.textOpacity * 255 / 100).toInt() // 使用新的文字透明度
             isAntiAlias = true
-            textAlign = Paint.Align.CENTER
+
+            // 设置文本对齐方式
+            textAlign = when (config.textAlignment) {
+                cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> Paint.Align.LEFT
+                cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> Paint.Align.CENTER
+                cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> Paint.Align.RIGHT
+            }
 
             // 加载自定义字体
             if (config.fontPath.isNotEmpty()) {
@@ -244,41 +276,68 @@ class WatermarkProcessor(context: Context) {
             }
         }
 
-        // 处理多行文本
-        val lines = text.split("\n")
+        // 计算最大允许宽度（图片宽度的80%）
+        val maxAllowedWidth = bitmap.width * 0.8f
 
-        // 计算目标宽度（基于图片宽度的百分比）
-        val targetWidth = bitmap.width * targetWidthPercent / 100
+        // 先设置基础文字大小
+        paint.textSize = baseTextSizePx
 
-        // 找到最长的行来计算字体大小
-        val longestLine = lines.maxByOrNull { it.length } ?: ""
+        // 测量文字宽度（不考虑字间距）
+        val measuredWidth = paint.measureText(longestLine)
 
-        // 通过二分查找找到合适的字体大小
-        var minSize = 1f
-        var maxSize = bitmap.width.toFloat()
-        var optimalSize = minSize
-
-        while (maxSize - minSize > 1f) {
-            val testSize = (minSize + maxSize) / 2
-            paint.textSize = testSize
-            val textWidth = paint.measureText(longestLine)
-
-            if (textWidth <= targetWidth) {
-                optimalSize = testSize
-                minSize = testSize
-            } else {
-                maxSize = testSize
-            }
+        // 如果文字宽度超过最大允许宽度，按比例缩小
+        val finalTextSize = if (measuredWidth > maxAllowedWidth && measuredWidth > 0) {
+            baseTextSizePx * (maxAllowedWidth / measuredWidth)
+        } else {
+            baseTextSizePx
         }
 
-        paint.textSize = optimalSize
-        val lineHeight = paint.textSize * 1.2f
+        // 设置最终的字体大小
+        paint.textSize = finalTextSize
+
+        // 设置字间距（转换为相对单位）
+        if (config.letterSpacing > 0 && finalTextSize > 0) {
+            val letterSpacingPx = config.letterSpacing * density
+            paint.letterSpacing = letterSpacingPx / finalTextSize
+        } else {
+            paint.letterSpacing = 0f
+        }
+
+        // 计算行间距
+        val baseLineHeight = finalTextSize * 1.2f
+        val additionalLineSpacing = if (config.lineSpacing > 0) {
+            bitmap.height * config.lineSpacing / 100
+        } else {
+            0f
+        }
+        val lineHeight = baseLineHeight + additionalLineSpacing
+        
         val totalHeight = lines.size * lineHeight
         val startY = centerY - totalHeight / 2 + lineHeight / 2
 
+        // 根据对齐方式计算X坐标
+        val drawX = when (config.textAlignment) {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> {
+                // 左对齐：从图片左边缘开始，留出一些边距
+                bitmap.width * 0.05f
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> {
+                // 居中对齐：使用传入的centerX
+                centerX
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> {
+                // 右对齐：从图片右边缘开始，留出一些边距
+                bitmap.width * 0.95f
+            }
+        }
+
         lines.forEachIndexed { index, line ->
-            val y = startY + index * lineHeight
-            canvas.drawText(line, centerX, y, paint)
+            if (line.isNotEmpty()) {
+                val y = startY + index * lineHeight
+                canvas.drawText(line, drawX, y, paint)
+            }
         }
     }
 }

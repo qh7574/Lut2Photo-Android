@@ -25,7 +25,7 @@ import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WrapContentGridLayoutManager
-import cn.alittlecookie.lut2photo.ui.dialog.WatermarkSettingsDialog
+import cn.alittlecookie.lut2photo.ui.bottomsheet.WatermarkSettingsBottomSheet
 import kotlinx.coroutines.launch
 
 class DashboardFragment : Fragment() {
@@ -151,10 +151,10 @@ class DashboardFragment : Fragment() {
         binding.buttonWatermarkSettings.isEnabled = preferencesManager.dashboardWatermarkEnabled
         // 水印设置按钮
         binding.buttonWatermarkSettings.setOnClickListener {
-            val dialog = WatermarkSettingsDialog.newInstance { config ->
+            val bottomSheet = WatermarkSettingsBottomSheet.newInstance { config ->
                 // 设置保存后的回调
             }
-            dialog.show(parentFragmentManager, "WatermarkSettingsDialog")
+            bottomSheet.show(parentFragmentManager, "WatermarkSettingsBottomSheet")
         }
     }
 
