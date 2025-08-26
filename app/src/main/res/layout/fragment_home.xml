@@ -138,11 +138,11 @@
                     android:orientation="vertical"
                     android:layout_marginTop="16dp">
 
-                    <!-- LUT文件选择 -->
+                    <!-- 第一个LUT文件选择 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="LUT文件"
+                        android:text="LUT 1"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="4dp" />
 
@@ -152,6 +152,22 @@
                         android:layout_height="48dp"
                         android:layout_marginBottom="16dp"
                         android:padding="12dp" />
+
+                    <!-- 第二个LUT文件选择 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="LUT 2"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <Spinner
+                        android:id="@+id/spinner_lut2"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:padding="12dp" />
+
 
                     <!-- 输入文件夹 -->
                     <com.google.android.material.textview.MaterialTextView
@@ -273,11 +289,11 @@
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="0dp">
 
-                    <!-- 强度滑块 -->
+                    <!-- 主要LUT强度滑块 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/effect_strength"
+                        android:text="LUT1 效果强度"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="8dp" />
 
@@ -311,6 +327,46 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     </LinearLayout>
+
+                    <!-- 第二个LUT效果强度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="LUT2 效果强度"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_lut2_strength"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:layout_weight="1"
+                            android:contentDescription="第二个LUT效果强度滑块"
+                            android:stepSize="1"
+                            android:value="60"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
+
+                        <TextView
+                            android:id="@+id/textLut2StrengthValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:minWidth="48dp"
+                            android:text="60%"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    </LinearLayout>
+
+
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

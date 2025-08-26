@@ -2,7 +2,11 @@ precision mediump float;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_lutTexture;
+uniform sampler2D u_lut2Texture;
 uniform float u_strength;
+uniform float u_lut2Strength;
+uniform float u_lutSize;
+uniform float u_lut2Size;
 uniform int u_ditherType;
 uniform vec2 u_textureSize;
 
@@ -44,11 +48,9 @@ float getBayerValue(ivec2 coord) {
     }
 }
 
-// 应用LUT查找
-vec3 applyLut(vec3 color) {
+// 应用LUT查找（支持动态尺寸）
+vec3 applyLut(vec3 color, sampler2D lutTexture, float lutSize) {
     // 将RGB值映射到LUT坐标
-    float lutSize = 64.0; // 假设LUT大小为64x64x64
-    
     // 计算LUT坐标
     float blue = color.b * (lutSize - 1.0);
     float blueFloor = floor(blue);
@@ -67,8 +69,8 @@ vec3 applyLut(vec3 color) {
     );
     
     // 从LUT纹理采样
-    vec3 color1 = texture2D(u_lutTexture, coord1).rgb;
-    vec3 color2 = texture2D(u_lutTexture, coord2).rgb;
+    vec3 color1 = texture2D(lutTexture, coord1).rgb;
+    vec3 color2 = texture2D(lutTexture, coord2).rgb;
     
     // 在两个切片之间插值
     return mix(color1, color2, blueFrac);
@@ -89,16 +91,23 @@ vec3 applyDither(vec3 color, ivec2 coord) {
 void main() {
     // 采样原始纹理
     vec4 originalColor = texture2D(u_texture, v_texCoord);
+    vec3 processedColor = originalColor.rgb;
     
-    // 应用LUT
-    vec3 lutColor = applyLut(originalColor.rgb);
+    // 步骤1：应用第一个LUT
+    vec3 lut1Color = applyLut(processedColor, u_lutTexture, u_lutSize);
+    processedColor = mix(processedColor, lut1Color, clamp(u_strength, 0.0, 1.0));
     
-    // 根据强度混合原始颜色和LUT颜色
-    vec3 finalColor = mix(originalColor.rgb, lutColor, u_strength);
+    // 步骤2：应用第二个LUT（如果强度大于0）
+    if (u_lut2Strength > 0.0) {
+        vec3 lut2Color = applyLut(processedColor, u_lut2Texture, u_lut2Size);
+        processedColor = mix(processedColor, lut2Color, clamp(u_lut2Strength, 0.0, 1.0));
+        // 调试：如果应用了第二个LUT，增加一点绿色来确认
+        // processedColor.g += 0.1; // 可选的调试代码
+    }
     
     // 应用抖动
     ivec2 pixelCoord = ivec2(v_texCoord * u_textureSize);
-    finalColor = applyDither(finalColor, pixelCoord);
+    processedColor = applyDither(processedColor, pixelCoord);
     
-    gl_FragColor = vec4(finalColor, originalColor.a);
+    gl_FragColor = vec4(processedColor, originalColor.a);
 }

@@ -165,12 +165,12 @@
                         android:layout_marginTop="16dp"
                         android:orientation="vertical">
 
-                        <!-- LUT选择 -->
+                        <!-- 主要LUT选择 -->
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:text="@string/select_lut_file"
+                            android:text="LUT 1"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <LinearLayout
@@ -188,6 +188,31 @@
                                 android:padding="12dp" />
 
                         </LinearLayout>
+
+                        <!-- 第二个LUT选择 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="LUT 2"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <Spinner
+                                android:id="@+id/spinner_lut2"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_marginEnd="8dp"
+                                android:layout_weight="1"
+                                android:padding="12dp" />
+
+                        </LinearLayout>
+
 
                         <!-- 输出文件夹选择 -->
                         <com.google.android.material.textview.MaterialTextView
@@ -277,12 +302,12 @@
                         android:layout_marginTop="16dp"
                         android:orientation="vertical">
 
-                        <!-- 强度设置 -->
+                        <!-- 主要LUT强度设置 -->
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:text="@string/effect_strength"
+                            android:text="LUT1 效果强度"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <LinearLayout
@@ -321,6 +346,51 @@
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                             </LinearLayout>
+
+                            <!-- 第二个LUT效果强度 -->
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="8dp"
+                                android:text="LUT2 效果强度"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="16dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.slider.Slider
+                                    android:id="@+id/slider_lut2_strength"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="16dp"
+                                    android:layout_weight="1"
+                                    android:contentDescription="第二个LUT效果强度滑块"
+                                    android:stepSize="1"
+                                    android:value="60"
+                                    android:valueFrom="0"
+                                    android:valueTo="100" />
+
+                                <TextView
+                                    android:id="@+id/textLut2StrengthValue"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:minWidth="48dp"
+                                    android:text="60%"
+                                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                            </LinearLayout>
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="8dp"
+                                android:text="输出质量"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                             <!-- 在质量滑块后添加显示值的TextView -->
                             <LinearLayout

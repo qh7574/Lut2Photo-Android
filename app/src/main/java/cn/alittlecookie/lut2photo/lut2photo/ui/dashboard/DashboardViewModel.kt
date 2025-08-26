@@ -221,7 +221,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         outputPath: String,
         status: String,
         lutFileName: String = "",
+        lut2FileName: String = "", // 第二个LUT文件名
         strength: Float = 0f,
+        lut2Strength: Float = 0f, // 第二个LUT强度
         quality: Float = 0f,  // 保持Float类型
         ditherType: String = ""
     ) {
@@ -232,7 +234,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             outputPath = outputPath,
             status = status,
             lutFileName = lutFileName,
+            lut2FileName = lut2FileName, // 第二个LUT文件名
             strength = strength,
+            lut2Strength = lut2Strength, // 第二个LUT强度
             quality = quality.toInt(), // 转换为Int类型
             ditherType = ditherType
         )
@@ -258,9 +262,30 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 val existingRecords =
                     prefs.getStringSet("records", emptySet())?.toMutableSet() ?: mutableSetOf()
 
-                // 创建记录字符串（格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|strength|quality|ditherType）
-                val recordString =
-                    "${record.timestamp}|${record.fileName}|${record.inputPath}|${record.outputPath}|${record.status}|${record.lutFileName}|${record.strength}|${record.quality}|${record.ditherType}"
+                // 创建记录字符串（新格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|lut2FileName|strength|lut2Strength|quality|ditherType）
+                val recordString = buildString {
+                    append(record.timestamp)
+                    append("|")
+                    append(record.fileName)
+                    append("|")
+                    append(record.inputPath)
+                    append("|")
+                    append(record.outputPath)
+                    append("|")
+                    append(record.status)
+                    append("|")
+                    append(record.lutFileName)
+                    append("|")
+                    append(record.lut2FileName) // 第二个LUT文件名
+                    append("|")
+                    append(record.strength)
+                    append("|")
+                    append(record.lut2Strength) // 第二个LUT强度
+                    append("|")
+                    append(record.quality)
+                    append("|")
+                    append(record.ditherType)
+                }
                 existingRecords.add(recordString)
 
                 // 限制记录数量
@@ -382,6 +407,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun startProcessing(
         images: List<ImageItem>,
         lutItem: LutItem,
+        lut2Item: LutItem? = null,  // 第二个LUT
         params: ILutProcessor.ProcessingParams,
         outputFolderUri: String? = null
     ) {
@@ -411,6 +437,29 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
                 threadManager.loadLut(lutFile.inputStream())
                 Log.d("DashboardViewModel", "LUT加载成功: ${lutItem.name}")
+
+                // 加载第二个LUT（如果提供）
+                lut2Item?.let { lut2 ->
+                    val lut2FilePath = lutManager.getLutFilePath(lut2)
+                    val lut2File = File(lut2FilePath)
+                    if (lut2File.exists()) {
+                        Log.d(
+                            "DashboardViewModel",
+                            "开始加载第二个LUT文件: ${lut2.name}, 路径: $lut2FilePath"
+                        )
+                        val loadResult = threadManager.loadSecondLut(lut2File.inputStream())
+                        if (loadResult) {
+                            Log.d("DashboardViewModel", "第二个LUT加载成功: ${lut2.name}")
+                        } else {
+                            Log.e("DashboardViewModel", "第二个LUT加载失败: ${lut2.name}")
+                        }
+                    } else {
+                        Log.w(
+                            "DashboardViewModel",
+                            "第二个LUT文件不存在: ${lut2.name}, 路径: $lut2FilePath"
+                        )
+                    }
+                }
 
                 // 处理每张图片
                 for ((index, imageItem) in images.withIndex()) {
@@ -518,7 +567,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                     outputPath = outputPath,
                                     status = "成功",
                                     lutFileName = lutItem.name,
+                                    lut2FileName = lut2Item?.name ?: "", // 第二个LUT文件名
                                     strength = params.strength,
+                                    lut2Strength = params.lut2Strength, // 第二个LUT强度
                                     quality = params.quality.toFloat(),
                                     ditherType = params.ditherType.name
                                 )
@@ -534,6 +585,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                 handleProcessingError(
                                     imageItem,
                                     lutItem,
+                                    lut2Item, // 第二个LUT
                                     params,
                                     Exception("图片处理失败")
                                 )
@@ -542,12 +594,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             handleProcessingError(
                                 imageItem,
                                 lutItem,
+                                lut2Item, // 第二个LUT
                                 params,
                                 Exception("无法加载图片")
                             )
                         }
                     } catch (e: Exception) {
-                        handleProcessingError(imageItem, lutItem, params, e)
+                        handleProcessingError(imageItem, lutItem, lut2Item, params, e)
                     }
                 }
 
@@ -707,6 +760,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private fun handleProcessingError(
         imageItem: ImageItem,
         lutItem: LutItem,
+        lut2Item: LutItem? = null, // 第二个LUT
         params: ILutProcessor.ProcessingParams,
         error: Throwable
     ) {
@@ -717,7 +771,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             outputPath = "",
             status = "失败: ${error.message}",
             lutFileName = lutItem.name,
+            lut2FileName = lut2Item?.name ?: "", // 第二个LUT文件名
             strength = params.strength,
+            lut2Strength = params.lut2Strength, // 第二个LUT强度
             quality = params.quality.toFloat(), // 修复：转换为Float
             ditherType = params.ditherType.name
         )

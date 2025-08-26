@@ -75,11 +75,17 @@ class ProcessingHistoryAdapter(
                     .format(Date(record.timestamp))
                 
                 // 2. 修改显示格式为 "lut|强度|质量|抖动类型"
-                val lutInfo = if (record.strength > 0f || record.quality > 0 || record.ditherType.isNotEmpty()) {
+                val lutInfo =
+                    if (record.strength > 0f || record.quality > 0 || record.ditherType.isNotEmpty() || record.lut2FileName.isNotEmpty()) {
                     // 新格式：包含处理参数，格式为 "lut|强度|质量|抖动类型"
                     val lutName = record.lutFileName.ifEmpty { "未知" }
+                        val lut2Name =
+                            if (record.lut2FileName.isNotEmpty()) record.lut2FileName else null
+                    
                     // 强度显示为百分比，修复格式化问题
                     val strengthText = "${(record.strength * 100).toInt()}%"
+                        val lut2StrengthText =
+                            if (record.lut2Strength > 0f) "${(record.lut2Strength * 100).toInt()}%" else null
                     val qualityText = record.quality.toString()
                     val ditherText = when (record.ditherType.lowercase()) {
                         "floyd" -> "Floyd"
@@ -87,10 +93,25 @@ class ProcessingHistoryAdapter(
                         "none", "" -> "None"
                         else -> record.ditherType
                     }
-                    "$lutName | $strengthText | $qualityText | $ditherText"
+
+                        // 构建显示文本
+                        buildString {
+                            append("$lutName | $strengthText")
+                            if (lut2Name != null && lut2StrengthText != null) {
+                                append(" + $lut2Name | $lut2StrengthText") // 显示第二个LUT
+                            }
+                            append("\n$qualityText | $ditherText")
+                        }
                 } else {
                     // 旧格式：只显示LUT名称
-                    "LUT: ${record.lutFileName.ifEmpty { "未知" }}"
+                        val lutName = record.lutFileName.ifEmpty { "未知" }
+                        val lut2Name =
+                            if (record.lut2FileName.isNotEmpty()) record.lut2FileName else null
+                        if (lut2Name != null) {
+                            "LUT: $lutName + $lut2Name" // 旧格式也显示第二个LUT（如果有）
+                        } else {
+                            "LUT: $lutName"
+                        }
                 }
                 
                 // 简化路径显示

@@ -1,6 +1,7 @@
 package cn.alittlecookie.lut2photo.lut2photo.utils
 
 import android.content.Context
+import android.util.Log
 import androidx.core.content.edit
 import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
 
@@ -28,6 +29,17 @@ class PreferencesManager(context: Context) {
     var homeLutUri: String?
         get() = sharedPreferences.getString("home_lut_uri", null)
         set(value) = sharedPreferences.edit { putString("home_lut_uri", value) }
+
+    // 第二个LUT设置
+    var homeLut2Uri: String?
+        get() = sharedPreferences.getString("home_lut2_uri", null)
+        set(value) = sharedPreferences.edit { putString("home_lut2_uri", value) }
+
+    var homeLut2Strength: Float
+        get() = sharedPreferences.getFloat("home_lut2_strength", 60f)
+        set(value) = sharedPreferences.edit {
+            putFloat("home_lut2_strength", value.coerceIn(0f, 100f))
+        }
 
     var homeInputFolder: String
         get() = sharedPreferences.getString("home_input_folder", null) ?: ""
@@ -69,6 +81,21 @@ class PreferencesManager(context: Context) {
     var dashboardLutUri: String?
         get() = sharedPreferences.getString("dashboard_lut_uri", null)
         set(value) = sharedPreferences.edit { putString("dashboard_lut_uri", value) }
+
+    // Dashboard第二个LUT设置
+    var dashboardLut2Uri: String?
+        get() = sharedPreferences.getString("dashboard_lut2_uri", null)
+        set(value) = sharedPreferences.edit { putString("dashboard_lut2_uri", value) }
+
+    var dashboardLut2Strength: Float
+        get() = sharedPreferences.getFloat("dashboard_lut2_strength", 0.6f)
+        set(value) = sharedPreferences.edit {
+            putFloat("dashboard_lut2_strength", value.coerceIn(0.0f, 1.0f))
+            Log.d(
+                "PreferencesManager",
+                "设置Dashboard LUT2强度: $value，保存值: ${value.coerceIn(0.0f, 1.0f)}"
+            )
+        }
 
     var dashboardOutputFolder: String
         get() = sharedPreferences.getString("dashboard_output_folder", null) ?: ""

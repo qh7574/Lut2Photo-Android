@@ -52,10 +52,13 @@ class FolderMonitorService : Service() {
         const val NOTIFICATION_ID = 1
         const val ACTION_START_MONITORING = "start_monitoring"
         const val ACTION_STOP_MONITORING = "stop_monitoring"
+        const val ACTION_UPDATE_LUT_CONFIG = "update_lut_config"
         const val EXTRA_INPUT_FOLDER = "input_folder"
         const val EXTRA_OUTPUT_FOLDER = "output_folder"
         const val EXTRA_LUT_FILE_PATH = "lut_file_path"
+        const val EXTRA_LUT2_FILE_PATH = "lut2_file_path"
         const val EXTRA_STRENGTH = "strength"
+        const val EXTRA_LUT2_STRENGTH = "lut2_strength"
         const val EXTRA_QUALITY = "quality"
         const val EXTRA_DITHER = "dither"
     }
@@ -77,7 +80,9 @@ class FolderMonitorService : Service() {
     private var inputFolderUri: String = ""
     private var outputFolderUri: String = ""
     private var lutFilePath: String = ""
+    private var lut2FilePath: String = ""
     private var processingParams: ILutProcessor.ProcessingParams? = null
+    private var currentLut2Name = ""
 
     // 统一集合声明
     // 添加处理中的文件跟踪
@@ -98,17 +103,24 @@ class FolderMonitorService : Service() {
     // 添加水印处理器和偏好设置管理器
     private lateinit var watermarkProcessor: WatermarkProcessor
     private lateinit var preferencesManager: PreferencesManager
-    
-    // 处理器设置变化广播接收器
-    private val processorSettingReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED") {
-                val processorType = intent.getStringExtra("processorType")
-                Log.d(TAG, "Received processor setting change: $processorType")
 
-                // 更新ThreadManager的处理器设置
-                threadManager.updateProcessorFromSettings()  // 移除?操作符
-                Log.d(TAG, "ThreadManager processor setting updated")
+    // 处理器设置变化和LUT配置变化广播接收器
+    private val configChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                "cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED" -> {
+                    val processorType = intent.getStringExtra("processorType")
+                    Log.d(TAG, "Received processor setting change: $processorType")
+                    threadManager.updateProcessorFromSettings()
+                    Log.d(TAG, "ThreadManager processor setting updated")
+                }
+
+                "cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED" -> {
+                    Log.d(TAG, "Received LUT config change, reloading LUT files")
+                    serviceScope.launch {
+                        reloadLutConfiguration()
+                    }
+                }
             }
         }
     }
@@ -127,19 +139,21 @@ class FolderMonitorService : Service() {
 
         createNotificationChannel()
         // 注册广播接收器
+        val intentFilter = IntentFilter().apply {
+            addAction("cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED")
+            addAction("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED")
+        }
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(
-                processorSettingReceiver,
-                IntentFilter("PROCESSOR_SETTING_CHANGED"),
+                configChangeReceiver,
+                intentFilter,
                 RECEIVER_NOT_EXPORTED
             )
         } else {
-            // 在 Android 13 以下的设备上，使用旧方法注册
-            // 注意：在旧版本上，默认行为是 RECEIVER_EXPORTED，
-            // 如果你需要 NOT_EXPORTED 的行为，此方案不安全，请看方案1的注意点。
             registerReceiver(
-                processorSettingReceiver,
-                IntentFilter("PROCESSOR_SETTING_CHANGED")
+                configChangeReceiver,
+                intentFilter
             )
         }
 
@@ -173,11 +187,33 @@ class FolderMonitorService : Service() {
                     intent.getStringExtra(EXTRA_OUTPUT_FOLDER) ?: return START_REDELIVER_INTENT
                 val lutFilePath =
                     intent.getStringExtra(EXTRA_LUT_FILE_PATH) ?: return START_REDELIVER_INTENT
+                val lut2FilePath = intent.getStringExtra(EXTRA_LUT2_FILE_PATH) ?: ""
                 val strength = intent.getIntExtra(EXTRA_STRENGTH, 100)
+                val lut2Strength = intent.getIntExtra(EXTRA_LUT2_STRENGTH, 100)
                 val quality = intent.getIntExtra(EXTRA_QUALITY, 90)
                 val dither = intent.getStringExtra(EXTRA_DITHER) ?: "none"
 
-                startMonitoring(inputFolder, outputFolder, strength, quality, dither, lutFilePath)
+                startMonitoring(
+                    inputFolder,
+                    outputFolder,
+                    strength,
+                    quality,
+                    dither,
+                    lutFilePath,
+                    lut2FilePath,
+                    lut2Strength
+                )
+            }
+
+            ACTION_UPDATE_LUT_CONFIG -> {
+                // 更新LUT配置（在监控过程中动态更新）
+                if (isMonitoring) {
+                    serviceScope.launch {
+                        reloadLutConfiguration()
+                    }
+                } else {
+                    Log.w(TAG, "服务未在监控中，忽略LUT配置更新")
+                }
             }
             ACTION_STOP_MONITORING -> {
                 stopMonitoring()
@@ -247,7 +283,9 @@ class FolderMonitorService : Service() {
         strength: Int,
         quality: Int,
         dither: String,
-        lutFilePath: String
+        lutFilePath: String,
+        lut2FilePath: String = "",
+        lut2Strength: Int = 100
     ) {
         if (isMonitoring) {
             Log.w(TAG, "监控已在运行中")
@@ -262,14 +300,24 @@ class FolderMonitorService : Service() {
         this.inputFolderUri = inputFolder
         this.outputFolderUri = outputFolder
         this.lutFilePath = lutFilePath
+        this.lut2FilePath = lut2FilePath
 
         // 修复：正确设置LUT文件名
         val lutFile = File(lutFilePath)
         currentLutName = lutFile.nameWithoutExtension
 
+        // 设置第二个LUT文件名
+        currentLut2Name = if (lut2FilePath.isNotEmpty()) {
+            val lut2File = File(lut2FilePath)
+            lut2File.nameWithoutExtension
+        } else {
+            ""
+        }
+
         // 修复：正确的抖动类型转换
         this.processingParams = ILutProcessor.ProcessingParams(
             strength = strength / 100f,
+            lut2Strength = lut2Strength / 100f,
             quality = quality,
             ditherType = when (dither.uppercase()) {
                 "FLOYD_STEINBERG" -> ILutProcessor.DitherType.FLOYD_STEINBERG
@@ -283,16 +331,28 @@ class FolderMonitorService : Service() {
         monitoringJob = serviceScope.launch {
             try {
                 Log.d(TAG, "开始监控文件夹: $inputFolder")
-                
-                // 加载LUT文件
+
+                // 加载主要LUT文件
                 if (lutFile.exists()) {
                     threadManager.loadLut(lutFile.inputStream())
-                    isLutLoaded = true
                     Log.d(TAG, "LUT文件加载成功: $currentLutName")
                 } else {
                     Log.e(TAG, "LUT文件不存在: $lutFilePath")
                     return@launch
                 }
+
+                // 加载第二个LUT文件（如果提供）
+                if (lut2FilePath.isNotEmpty()) {
+                    val lut2File = File(lut2FilePath)
+                    if (lut2File.exists()) {
+                        threadManager.loadSecondLut(lut2File.inputStream())
+                        Log.d(TAG, "第二个LUT文件加载成功: $currentLut2Name")
+                    } else {
+                        Log.w(TAG, "第二个LUT文件不存在: $lut2FilePath")
+                    }
+                }
+
+                isLutLoaded = true
 
                 startContinuousMonitoring()
             } catch (e: Exception) {
@@ -316,6 +376,90 @@ class FolderMonitorService : Service() {
         }
     }
 
+    /**
+     * 重新加载LUT配置（用于实时切换）
+     */
+    private suspend fun reloadLutConfiguration() {
+        try {
+            Log.d(TAG, "开始重新加载LUT配置")
+
+            // 从偏好设置获取最新的LUT配置
+            val lutFilePath = preferencesManager.homeLutUri
+            val lut2FilePath = preferencesManager.homeLut2Uri ?: ""
+            val strength = preferencesManager.homeStrength.toInt()
+            val lut2Strength = preferencesManager.homeLut2Strength.toInt()
+            val quality = preferencesManager.homeQuality.toInt()
+            val ditherType = preferencesManager.homeDitherType
+
+            if (lutFilePath.isNullOrEmpty()) {
+                Log.w(TAG, "主要LUT文件路径为空，不能重新加载")
+                return
+            }
+
+            // 更新内部状态
+            this.lutFilePath = lutFilePath
+            this.lut2FilePath = lut2FilePath
+
+            // 加载主要LUT文件
+            val lutFile = File(lutFilePath)
+            if (lutFile.exists()) {
+                threadManager.loadLut(lutFile.inputStream())
+                currentLutName = lutFile.nameWithoutExtension
+                Log.d(TAG, "重新加载主LUT成功: $currentLutName")
+            } else {
+                Log.e(TAG, "主LUT文件不存在: $lutFilePath")
+                return
+            }
+
+            // 加载第二个LUT文件（如果提供）
+            if (lut2FilePath.isNotEmpty()) {
+                val lut2File = File(lut2FilePath)
+                if (lut2File.exists()) {
+                    threadManager.loadSecondLut(lut2File.inputStream())
+                    currentLut2Name = lut2File.nameWithoutExtension
+                    Log.d(TAG, "重新加载第二个LUT成功: $currentLut2Name")
+                } else {
+                    Log.w(TAG, "第二个LUT文件不存在: $lut2FilePath")
+                    currentLut2Name = ""
+                }
+            } else {
+                currentLut2Name = ""
+                Log.d(TAG, "没有配置第二个LUT文件")
+            }
+
+            // 更新处理参数
+            this.processingParams = ILutProcessor.ProcessingParams(
+                strength = strength / 100f,
+                lut2Strength = lut2Strength / 100f,
+                quality = quality,
+                ditherType = when (ditherType.uppercase()) {
+                    "FLOYD_STEINBERG" -> ILutProcessor.DitherType.FLOYD_STEINBERG
+                    "RANDOM" -> ILutProcessor.DitherType.RANDOM
+                    "NONE" -> ILutProcessor.DitherType.NONE
+                    else -> ILutProcessor.DitherType.NONE
+                }
+            )
+
+            // 更新通知
+            val lutDisplayName = if (currentLut2Name.isNotEmpty()) {
+                "$currentLutName + $currentLut2Name"
+            } else {
+                currentLutName
+            }
+
+            val notification = createNotification(
+                "文件夹监控服务",
+                "LUT配置已更新: $lutDisplayName"
+            )
+            startForeground(NOTIFICATION_ID, notification)
+
+            Log.d(TAG, "LUT配置重新加载完成")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "LUT配置重新加载失败", e)
+        }
+    }
+
     private fun saveProcessingRecord(
         fileName: String,
         inputPath: String,
@@ -324,8 +468,30 @@ class FolderMonitorService : Service() {
         params: ILutProcessor.ProcessingParams
     ) {
         val timestamp = System.currentTimeMillis()
-        val recordString =
-            "$timestamp|$fileName|$inputPath|$outputPath|处理完成|$lutFileName|${params.strength}|${params.quality}|${params.ditherType.name}"
+        // 新格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|lut2FileName|strength|lut2Strength|quality|ditherType
+        val recordString = buildString {
+            append(timestamp)
+            append("|")
+            append(fileName)
+            append("|")
+            append(inputPath)
+            append("|")
+            append(outputPath)
+            append("|")
+            append("处理完成")
+            append("|")
+            append(lutFileName)
+            append("|")
+            append(currentLut2Name) // 第二个LUT名称
+            append("|")
+            append(params.strength)
+            append("|")
+            append(params.lut2Strength) // 第二个LUT强度
+            append("|")
+            append(params.quality)
+            append("|")
+            append(params.ditherType.name)
+        }
 
         val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
         val existingRecords =
@@ -650,10 +816,10 @@ class FolderMonitorService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         try {
-            unregisterReceiver(processorSettingReceiver)
-            Log.d(TAG, "Processor setting receiver unregistered")
+            unregisterReceiver(configChangeReceiver)
+            Log.d(TAG, "Config change receiver unregistered")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to unregister processor setting receiver", e)
+            Log.e(TAG, "Failed to unregister config change receiver", e)
         }
 
         // 修复：确保状态完全清理，防止服务残留

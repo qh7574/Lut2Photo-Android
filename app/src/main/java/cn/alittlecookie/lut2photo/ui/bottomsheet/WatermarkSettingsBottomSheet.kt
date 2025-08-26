@@ -409,7 +409,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.editBorderColor.setText(config.borderColor)
 
         // 加载新增的字间距和行间距设置
-        binding.sliderLetterSpacing.value = config.letterSpacing
+        binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
         binding.sliderLineSpacing.value = config.lineSpacing
 
         // 更新卡片可见性
@@ -628,7 +628,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.sliderTextOpacity.value = config.textOpacity
         binding.sliderImageOpacity.value = config.imageOpacity
 
-        binding.sliderTextSize.value = config.textSize
+        binding.sliderTextSize.value = config.textSize.coerceAtLeast(0.1f)
         binding.sliderImageSize.value = config.imageSize
 
         binding.editTextContent.setText(config.textContent)
@@ -649,7 +649,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.editBorderColor.setText(config.borderColor)
 
         // 应用新增的字间距和行间距设置
-        binding.sliderLetterSpacing.value = config.letterSpacing
+        binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
         binding.sliderLineSpacing.value = config.lineSpacing
 
         // 更新卡片可见性

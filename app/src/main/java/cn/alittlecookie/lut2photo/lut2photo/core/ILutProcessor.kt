@@ -14,6 +14,7 @@ interface ILutProcessor {
      */
     data class ProcessingParams(
         val strength: Float = 1.0f,
+        val lut2Strength: Float = 1.0f,  // 第二个LUT的强度
         val quality: Int = 90,
         val ditherType: DitherType = DitherType.NONE
     )

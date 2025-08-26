@@ -38,6 +38,7 @@ class DashboardFragment : Fragment() {
     private lateinit var imageAdapter: ImageAdapter
     private lateinit var lutManager: LutManager
     private var selectedLutItem: LutItem? = null
+    private var selectedLut2Item: LutItem? = null  // 第二个LUT
     private var availableLuts: List<LutItem> = emptyList()
 
     // Activity Result Launchers
@@ -183,8 +184,9 @@ class DashboardFragment : Fragment() {
                 val adapter =
                     ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, lutNames)
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                binding.spinnerLut.adapter = adapter
 
+                // 设置主要LUT下拉框
+                binding.spinnerLut.adapter = adapter
                 binding.spinnerLut.onItemSelectedListener = object :
                     android.widget.AdapterView.OnItemSelectedListener {
                     override fun onItemSelected(
@@ -209,13 +211,52 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                // 恢复选中的LUT
+                // 设置第二个LUT下拉框
+                binding.spinnerLut2.adapter = adapter
+                binding.spinnerLut2.onItemSelectedListener = object :
+                    android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onItemSelected(
+                        parent: android.widget.AdapterView<*>?,
+                        view: View?,
+                        position: Int,
+                        id: Long
+                    ) {
+                        selectedLut2Item = if (position == 0) null else availableLuts[position - 1]
+                        selectedLut2Item?.let {
+                            preferencesManager.dashboardLut2Uri = it.filePath
+                        } ?: run {
+                            preferencesManager.dashboardLut2Uri = null
+                        }
+
+                        Log.d(
+                            "DashboardFragment",
+                            "第二个LUT选择更新: ${selectedLut2Item?.name ?: "未选择"}"
+                        )
+                    }
+
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
+                        selectedLut2Item = null
+                    }
+                }
+
+                // 恢复选中的主要LUT
                 val savedLutUri = preferencesManager.dashboardLutUri
                 if (!savedLutUri.isNullOrEmpty()) {
                     val savedLutIndex = availableLuts.indexOfFirst { it.filePath == savedLutUri }
                     if (savedLutIndex >= 0) {
                         binding.spinnerLut.setSelection(savedLutIndex + 1) // +1 因为第一项是"未选择"
                         selectedLutItem = availableLuts[savedLutIndex]
+                    }
+                }
+
+                // 恢复选中的第二个LUT
+                val savedLut2Uri = preferencesManager.dashboardLut2Uri
+                if (!savedLut2Uri.isNullOrEmpty()) {
+                    val savedLut2Index = availableLuts.indexOfFirst { it.filePath == savedLut2Uri }
+                    if (savedLut2Index >= 0) {
+                        binding.spinnerLut2.setSelection(savedLut2Index + 1)
+                        selectedLut2Item = availableLuts[savedLut2Index]
+                        Log.d("DashboardFragment", "恢复第二个LUT选择: ${selectedLut2Item?.name}")
                     }
                 }
             } catch (e: Exception) {
@@ -284,6 +325,15 @@ class DashboardFragment : Fragment() {
         // 加载强度设置
         binding.sliderStrength.value = preferencesManager.dashboardStrength * 100f
 
+        // 加载第二个LUT强度设置
+        val lut2Strength = preferencesManager.dashboardLut2Strength * 100f
+        binding.sliderLut2Strength.value = lut2Strength
+
+        Log.d(
+            "DashboardFragment",
+            "加载设置 - 主LUT强度: ${preferencesManager.dashboardStrength}, 第二个LUT强度: ${preferencesManager.dashboardLut2Strength} (滑块值: $lut2Strength)"
+        )
+
         // 加载质量设置
         binding.sliderQuality.value = preferencesManager.dashboardQuality
 
@@ -298,6 +348,8 @@ class DashboardFragment : Fragment() {
 
         // 更新显示值
         binding.textStrengthValue.text = "${(preferencesManager.dashboardStrength * 100).toInt()}%"
+        binding.textLut2StrengthValue.text =
+            "${(preferencesManager.dashboardLut2Strength * 100).toInt()}%"
         binding.textQualityValue.text = "${preferencesManager.dashboardQuality.toInt()}"
 
         // 加载输出文件夹
@@ -384,6 +436,14 @@ class DashboardFragment : Fragment() {
             binding.textStrengthValue.text = "${value.toInt()}%"
         }
 
+        // 设置第二个LUT强度滑块
+        binding.sliderLut2Strength.addOnChangeListener { _, value, _ ->
+            val lut2StrengthValue = (value / 100f)
+            preferencesManager.dashboardLut2Strength = lut2StrengthValue
+            binding.textLut2StrengthValue.text = "${value.toInt()}%"
+            Log.d("DashboardFragment", "第二个LUT强度设置为: $lut2StrengthValue (滑块值: $value)")
+        }
+
         // 设置质量滑块
         binding.sliderQuality.addOnChangeListener { _, value, _ ->
             preferencesManager.dashboardQuality = value
@@ -430,17 +490,42 @@ class DashboardFragment : Fragment() {
             return
         }
 
+        Log.d("DashboardFragment", "开始处理，主要LUT: ${selectedLut.name}")
+        selectedLut2Item?.let {
+            Log.d("DashboardFragment", "第二个LUT: ${it.name}, 路径: ${it.filePath}")
+        } ?: Log.d("DashboardFragment", "未选择第二个LUT")
+
+        // 添加更详细的调试信息
+        Log.d("DashboardFragment", "selectedLut2Item是否为null: ${selectedLut2Item == null}")
+        Log.d("DashboardFragment", "保存的第二个LUT URI: ${preferencesManager.dashboardLut2Uri}")
+        Log.d("DashboardFragment", "第二个LUT强度滑块值: ${binding.sliderLut2Strength.value}")
+        Log.d(
+            "DashboardFragment",
+            "PreferencesManager中的LUT2强度: ${preferencesManager.dashboardLut2Strength}"
+        )
 
         // 修复参数创建
         val params = ILutProcessor.ProcessingParams(
             strength = preferencesManager.dashboardStrength,
+            lut2Strength = preferencesManager.dashboardLut2Strength,
             quality = preferencesManager.dashboardQuality.toInt(),
             ditherType = getDitherType()
         )
 
+        Log.d(
+            "DashboardFragment",
+            "处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}"
+        )
+
         // 修复方法调用参数顺序
         val images = dashboardViewModel.selectedImages.value ?: emptyList()
-        dashboardViewModel.startProcessing(images, selectedLut, params, outputFolderUri)
+        dashboardViewModel.startProcessing(
+            images,
+            selectedLut,
+            selectedLut2Item,
+            params,
+            outputFolderUri
+        )
     }
 
     override fun onPause() {

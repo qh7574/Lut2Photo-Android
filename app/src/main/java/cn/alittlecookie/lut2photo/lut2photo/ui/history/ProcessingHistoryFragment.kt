@@ -123,8 +123,8 @@ class ProcessingHistoryFragment : Fragment() {
             try {
                 val parts = recordString.split("|")
                 when {
-                    parts.size >= 9 -> {
-                        // 最新格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|strength|quality|ditherType
+                    parts.size >= 11 -> {
+                        // 最新格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|lut2FileName|strength|lut2Strength|quality|ditherType
                         ProcessingRecord(
                             timestamp = parts[0].toLong(),
                             fileName = parts[1],
@@ -132,20 +132,43 @@ class ProcessingHistoryFragment : Fragment() {
                             outputPath = parts[3],
                             status = parts[4],
                             lutFileName = parts[5],
-                            strength = parts[6].toFloatOrNull() ?: 0f,
-                            quality = parts[7].toIntOrNull() ?: 0,
-                            ditherType = parts[8]
+                            lut2FileName = parts[6], // 第二个LUT文件名
+                            strength = parts[7].toFloatOrNull() ?: 0f,
+                            lut2Strength = parts[8].toFloatOrNull() ?: 0f, // 第二个LUT强度
+                            quality = parts[9].toIntOrNull() ?: 0,
+                            ditherType = parts[10]
                         )
                     }
-                    parts.size >= 6 -> {
-                        // 旧格式：timestamp|fileName|inputPath|outputPath|status|lutFileName
+                    parts.size >= 9 -> {
+                        // 旧格式（无第二个LUT）：timestamp|fileName|inputPath|outputPath|status|lutFileName|strength|quality|ditherType
                         ProcessingRecord(
                             timestamp = parts[0].toLong(),
                             fileName = parts[1],
                             inputPath = parts[2],
                             outputPath = parts[3],
                             status = parts[4],
-                            lutFileName = parts[5]
+                            lutFileName = parts[5],
+                            lut2FileName = "", // 旧格式无第二个LUT
+                            strength = parts[6].toFloatOrNull() ?: 0f,
+                            lut2Strength = 0f, // 旧格式无第二个LUT强度
+                            quality = parts[7].toIntOrNull() ?: 0,
+                            ditherType = parts[8]
+                        )
+                    }
+                    parts.size >= 6 -> {
+                        // 更旧格式：timestamp|fileName|inputPath|outputPath|status|lutFileName
+                        ProcessingRecord(
+                            timestamp = parts[0].toLong(),
+                            fileName = parts[1],
+                            inputPath = parts[2],
+                            outputPath = parts[3],
+                            status = parts[4],
+                            lutFileName = parts[5],
+                            lut2FileName = "", // 旧格式无第二个LUT
+                            strength = 0f,
+                            lut2Strength = 0f, // 旧格式无第二个LUT强度
+                            quality = 0,
+                            ditherType = ""
                         )
                     }
                     parts.size >= 5 -> {
@@ -156,7 +179,12 @@ class ProcessingHistoryFragment : Fragment() {
                             inputPath = parts[2],
                             outputPath = parts[3],
                             status = parts[4],
-                            lutFileName = "未知"
+                            lutFileName = "未知",
+                            lut2FileName = "", // 旧格式无第二个LUT
+                            strength = 0f,
+                            lut2Strength = 0f, // 旧格式无第二个LUT强度
+                            quality = 0,
+                            ditherType = ""
                         )
                     }
                     parts.size >= 4 -> {
@@ -167,7 +195,12 @@ class ProcessingHistoryFragment : Fragment() {
                             inputPath = parts[2],
                             outputPath = parts[3],
                             status = "处理完成",
-                            lutFileName = "未知"
+                            lutFileName = "未知",
+                            lut2FileName = "", // 旧格式无第二个LUT
+                            strength = 0f,
+                            lut2Strength = 0f, // 旧格式无第二个LUT强度
+                            quality = 0,
+                            ditherType = ""
                         )
                     }
                     else -> null

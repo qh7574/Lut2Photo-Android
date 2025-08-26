@@ -35,6 +35,7 @@ class HomeFragment : Fragment() {
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var lutManager: LutManager
     private var selectedLutItem: LutItem? = null
+    private var selectedLut2Item: LutItem? = null  // 第二个LUT
     private var availableLuts: List<LutItem> = emptyList()
 
     // Activity Result Launchers
@@ -247,8 +248,9 @@ class HomeFragment : Fragment() {
                 val adapter =
                     ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, lutNames)
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                binding.spinnerLut.adapter = adapter
 
+                // 设置主要LUT下拉框
+                binding.spinnerLut.adapter = adapter
                 binding.spinnerLut.onItemSelectedListener =
                     object : android.widget.AdapterView.OnItemSelectedListener {
                         override fun onItemSelected(
@@ -263,6 +265,10 @@ class HomeFragment : Fragment() {
                                 preferencesManager.homeLutUri = it.filePath
                             }
                             updateMonitoringButtonState()
+
+                            // 发送LUT配置变化广播
+                            sendLutConfigChangesBroadcast()
+                            
                             Log.d(
                                 "HomeFragment",
                                 "LUT选择更新: ${selectedLutItem?.name ?: "未选择"}"
@@ -275,7 +281,39 @@ class HomeFragment : Fragment() {
                     }
                 }
 
-                // 恢复选中的LUT
+                // 设置第二个LUT下拉框
+                binding.spinnerLut2.adapter = adapter
+                binding.spinnerLut2.onItemSelectedListener =
+                    object : android.widget.AdapterView.OnItemSelectedListener {
+                        override fun onItemSelected(
+                            parent: android.widget.AdapterView<*>?,
+                            view: View?,
+                            position: Int,
+                            id: Long
+                        ) {
+                            selectedLut2Item =
+                                if (position == 0) null else availableLuts[position - 1]
+                            selectedLut2Item?.let {
+                                preferencesManager.homeLut2Uri = it.filePath
+                            } ?: run {
+                                preferencesManager.homeLut2Uri = null
+                            }
+
+                            // 发送LUT配置变化广播
+                            sendLutConfigChangesBroadcast()
+
+                            Log.d(
+                                "HomeFragment",
+                                "第二个LUT选择更新: ${selectedLut2Item?.name ?: "未选择"}"
+                            )
+                        }
+
+                        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
+                            selectedLut2Item = null
+                        }
+                    }
+
+                // 恢复选中的主要LUT
                 val savedLutUri = preferencesManager.homeLutUri
                 if (!savedLutUri.isNullOrEmpty()) {
                     val savedLutIndex = availableLuts.indexOfFirst { it.filePath == savedLutUri }
@@ -283,6 +321,17 @@ class HomeFragment : Fragment() {
                         binding.spinnerLut.setSelection(savedLutIndex + 1)
                         selectedLutItem = availableLuts[savedLutIndex]
                         Log.d("HomeFragment", "恢复LUT选择: ${selectedLutItem?.name}")
+                    }
+                }
+
+                // 恢复选中的第二个LUT
+                val savedLut2Uri = preferencesManager.homeLut2Uri
+                if (!savedLut2Uri.isNullOrEmpty()) {
+                    val savedLut2Index = availableLuts.indexOfFirst { it.filePath == savedLut2Uri }
+                    if (savedLut2Index >= 0) {
+                        binding.spinnerLut2.setSelection(savedLut2Index + 1)
+                        selectedLut2Item = availableLuts[savedLut2Index]
+                        Log.d("HomeFragment", "恢复第二个LUT选择: ${selectedLut2Item?.name}")
                     }
                 }
 
@@ -301,6 +350,9 @@ class HomeFragment : Fragment() {
     private fun loadSavedSettings() {
         // 加载强度设置
         binding.sliderStrength.value = preferencesManager.homeStrength
+
+        // 加载第二个LUT强度设置
+        binding.sliderLut2Strength.value = preferencesManager.homeLut2Strength
 
         // 加载质量设置
         binding.sliderQuality.value = preferencesManager.homeQuality
@@ -331,6 +383,7 @@ class HomeFragment : Fragment() {
     private fun saveCurrentSettings() {
         // 保存滑块设置
         preferencesManager.homeStrength = binding.sliderStrength.value
+        preferencesManager.homeLut2Strength = binding.sliderLut2Strength.value
         preferencesManager.homeQuality = binding.sliderQuality.value
         preferencesManager.homeDitherType = getDitherType().name
 
@@ -339,6 +392,7 @@ class HomeFragment : Fragment() {
 
         // 更新显示值
         binding.textStrengthValue.text = "${preferencesManager.homeStrength.toInt()}%"
+        binding.textLut2StrengthValue.text = "${preferencesManager.homeLut2Strength.toInt()}%"
         binding.textQualityValue.text = "${preferencesManager.homeQuality.toInt()}"
 
         // 确保文件夹显示是最新的
@@ -351,6 +405,18 @@ class HomeFragment : Fragment() {
         binding.sliderStrength.addOnChangeListener { _, value, _ ->
             preferencesManager.homeStrength = value
             binding.textStrengthValue.text = "${value.toInt()}%"
+
+            // 发送LUT配置变化广播
+            sendLutConfigChangesBroadcast()
+        }
+
+        // 第二个LUT强度滑块
+        binding.sliderLut2Strength.addOnChangeListener { _, value, _ ->
+            preferencesManager.homeLut2Strength = value
+            binding.textLut2StrengthValue.text = "${value.toInt()}%"
+
+            // 发送LUT配置变化广播
+            sendLutConfigChangesBroadcast()
         }
 
         // 质量滑块
@@ -480,8 +546,16 @@ class HomeFragment : Fragment() {
             putExtra(
                 FolderMonitorService.EXTRA_LUT_FILE_PATH,
                 selectedLutItem?.let { lutManager.getLutFilePath(it) } ?: "")
+            // 添加第二个LUT文件路径
+            putExtra(
+                FolderMonitorService.EXTRA_LUT2_FILE_PATH,
+                selectedLut2Item?.let { lutManager.getLutFilePath(it) } ?: "")
             // 修复：转换为Integer类型
             putExtra(FolderMonitorService.EXTRA_STRENGTH, preferencesManager.homeStrength.toInt())
+            putExtra(
+                FolderMonitorService.EXTRA_LUT2_STRENGTH,
+                preferencesManager.homeLut2Strength.toInt()
+            )
             putExtra(FolderMonitorService.EXTRA_QUALITY, preferencesManager.homeQuality.toInt())
             putExtra(FolderMonitorService.EXTRA_DITHER, getDitherType().name)
         }
@@ -500,6 +574,15 @@ class HomeFragment : Fragment() {
     private fun updateMonitoringButtonState() {
         // 这个方法在新的实现中不再需要，因为我们使用开关控件
         // 开关的状态会通过observeViewModel()中的逻辑自动更新
+    }
+
+    /**
+     * 发送LUT配置变化广播，通知文件夹监控服务更新LUT配置
+     */
+    private fun sendLutConfigChangesBroadcast() {
+        val intent = Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED")
+        requireContext().sendBroadcast(intent)
+        Log.d("HomeFragment", "已发送LUT配置变化广播")
     }
 
     override fun onDestroyView() {

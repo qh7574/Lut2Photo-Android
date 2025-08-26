@@ -27,6 +27,10 @@ class CpuLutProcessor : ILutProcessor {
     internal var lut: Array<Array<Array<FloatArray>>>? = null
     internal var lutSize: Int = 0
 
+    // 第二个LUT数据
+    internal var lut2: Array<Array<Array<FloatArray>>>? = null
+    internal var lut2Size: Int = 0
+
     /**
      * 获取加载的LUT数据
      * @return LUT数据数组，如果未加载则返回null
@@ -41,6 +45,135 @@ class CpuLutProcessor : ILutProcessor {
      */
     fun getLutSize(): Int {
         return lutSize
+    }
+
+    /**
+     * 加载第二个LUT文件
+     * @param inputStream LUT文件输入流
+     * @return 是否加载成功
+     */
+    suspend fun loadSecondCubeLut(inputStream: InputStream): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("CpuLutProcessor", "开始加载第二个LUT文件")
+
+                val reader = inputStream.bufferedReader()
+                val lines = reader.readLines()
+                reader.close()
+
+                Log.d("CpuLutProcessor", "第二个LUT读取到 ${lines.size} 行数据")
+
+                var lutSize = 0
+                var dataStartIndex = -1
+
+                // 解析头部信息
+                for ((index, line) in lines.withIndex()) {
+                    val trimmedLine = line.trim()
+                    if (trimmedLine.startsWith("LUT_3D_SIZE")) {
+                        Log.d("CpuLutProcessor", "第二个LUT找到LUT_3D_SIZE行: $trimmedLine")
+                        val parts = trimmedLine.split("\\s+".toRegex())
+                        if (parts.size >= 2) {
+                            lutSize = parts[1].toInt()
+                            Log.d("CpuLutProcessor", "第二个LUT尺寸: $lutSize")
+                            dataStartIndex = index + 1
+                            break
+                        }
+                    }
+                }
+
+                if (lutSize == 0) {
+                    Log.e("CpuLutProcessor", "第二个LUT未找到有效的LUT_3D_SIZE")
+                    return@withContext false
+                }
+
+                // 初始化第二个LUT数组
+                val lut2Array =
+                    Array(lutSize) { Array(lutSize) { Array(lutSize) { FloatArray(3) } } }
+                Log.d("CpuLutProcessor", "第二个LUT数组初始化完成")
+
+                // 解析数据行
+                var dataIndex = 0
+                val expectedSize = lutSize * lutSize * lutSize
+
+                for (i in dataStartIndex until lines.size) {
+                    if (dataIndex >= expectedSize) break
+
+                    val line = lines[i].trim()
+                    if (line.isEmpty() || line.startsWith("#") || line.startsWith("TITLE") || line.startsWith(
+                            "DOMAIN_"
+                        )
+                    ) {
+                        continue
+                    }
+
+                    val match = DATA_LINE_REGEX.matchEntire(line)
+                    if (match != null) {
+                        try {
+                            val r = match.groupValues[1].toFloat()
+                            val g = match.groupValues[2].toFloat()
+                            val b = match.groupValues[3].toFloat()
+
+                            val rIndex = dataIndex % lutSize
+                            val gIndex = (dataIndex / lutSize) % lutSize
+                            val bIndex = dataIndex / (lutSize * lutSize)
+
+                            lut2Array[rIndex][gIndex][bIndex][0] = r
+                            lut2Array[rIndex][gIndex][bIndex][1] = g
+                            lut2Array[rIndex][gIndex][bIndex][2] = b
+
+                            dataIndex++
+                        } catch (e: NumberFormatException) {
+                            Log.w("CpuLutProcessor", "第二个LUT无法解析数据行 ${i + 1}: $line", e)
+                        }
+                    } else {
+                        val parts = line.split("\\s+".toRegex())
+                        if (parts.size >= 3) {
+                            try {
+                                val r = parts[0].toFloat()
+                                val g = parts[1].toFloat()
+                                val b = parts[2].toFloat()
+
+                                val rIndex = dataIndex % lutSize
+                                val gIndex = (dataIndex / lutSize) % lutSize
+                                val bIndex = dataIndex / (lutSize * lutSize)
+
+                                lut2Array[rIndex][gIndex][bIndex][0] = r
+                                lut2Array[rIndex][gIndex][bIndex][1] = g
+                                lut2Array[rIndex][gIndex][bIndex][2] = b
+
+                                dataIndex++
+                            } catch (_: NumberFormatException) {
+                                Log.w(
+                                    "CpuLutProcessor",
+                                    "第二个LUT备用解析也失败，跳过行 ${i + 1}: $line"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Log.d(
+                    "CpuLutProcessor",
+                    "第二个LUT数据加载完成，期望数据点: $expectedSize，实际数据点: $dataIndex"
+                )
+
+                if (dataIndex == expectedSize) {
+                    this@CpuLutProcessor.lut2 = lut2Array
+                    this@CpuLutProcessor.lut2Size = lutSize
+                    Log.d("CpuLutProcessor", "第二个LUT文件加载成功")
+                    true
+                } else {
+                    Log.e(
+                        "CpuLutProcessor",
+                        "第二个LUT数据不完整: 期望 $expectedSize，实际 $dataIndex"
+                    )
+                    false
+                }
+            } catch (e: Exception) {
+                Log.e("CpuLutProcessor", "加载第二个LUT文件失败", e)
+                false
+            }
+        }
     }
 
     override fun getProcessorType(): ILutProcessor.ProcessorType {
@@ -208,6 +341,8 @@ class CpuLutProcessor : ILutProcessor {
     override suspend fun release() {
         lut = null
         lutSize = 0
+        lut2 = null
+        lut2Size = 0
     }
 
     override fun getProcessorInfo(): String {
@@ -220,7 +355,7 @@ class CpuLutProcessor : ILutProcessor {
     ): Bitmap? {
         Log.d(
             "CpuLutProcessor",
-            "开始CPU直接处理，LUT数据: ${if (lut != null) "已加载(${lutSize}x${lutSize}x${lutSize})" else "未加载"}，强度: ${params.strength}"
+            "开始CPU直接处理，LUT1数据: ${if (lut != null) "已加载(${lutSize}x${lutSize}x${lutSize})" else "未加载"}，LUT2数据: ${if (lut2 != null) "已加载(${lut2Size}x${lut2Size}x${lut2Size})" else "未加载"}，强度: ${params.strength}, LUT2强度: ${params.lut2Strength}"
         )
 
         if (lut == null) {
@@ -235,28 +370,39 @@ class CpuLutProcessor : ILutProcessor {
 
         var processedPixels = 0
 
-        // 应用LUT处理
+        // 应用双LUT处理链：LUT1 → LUT2
         for (i in pixels.indices) {
             val pixel = pixels[i]
-            val r = Color.red(pixel) / 255f
-            val g = Color.green(pixel) / 255f
-            val b = Color.blue(pixel) / 255f
+            var r = Color.red(pixel) / 255f
+            var g = Color.green(pixel) / 255f
+            var b = Color.blue(pixel) / 255f
             val a = Color.alpha(pixel)
 
-            // 三线性插值
-            val lutResult = trilinearInterpolation(r, g, b)
+            // 步骤1：应用第一个LUT
+            val lut1Result = trilinearInterpolation(r, g, b, lut!!, lutSize)
+            val strength1 = params.strength.coerceIn(0f, 1f)
+            r = (r * (1 - strength1) + lut1Result[0] * strength1).coerceIn(0f, 1f)
+            g = (g * (1 - strength1) + lut1Result[1] * strength1).coerceIn(0f, 1f)
+            b = (b * (1 - strength1) + lut1Result[2] * strength1).coerceIn(0f, 1f)
 
-            // 修复强度参数处理 - strength已经是0.0-1.0范围的Float值
-            val strength = params.strength.coerceIn(0f, 1f)  // 移除除以100的操作
-            val finalR = (r * (1 - strength) + lutResult[0] * strength).coerceIn(0f, 1f)
-            val finalG = (g * (1 - strength) + lutResult[1] * strength).coerceIn(0f, 1f)
-            val finalB = (b * (1 - strength) + lutResult[2] * strength).coerceIn(0f, 1f)
+            // 步骤2：应用第二个LUT（如果存在且强度大于0）
+            if (lut2 != null && params.lut2Strength > 0f) {
+                Log.v("CpuLutProcessor", "应用第二个LUT，强度: ${params.lut2Strength}")
+                val lut2Result = trilinearInterpolation(r, g, b, lut2!!, lut2Size)
+                val strength2 = params.lut2Strength.coerceIn(0f, 1f)
+                r = (r * (1 - strength2) + lut2Result[0] * strength2).coerceIn(0f, 1f)
+                g = (g * (1 - strength2) + lut2Result[1] * strength2).coerceIn(0f, 1f)
+                b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
+                Log.v("CpuLutProcessor", "第二个LUT应用完成，新RGB值: ($r, $g, $b)")
+            } else if (params.lut2Strength > 0f) {
+                Log.w("CpuLutProcessor", "第二个LUT强度大于0但LUT数据为空，跳过应用")
+            }
 
             pixels[i] = Color.argb(
                 a,
-                (finalR * 255).toInt(),
-                (finalG * 255).toInt(),
-                (finalB * 255).toInt()
+                (r * 255).toInt(),
+                (g * 255).toInt(),
+                (b * 255).toInt()
             )
             processedPixels++
 
@@ -268,25 +414,20 @@ class CpuLutProcessor : ILutProcessor {
 
         // 应用抖动
         when (params.ditherType) {
-            ILutProcessor.DitherType.FLOYD_STEINBERG -> {
-                Log.d("CpuLutProcessor", "应用Floyd-Steinberg抖动")
-                applyFloydSteinbergDithering(pixels, width, height)
-            }
+            ILutProcessor.DitherType.FLOYD_STEINBERG -> applyFloydSteinbergDithering(
+                pixels,
+                width,
+                height
+            )
 
-            ILutProcessor.DitherType.RANDOM -> {
-                Log.d("CpuLutProcessor", "应用随机抖动")
-                applyRandomDithering(pixels)
-            }
-
-            ILutProcessor.DitherType.NONE -> {
-                Log.d("CpuLutProcessor", "不应用抖动")
-            }
+            ILutProcessor.DitherType.RANDOM -> applyRandomDithering(pixels)
+            ILutProcessor.DitherType.NONE -> {}
         }
 
+        // 创建结果bitmap
         val resultBitmap = createBitmap(width, height)
         resultBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
 
-        Log.d("CpuLutProcessor", "CPU处理完成，处理了 $processedPixels 个像素")
         return resultBitmap
     }
 
@@ -314,28 +455,39 @@ class CpuLutProcessor : ILutProcessor {
             val blockPixels = IntArray(width * currentBlockHeight)
             bitmap.getPixels(blockPixels, 0, width, 0, currentY, width, currentBlockHeight)
 
-            // 应用LUT处理到当前块
+            // 应用双LUT处理链到当前块
             for (i in blockPixels.indices) {
                 val pixel = blockPixels[i]
-                val r = Color.red(pixel) / 255f
-                val g = Color.green(pixel) / 255f
-                val b = Color.blue(pixel) / 255f
+                var r = Color.red(pixel) / 255f
+                var g = Color.green(pixel) / 255f
+                var b = Color.blue(pixel) / 255f
                 val a = Color.alpha(pixel)
 
-                // 三线性插值
-                val lutResult = trilinearInterpolation(r, g, b)
+                // 步骤1：应用第一个LUT
+                val lut1Result = trilinearInterpolation(r, g, b, lut!!, lutSize)
+                val strength1 = params.strength.coerceIn(0f, 1f)
+                r = (r * (1 - strength1) + lut1Result[0] * strength1).coerceIn(0f, 1f)
+                g = (g * (1 - strength1) + lut1Result[1] * strength1).coerceIn(0f, 1f)
+                b = (b * (1 - strength1) + lut1Result[2] * strength1).coerceIn(0f, 1f)
 
-                // 修复强度参数处理 - 与processImageDirect保持一致
-                val strength = params.strength.coerceIn(0f, 1f)
-                val finalR = (r * (1 - strength) + lutResult[0] * strength).coerceIn(0f, 1f)
-                val finalG = (g * (1 - strength) + lutResult[1] * strength).coerceIn(0f, 1f)
-                val finalB = (b * (1 - strength) + lutResult[2] * strength).coerceIn(0f, 1f)
+                // 步骤2：应用第二个LUT（如果存在且强度大于0）
+                if (lut2 != null && params.lut2Strength > 0f) {
+                    Log.v("CpuLutProcessor", "分块处理中应用第二个LUT，强度: ${params.lut2Strength}")
+                    val lut2Result = trilinearInterpolation(r, g, b, lut2!!, lut2Size)
+                    val strength2 = params.lut2Strength.coerceIn(0f, 1f)
+                    r = (r * (1 - strength2) + lut2Result[0] * strength2).coerceIn(0f, 1f)
+                    g = (g * (1 - strength2) + lut2Result[1] * strength2).coerceIn(0f, 1f)
+                    b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
+                    Log.v("CpuLutProcessor", "分块处理中第二个LUT应用完成，新RGB值: ($r, $g, $b)")
+                } else if (params.lut2Strength > 0f) {
+                    Log.w("CpuLutProcessor", "分块处理中第二个LUT强度大于0但LUT数据为空，跳过应用")
+                }
 
                 blockPixels[i] = Color.argb(
                     a,
-                    (finalR * 255).toInt(),
-                    (finalG * 255).toInt(),
-                    (finalB * 255).toInt()
+                    (r * 255).toInt(),
+                    (g * 255).toInt(),
+                    (b * 255).toInt()
                 )
             }
 
@@ -365,33 +517,39 @@ class CpuLutProcessor : ILutProcessor {
         return resultBitmap
     }
 
-    private fun trilinearInterpolation(r: Float, g: Float, b: Float): FloatArray {
-        val scale = (lutSize - 1).toFloat()
+    private fun trilinearInterpolation(
+        r: Float,
+        g: Float,
+        b: Float,
+        lutArray: Array<Array<Array<FloatArray>>>,
+        lutArraySize: Int
+    ): FloatArray {
+        val scale = (lutArraySize - 1).toFloat()
         val rIdx = r * scale
         val gIdx = g * scale
         val bIdx = b * scale
 
-        val r0 = floor(rIdx).toInt().coerceIn(0, lutSize - 1)
-        val g0 = floor(gIdx).toInt().coerceIn(0, lutSize - 1)
-        val b0 = floor(bIdx).toInt().coerceIn(0, lutSize - 1)
+        val r0 = floor(rIdx).toInt().coerceIn(0, lutArraySize - 1)
+        val g0 = floor(gIdx).toInt().coerceIn(0, lutArraySize - 1)
+        val b0 = floor(bIdx).toInt().coerceIn(0, lutArraySize - 1)
 
-        val r1 = min(r0 + 1, lutSize - 1)
-        val g1 = min(g0 + 1, lutSize - 1)
-        val b1 = min(b0 + 1, lutSize - 1)
+        val r1 = min(r0 + 1, lutArraySize - 1)
+        val g1 = min(g0 + 1, lutArraySize - 1)
+        val b1 = min(b0 + 1, lutArraySize - 1)
 
         val rD = rIdx - r0
         val gD = gIdx - g0
         val bD = bIdx - b0
 
         // 修复：将访问顺序改为与存储顺序一致 [r][g][b]
-        val c000 = lut!![r0][g0][b0]
-        val c001 = lut!![r1][g0][b0]
-        val c010 = lut!![r0][g1][b0]
-        val c011 = lut!![r1][g1][b0]
-        val c100 = lut!![r0][g0][b1]
-        val c101 = lut!![r1][g0][b1]
-        val c110 = lut!![r0][g1][b1]
-        val c111 = lut!![r1][g1][b1]
+        val c000 = lutArray[r0][g0][b0]
+        val c001 = lutArray[r1][g0][b0]
+        val c010 = lutArray[r0][g1][b0]
+        val c011 = lutArray[r1][g1][b0]
+        val c100 = lutArray[r0][g0][b1]
+        val c101 = lutArray[r1][g0][b1]
+        val c110 = lutArray[r0][g1][b1]
+        val c111 = lutArray[r1][g1][b1]
 
         // 三线性插值
         val result = FloatArray(3)
@@ -408,6 +566,11 @@ class CpuLutProcessor : ILutProcessor {
         }
 
         return result
+    }
+
+    // 保留旧的trilinearInterpolation方法以兼容现有代码
+    private fun trilinearInterpolation(r: Float, g: Float, b: Float): FloatArray {
+        return trilinearInterpolation(r, g, b, lut!!, lutSize)
     }
 
     private fun applyFloydSteinbergDithering(pixels: IntArray, width: Int, height: Int) {
@@ -476,7 +639,7 @@ class CpuLutProcessor : ILutProcessor {
     }
 
     // 添加设置LUT数据的方法
-    internal fun setLutData(lutData: Array<Array<Array<FloatArray>>>?, size: Int) {
+    fun setLutData(lutData: Array<Array<Array<FloatArray>>>?, size: Int) {
         Log.d(
             "CpuLutProcessor",
             "设置LUT数据，尺寸: ${size}x${size}x${size}，数据: ${if (lutData != null) "有效" else "空"}"

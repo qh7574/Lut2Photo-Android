@@ -32,12 +32,15 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         // 2410万像素限制（24.1 megapixels）
         private const val MAX_PIXELS_FOR_DIRECT_PROCESSING = 24_100_000L
         private const val MAX_CACHE_SIZE = 3 // 最多缓存3个不同尺寸的buffer
-
         // GPU纹理尺寸安全限制（大多数设备支持4096，但使用更保守的值）
         private const val SAFE_TEXTURE_SIZE = 2048
-
         // 分块处理的最大像素数（1600万像素）
         private const val MAX_BLOCK_PIXELS = 16_000_000L
+
+        // 更宽松的正则表达式，支持更多数字格式
+        private val DATA_LINE_REGEX =
+            Regex("^\\s*([+-]?[0-9]*\\.?[0-9]+(?:[eE][+-]?[0-9]+)?)\\s+([+-]?[0-9]*\\.?[0-9]+(?:[eE][+-]?[0-9]+)?)\\s+([+-]?[0-9]*\\.?[0-9]+(?:[eE][+-]?[0-9]+)?)\\s*$")
+
 
         private fun checkGLError(operation: String) {
             val error = GLES30.glGetError()
@@ -81,9 +84,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 
                 uniform sampler2D u_inputTexture;
                 uniform sampler3D u_lutTexture;
+                uniform sampler3D u_lut2Texture;
                 uniform float u_strength;
+                uniform float u_lut2Strength;
                 uniform int u_ditherType;
                 uniform float u_lutSize;
+                uniform float u_lut2Size;
                 
                 // Random function for dithering
                 float random(vec2 co) {
@@ -110,27 +116,34 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 
                 void main() {
                     vec4 originalColor = texture(u_inputTexture, v_texCoord);
+                    vec3 processedColor = originalColor.rgb;
                     
-                    // 正确的LUT坐标计算
-                    vec3 scaledColor = originalColor.rgb * (u_lutSize - 1.0);
-                    vec3 lutCoord = (scaledColor + 0.5) / u_lutSize;
+                    // 步骤1：应用第一个LUT
+                    vec3 scaledColor1 = processedColor * (u_lutSize - 1.0);
+                    vec3 lutCoord1 = (scaledColor1 + 0.5) / u_lutSize;
+                    lutCoord1 = clamp(lutCoord1, 0.0, 1.0);
                     
-                    // 确保坐标在有效范围内
-                    lutCoord = clamp(lutCoord, 0.0, 1.0);
+                    vec3 lut1Color = texture(u_lutTexture, lutCoord1).rgb;
+                    float clampedStrength1 = clamp(u_strength, 0.0, 1.0);
+                    processedColor = mix(processedColor, lut1Color, clampedStrength1);
                     
-                    // 直接使用LUT查找结果，移除错误的调试逻辑
-                    vec3 lutColor = texture(u_lutTexture, lutCoord).rgb;
-                    
-                    // 限制强度范围
-                    float clampedStrength = clamp(u_strength, 0.0, 1.0);
-                    vec3 blendedColor = mix(originalColor.rgb, lutColor, clampedStrength);
+                    // 步骤2：应用第二个LUT（如果强度大于0）
+                    if (u_lut2Strength > 0.0) {
+                        vec3 scaledColor2 = processedColor * (u_lut2Size - 1.0);
+                        vec3 lutCoord2 = (scaledColor2 + 0.5) / u_lut2Size;
+                        lutCoord2 = clamp(lutCoord2, 0.0, 1.0);
+                        
+                        vec3 lut2Color = texture(u_lut2Texture, lutCoord2).rgb;
+                        float clampedStrength2 = clamp(u_lut2Strength, 0.0, 1.0);
+                        processedColor = mix(processedColor, lut2Color, clampedStrength2);
+                    }
                     
                     // Apply dithering if enabled - 使用纹理坐标而非屏幕坐标
-                    vec3 finalColor = blendedColor;
+                    vec3 finalColor = processedColor;
                     if (u_ditherType == 1) { // Floyd-Steinberg
-                        finalColor = applyFloydSteinbergDither(blendedColor, v_texCoord);
+                        finalColor = applyFloydSteinbergDither(processedColor, v_texCoord);
                     } else if (u_ditherType == 2) { // Random
-                        finalColor = applyRandomDither(blendedColor, v_texCoord);
+                        finalColor = applyRandomDither(processedColor, v_texCoord);
                     }
                     
                     fragColor = vec4(clamp(finalColor, 0.0, 1.0), originalColor.a);
@@ -157,14 +170,20 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
     private var inputTextureLocation: Int = 0
     private var lutTextureLocation: Int = 0
+    private var lut2TextureLocation: Int = 0  // 第二个LUT纹理位置
     private var strengthLocation: Int = 0
+    private var lut2StrengthLocation: Int = 0  // 第二个LUT强度位置
     private var ditherTypeLocation: Int = 0
     private var lutSizeLocation: Int = 0
+    private var lut2SizeLocation: Int = 0  // 第二个LUT尺寸位置
 
     private var isInitialized = false
     private var lutTexture: Int = 0
+    private var lut2Texture: Int = 0  // 第二个LUT纹理
     private var currentLut: Array<Array<Array<FloatArray>>>? = null
+    private var currentLut2: Array<Array<Array<FloatArray>>>? = null  // 第二个LUT数据
     private var currentLutSize: Int = 0
+    private var currentLut2Size: Int = 0  // 第二个LUT尺寸
 
     // GPU最大纹理尺寸（初始化时获取）
     private var maxTextureSize: Int = SAFE_TEXTURE_SIZE
@@ -289,6 +308,142 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         }
     }
 
+    /**
+     * 加载第二个LUT文件
+     * @param inputStream 第二个LUT文件输入流
+     * @return 是否加载成功
+     */
+    suspend fun loadSecondCubeLut(inputStream: InputStream): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "开始加载第二个LUT文件到GPU")
+
+                val reader = inputStream.bufferedReader()
+                val lines = reader.readLines()
+                reader.close()
+
+                Log.d(TAG, "第二个LUT读取到 ${lines.size} 行数据")
+
+                var lutSize = 0
+                var dataStartIndex = -1
+
+                // 解析头部信息
+                for ((index, line) in lines.withIndex()) {
+                    val trimmedLine = line.trim()
+                    if (trimmedLine.startsWith("LUT_3D_SIZE")) {
+                        Log.d(TAG, "第二个LUT找到LUT_3D_SIZE行: $trimmedLine")
+                        val parts = trimmedLine.split("\\s+".toRegex())
+                        if (parts.size >= 2) {
+                            lutSize = parts[1].toInt()
+                            Log.d(TAG, "第二个LUT尺寸: $lutSize")
+                            dataStartIndex = index + 1
+                            break
+                        }
+                    }
+                }
+
+                if (lutSize == 0) {
+                    Log.e(TAG, "第二个LUT未找到有效的LUT_3D_SIZE")
+                    return@withContext false
+                }
+
+                // 初始化第二个LUT数组
+                val lut2Array =
+                    Array(lutSize) { Array(lutSize) { Array(lutSize) { FloatArray(3) } } }
+                Log.d(
+                    TAG,
+                    "第二个LUT数组初始化完成，尺寸: ${lut2Array.size}x${lut2Array[0].size}x${lut2Array[0][0].size}"
+                )
+
+                // 解析数据行
+                var dataIndex = 0
+                val expectedSize = lutSize * lutSize * lutSize
+
+                for (i in dataStartIndex until lines.size) {
+                    if (dataIndex >= expectedSize) break
+
+                    val line = lines[i].trim()
+                    if (line.isEmpty() || line.startsWith("#") || line.startsWith("TITLE") || line.startsWith(
+                            "DOMAIN_"
+                        )
+                    ) {
+                        continue
+                    }
+
+                    val match = DATA_LINE_REGEX.matchEntire(line)
+                    if (match != null) {
+                        try {
+                            val r = match.groupValues[1].toFloat()
+                            val g = match.groupValues[2].toFloat()
+                            val b = match.groupValues[3].toFloat()
+
+                            val rIndex = dataIndex % lutSize
+                            val gIndex = (dataIndex / lutSize) % lutSize
+                            val bIndex = dataIndex / (lutSize * lutSize)
+
+                            lut2Array[rIndex][gIndex][bIndex][0] = r
+                            lut2Array[rIndex][gIndex][bIndex][1] = g
+                            lut2Array[rIndex][gIndex][bIndex][2] = b
+
+                            dataIndex++
+                        } catch (e: NumberFormatException) {
+                            Log.w(TAG, "第二个LUT无法解析数据行 ${i + 1}: $line", e)
+                        }
+                    } else {
+                        val parts = line.split("\\s+".toRegex())
+                        if (parts.size >= 3) {
+                            try {
+                                val r = parts[0].toFloat()
+                                val g = parts[1].toFloat()
+                                val b = parts[2].toFloat()
+
+                                val rIndex = dataIndex % lutSize
+                                val gIndex = (dataIndex / lutSize) % lutSize
+                                val bIndex = dataIndex / (lutSize * lutSize)
+
+                                lut2Array[rIndex][gIndex][bIndex][0] = r
+                                lut2Array[rIndex][gIndex][bIndex][1] = g
+                                lut2Array[rIndex][gIndex][bIndex][2] = b
+
+                                dataIndex++
+                            } catch (_: NumberFormatException) {
+                                Log.w(TAG, "第二个LUT备用解析也失败，跳过行 ${i + 1}: $line")
+                            }
+                        }
+                    }
+                }
+
+                Log.d(
+                    TAG,
+                    "第二个LUT数据加载完成，期望数据点: $expectedSize，实际数据点: $dataIndex"
+                )
+
+                if (dataIndex == expectedSize) {
+                    this@GpuLutProcessor.currentLut2 = lut2Array
+                    this@GpuLutProcessor.currentLut2Size = lutSize
+                    Log.d(TAG, "第二个LUT数据解析成功，数据尺寸: ${lutSize}, 数据点: $dataIndex")
+
+                    // 上传到GPU（如果GPU已初始化）
+                    if (isInitialized) {
+                        Log.d(TAG, "GPU已初始化，立即上传第二个LUT到GPU")
+                        uploadSecondLutToGpu(lut2Array)
+                        Log.d(TAG, "第二个LUT成功上传到GPU，纹理ID: $lut2Texture")
+                    } else {
+                        Log.d(TAG, "GPU未初始化，第二个LUT数据已保存，将在GPU初始化时上传")
+                    }
+                    true
+                } else {
+                    Log.e(TAG, "第二个LUT数据不完整: 期望 $expectedSize，实际 $dataIndex")
+                    false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "加载第二个LUT文件失败", e)
+                false
+            }
+        }
+    }
+
+
     private fun uploadLutToGpu(lut: Array<Array<Array<FloatArray>>>) {
         // 删除旧的LUT纹理
         if (lutTexture != 0) {
@@ -369,6 +524,88 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         )
 
         Log.d(TAG, "LUT uploaded to GPU with size: $currentLutSize")
+    }
+
+    private fun uploadSecondLutToGpu(lut2: Array<Array<Array<FloatArray>>>) {
+        // 删除旧的第二个LUT纹理
+        if (lut2Texture != 0) {
+            GLES30.glDeleteTextures(1, intArrayOf(lut2Texture), 0)
+        }
+
+        // 验证第二个LUT数据
+        var nonZeroCount = 0
+        var totalCount = 0
+        for (r in 0 until currentLut2Size) {
+            for (g in 0 until currentLut2Size) {
+                for (b in 0 until currentLut2Size) {
+                    val rgb = lut2[r][g][b]
+                    totalCount++
+                    if (rgb[0] > 0.001f || rgb[1] > 0.001f || rgb[2] > 0.001f) {
+                        nonZeroCount++
+                    }
+                }
+            }
+        }
+        Log.d(TAG, "第二个LUT数据验证: 总数据点=$totalCount, 非零数据点=$nonZeroCount")
+
+        if (nonZeroCount < totalCount * 0.1) {
+            Log.w(TAG, "警告：第二个LUT数据中非零点过少，可能导致黑色输出")
+        }
+
+        // 创建新的3D纹理
+        val textures = IntArray(1)
+        GLES30.glGenTextures(1, textures, 0)
+        lut2Texture = textures[0]
+
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, lut2Texture)
+
+        // 使用动态尺寸创建第二个LUT数据数组
+        val lut2Data = FloatArray(currentLut2Size * currentLut2Size * currentLut2Size * 3)
+        var index = 0
+
+        // 使用动态尺寸填充数据 - 修复RGB通道顺序
+        for (b in 0 until currentLut2Size) {  // Z轴 - Blue
+            for (g in 0 until currentLut2Size) {  // Y轴 - Green  
+                for (r in 0 until currentLut2Size) {  // X轴 - Red
+                    lut2Data[index++] = lut2[r][g][b][0]
+                    lut2Data[index++] = lut2[r][g][b][1]
+                    lut2Data[index++] = lut2[r][g][b][2]
+                }
+            }
+        }
+
+        val buffer = ByteBuffer.allocateDirect(lut2Data.size * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+        buffer.put(lut2Data)
+        buffer.position(0)
+
+        // 使用动态尺寸上传纹理
+        GLES30.glTexImage3D(
+            GLES30.GL_TEXTURE_3D, 0, GLES30.GL_RGB32F,
+            currentLut2Size, currentLut2Size, currentLut2Size, 0,
+            GLES30.GL_RGB, GLES30.GL_FLOAT, buffer
+        )
+
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_3D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_3D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR)
+        GLES30.glTexParameteri(
+            GLES30.GL_TEXTURE_3D,
+            GLES30.GL_TEXTURE_WRAP_S,
+            GLES30.GL_CLAMP_TO_EDGE
+        )
+        GLES30.glTexParameteri(
+            GLES30.GL_TEXTURE_3D,
+            GLES30.GL_TEXTURE_WRAP_T,
+            GLES30.GL_CLAMP_TO_EDGE
+        )
+        GLES30.glTexParameteri(
+            GLES30.GL_TEXTURE_3D,
+            GLES30.GL_TEXTURE_WRAP_R,
+            GLES30.GL_CLAMP_TO_EDGE
+        )
+
+        Log.d(TAG, "第二个LUT uploaded to GPU with size: $currentLut2Size")
     }
 
     override suspend fun processImage(
@@ -848,6 +1085,21 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         }
 
         Log.d(TAG, "开始GPU处理，bitmap尺寸: ${width}x${height}, 格式: ${bitmap.config}")
+        Log.d(
+            TAG,
+            "处理参数详情: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动类型=${params.ditherType}"
+        )
+        Log.d(
+            TAG,
+            "LUT状态: 主LUT纹理ID=$lutTexture, 第二个LUT纹理ID=$lut2Texture, 主LUT尺寸=$currentLutSize, 第二个LUT尺寸=$currentLut2Size"
+        )
+
+        // 检查第二个LUT是否加载
+        if (lut2Texture != 0 && currentLut2Size > 0) {
+            Log.d(TAG, "第二个LUT已加载，纹理ID: $lut2Texture, 尺寸: $currentLut2Size")
+        } else {
+            Log.d(TAG, "第二个LUT未加载或无效，纹理ID: $lut2Texture, 尺寸: $currentLut2Size")
+        }
 
         // 检查GPU初始化状态
         if (!isInitialized) {
@@ -983,6 +1235,26 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         }
 
         Log.d(TAG, "LUT纹理验证通过，ID: $lutTexture")
+
+        // **关键修复：验证第二个LUT纹理是否有效**
+        if (currentLut2 != null && currentLut2Size > 0) {
+            if (lut2Texture == 0) {
+                Log.e(TAG, "第二个LUT纹理无效，尝试重新上传")
+                uploadSecondLutToGpu(currentLut2!!)
+                Log.d(TAG, "第二个LUT纹理重新创建完成，ID: $lut2Texture")
+            } else {
+                // 验证第二个LUT纹理是否真的存在
+                val isValidLut2Texture = GLES30.glIsTexture(lut2Texture)
+                if (!isValidLut2Texture) {
+                    Log.e(TAG, "第二个LUT纹理ID无效: $lut2Texture")
+                    uploadSecondLutToGpu(currentLut2!!)
+                    Log.d(TAG, "第二个LUT纹理重新创建完成，ID: $lut2Texture")
+                }
+            }
+            Log.d(TAG, "第二个LUT纹理验证通过，ID: $lut2Texture")
+        } else {
+            Log.d(TAG, "没有第二个LUT数据需要验证")
+        }
 
         // 创建输入纹理前的额外检查
         Log.d(TAG, "开始创建输入纹理，尺寸: ${width}x${height}")
@@ -1146,24 +1418,29 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
         // 验证uniform位置是否有效
         if (inputTextureLocation == -1 || lutTextureLocation == -1 || strengthLocation == -1 ||
-            ditherTypeLocation == -1 || lutSizeLocation == -1
+            ditherTypeLocation == -1 || lutSizeLocation == -1 || lut2TextureLocation == -1 ||
+            lut2StrengthLocation == -1 || lut2SizeLocation == -1
         ) {
             Log.e(TAG, "uniform位置无效，重新获取")
 
             // 重新获取uniform位置
             inputTextureLocation = GLES30.glGetUniformLocation(shaderProgram, "u_inputTexture")
             lutTextureLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lutTexture")
+            lut2TextureLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Texture")
             strengthLocation = GLES30.glGetUniformLocation(shaderProgram, "u_strength")
+            lut2StrengthLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Strength")
             ditherTypeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_ditherType")
             lutSizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lutSize")
+            lut2SizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Size")
 
             Log.d(
                 TAG,
-                "重新获取uniform位置: input=$inputTextureLocation, lut=$lutTextureLocation, strength=$strengthLocation, dither=$ditherTypeLocation, size=$lutSizeLocation"
+                "重新获取uniform位置: input=$inputTextureLocation, lut=$lutTextureLocation, lut2=$lut2TextureLocation, strength=$strengthLocation, lut2Strength=$lut2StrengthLocation, dither=$ditherTypeLocation, size=$lutSizeLocation, lut2Size=$lut2SizeLocation"
             )
 
             if (inputTextureLocation == -1 || lutTextureLocation == -1 || strengthLocation == -1 ||
-                ditherTypeLocation == -1 || lutSizeLocation == -1
+                ditherTypeLocation == -1 || lutSizeLocation == -1 || lut2TextureLocation == -1 ||
+                lut2StrengthLocation == -1 || lut2SizeLocation == -1
             ) {
                 throw RuntimeException("重新获取uniform位置失败")
             }
@@ -1175,15 +1452,53 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, inputTexture[0])
         GLES30.glUniform1i(inputTextureLocation, 0)
 
-        // 绑定LUT纹理到纹理单元1
+        // 绑定主LUT纹理到纹理单元1
         GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, lutTexture)
         GLES30.glUniform1i(lutTextureLocation, 1)
 
+        // 绑定第二个LUT纹理到纹理单元2（如果存在）
+        var hasSecondLut = false
+        if (lut2Texture != 0 && params.lut2Strength > 0f) {
+            Log.d(
+                TAG,
+                "绑定第二个LUT纹理到纹理单元2，纹理ID: $lut2Texture，强度: ${params.lut2Strength}"
+            )
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE2)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, lut2Texture)
+            GLES30.glUniform1i(lut2TextureLocation, 2)
+            hasSecondLut = true
+        } else {
+            Log.d(
+                TAG,
+                "未绑定第二个LUT纹理，lut2Texture: $lut2Texture，lut2Strength: ${params.lut2Strength}"
+            )
+            // 如果没有第二个LUT，也需要设置一个默认纹理位置（可以使用主LUT）
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE2)
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_3D, lutTexture)
+            GLES30.glUniform1i(lut2TextureLocation, 2)
+        }
+
         // 设置其他uniform变量
         GLES30.glUniform1f(strengthLocation, params.strength)
+        GLES30.glUniform1f(lut2StrengthLocation, if (hasSecondLut) params.lut2Strength else 0f)
         GLES30.glUniform1i(ditherTypeLocation, params.ditherType.ordinal)
         GLES30.glUniform1f(lutSizeLocation, currentLutSize.toFloat())
+        GLES30.glUniform1f(
+            lut2SizeLocation,
+            if (hasSecondLut) currentLut2Size.toFloat() else currentLutSize.toFloat()
+        )
+
+        Log.d(TAG, "设置uniform变量完成:")
+        Log.d(TAG, "  - u_strength: ${params.strength}")
+        Log.d(TAG, "  - u_lut2Strength: ${if (hasSecondLut) params.lut2Strength else 0f}")
+        Log.d(TAG, "  - u_ditherType: ${params.ditherType.ordinal}")
+        Log.d(TAG, "  - u_lutSize: ${currentLutSize.toFloat()}")
+        Log.d(
+            TAG,
+            "  - u_lut2Size: ${if (hasSecondLut) currentLut2Size.toFloat() else currentLutSize.toFloat()}"
+        )
+        Log.d(TAG, "  - hasSecondLut: $hasSecondLut")
 
         checkGLError("设置uniform变量")
 
@@ -1194,16 +1509,19 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
         Log.d(
             TAG,
-            "Uniform变量设置: strength=${params.strength}, ditherType=${params.ditherType.ordinal}, lutSize=$currentLutSize"
+            "Uniform变量设置: strength=${params.strength}, lut2Strength=${params.lut2Strength}, ditherType=${params.ditherType.ordinal}, lutSize=$currentLutSize, lut2Size=$currentLut2Size"
         )
 
         // 在设置uniform变量后添加
         Log.d(TAG, "详细调试信息:")
         Log.d(TAG, "  输入纹理ID: ${inputTexture[0]}")
-        Log.d(TAG, "  LUT纹理ID: $lutTexture")
+        Log.d(TAG, "  主LUT纹理ID: $lutTexture")
+        Log.d(TAG, "  第二个LUT纹理ID: $lut2Texture")
         Log.d(TAG, "  着色器程序ID: $shaderProgram")
-        Log.d(TAG, "  强度值: ${params.strength}")
-        Log.d(TAG, "  LUT尺寸: $currentLutSize")
+        Log.d(TAG, "  主LUT强度值: ${params.strength}")
+        Log.d(TAG, "  第二个LUT强度值: ${params.lut2Strength}")
+        Log.d(TAG, "  主LUT尺寸: $currentLutSize")
+        Log.d(TAG, "  第二个LUT尺寸: $currentLut2Size")
         Log.d(TAG, "  视口大小: ${width}x${height}")
 
         // 创建并使用VBO来绑定顶点数据
@@ -1247,7 +1565,14 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         val lutBound = IntArray(1)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
         GLES30.glGetIntegerv(GLES30.GL_TEXTURE_BINDING_3D, lutBound, 0)
-        Log.d(TAG, "当前绑定的3D纹理: ${lutBound[0]}, 期望: $lutTexture")
+        Log.d(TAG, "当前绑定的主LUT 3D纹理: ${lutBound[0]}, 期望: $lutTexture")
+
+        if (hasSecondLut) {
+            val lut2Bound = IntArray(1)
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE2)
+            GLES30.glGetIntegerv(GLES30.GL_TEXTURE_BINDING_3D, lut2Bound, 0)
+            Log.d(TAG, "当前绑定的第二个LUT 3D纹理: ${lut2Bound[0]}, 期望: $lut2Texture")
+        }
 
         // 渲染
         Log.d(TAG, "开始渲染")
@@ -1403,19 +1728,26 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             // 获取uniform位置
             inputTextureLocation = GLES30.glGetUniformLocation(shaderProgram, "u_inputTexture")
             lutTextureLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lutTexture")
+            lut2TextureLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Texture")
             strengthLocation = GLES30.glGetUniformLocation(shaderProgram, "u_strength")
+            lut2StrengthLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Strength")
             ditherTypeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_ditherType")
             lutSizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lutSize")
+            lut2SizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Size")
 
             Log.d(TAG, "uniform位置获取结果:")
             Log.d(TAG, "  u_inputTexture: $inputTextureLocation")
             Log.d(TAG, "  u_lutTexture: $lutTextureLocation")
+            Log.d(TAG, "  u_lut2Texture: $lut2TextureLocation")
             Log.d(TAG, "  u_strength: $strengthLocation")
+            Log.d(TAG, "  u_lut2Strength: $lut2StrengthLocation")
             Log.d(TAG, "  u_ditherType: $ditherTypeLocation")
             Log.d(TAG, "  u_lutSize: $lutSizeLocation")
+            Log.d(TAG, "  u_lut2Size: $lut2SizeLocation")
 
             if (inputTextureLocation == -1 || lutTextureLocation == -1 || strengthLocation == -1 ||
-                ditherTypeLocation == -1 || lutSizeLocation == -1
+                ditherTypeLocation == -1 || lutSizeLocation == -1 || lut2TextureLocation == -1 ||
+                lut2StrengthLocation == -1 || lut2SizeLocation == -1
             ) {
                 throw RuntimeException("获取uniform位置失败")
             }
@@ -1429,11 +1761,19 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             // **关键修复：重新上传LUT数据**
             Log.d(TAG, "步骤6: 检查并重新上传LUT数据")
             if (currentLut != null && currentLutSize > 0) {
-                Log.d(TAG, "重新上传LUT数据到GPU，尺寸: $currentLutSize")
+                Log.d(TAG, "重新上传主LUT数据到GPU，尺寸: $currentLutSize")
                 uploadLutToGpu(currentLut!!)
-                Log.d(TAG, "LUT数据重新上传完成，纹理ID: $lutTexture")
+                Log.d(TAG, "主LUT数据重新上传完成，纹理ID: $lutTexture")
             } else {
-                Log.w(TAG, "没有可用的LUT数据进行重新上传")
+                Log.w(TAG, "没有可用的主LUT数据进行重新上传")
+            }
+
+            if (currentLut2 != null && currentLut2Size > 0) {
+                Log.d(TAG, "重新上传第二个LUT数据到GPU，尺寸: $currentLut2Size")
+                uploadSecondLutToGpu(currentLut2!!)
+                Log.d(TAG, "第二个LUT数据重新上传完成，纹理ID: $lut2Texture")
+            } else {
+                Log.d(TAG, "没有第二个LUT数据，跳过重新上传")
             }
 
             // **新增：获取GPU最大纹理尺寸**
@@ -1712,14 +2052,23 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             // 重置uniform位置
             inputTextureLocation = -1
             lutTextureLocation = -1
+            lut2TextureLocation = -1
             strengthLocation = -1
+            lut2StrengthLocation = -1
             ditherTypeLocation = -1
             lutSizeLocation = -1
+            lut2SizeLocation = -1
 
-            // 删除LUT纹理
+            // 删除主LUT纹理
             if (lutTexture != 0) {
                 GLES30.glDeleteTextures(1, intArrayOf(lutTexture), 0)
                 lutTexture = 0
+            }
+
+            // 删除第二个LUT纹理
+            if (lut2Texture != 0) {
+                GLES30.glDeleteTextures(1, intArrayOf(lut2Texture), 0)
+                lut2Texture = 0
             }
 
             // 删除着色器程序
@@ -1742,8 +2091,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
     // 添加缺失的getProcessorInfo方法
     override fun getProcessorInfo(): String {
+        val lut1Info =
+            if (currentLutSize > 0) "主LUT: ${currentLutSize}x${currentLutSize}x${currentLutSize}" else "无主LUT"
+        val lut2Info =
+            if (currentLut2Size > 0) ", 第二个LUT: ${currentLut2Size}x${currentLut2Size}x${currentLut2Size}" else ", 无第二个LUT"
         return if (isInitialized) {
-            "GPU LUT处理器 - OpenGL ES 3.0 硬件加速处理，当前LUT尺寸: ${currentLutSize}x${currentLutSize}x${currentLutSize}"
+            "GPU LUT处理器 - OpenGL ES 3.0 硬件加速处理，当前LUT: $lut1Info$lut2Info"
         } else {
             "GPU LUT处理器 - 未初始化"
         }

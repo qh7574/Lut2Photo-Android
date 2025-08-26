@@ -248,6 +248,50 @@ class ThreadManager(context: Context) {
     }
 
     /**
+     * Load second LUT file into both processors
+     * @param inputStream Second LUT file input stream
+     * @return true if loaded successfully
+     */
+    suspend fun loadSecondLut(inputStream: InputStream): Boolean {
+        return try {
+            // 读取所有数据到字节数组，避免流被关闭的问题
+            val lut2Data = inputStream.readBytes()
+
+            // 为CPU处理器创建新的输入流
+            val cpuInputStream = ByteArrayInputStream(lut2Data)
+            val cpuLoaded = cpuProcessor.loadSecondCubeLut(cpuInputStream)
+            cpuInputStream.close()
+
+            // 为GPU处理器创建新的输入流
+            val gpuLoaded = if (isGpuAvailable) {
+                val gpuInputStream = ByteArrayInputStream(lut2Data)
+                val result = gpuProcessor.loadSecondCubeLut(gpuInputStream)
+                gpuInputStream.close()
+                result
+            } else {
+                true // Skip GPU loading if not available
+            }
+
+            Log.d(TAG, "Second LUT loading result: CPU=$cpuLoaded, GPU=$gpuLoaded")
+            // 添加更详细的日志
+            if (cpuLoaded && gpuLoaded) {
+                Log.d(TAG, "第二个LUT成功加载到CPU和GPU处理器")
+            } else if (cpuLoaded) {
+                Log.d(TAG, "第二个LUT仅成功加载到CPU处理器")
+            } else if (gpuLoaded) {
+                Log.d(TAG, "第二个LUT仅成功加载到GPU处理器")
+            } else {
+                Log.e(TAG, "第二个LUT加载失败")
+            }
+
+            cpuLoaded && gpuLoaded
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load second LUT", e)
+            false
+        }
+    }
+
+    /**
      * Submit a processing task
      * @param bitmap Input bitmap to process
      * @param params Processing parameters
@@ -275,7 +319,11 @@ class ThreadManager(context: Context) {
         Log.d(TAG, "  - 实际使用: $processorType")
         Log.d(TAG, "  - GPU可用: $isGpuAvailable")
         Log.d(TAG, "  - 用户设置: ${preferencesManager.processorType}")
-
+        Log.d(
+            TAG,
+            "  - 处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}"
+        )
+        
         val job = when (processorType) {
             ILutProcessor.ProcessorType.GPU -> {
                 if (isGpuAvailable) {
