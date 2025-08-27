@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorSurfaceVariant"
+    android:orientation="vertical"
+    android:padding="0dp">
+
+    <!-- 预览标题栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="0dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/text_preview_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_weight="1"
+            android:text="水印预览"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!-- 预览尺寸切换按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_preview_size"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="4dp"
+            android:gravity="top|center"
+            android:minWidth="0dp"
+            android:text="中"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="13sp" />
+
+        <!-- 刷新按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_refresh_preview"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="4dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            app:icon="@drawable/outline_reset_settings_24"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="16dp"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <!-- 折叠/展开按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_toggle_preview"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginRight="16dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            app:icon="@drawable/ic_expand_less"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="20dp"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+    <!-- 预览内容区域 -->
+    <LinearLayout
+        android:id="@+id/layout_preview_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="vertical">
+
+        <!-- 预览图片容器 -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Material3.CardView.Filled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp">
+
+                <!-- 预览图片 -->
+                <ImageView
+                    android:id="@+id/image_preview"
+                    android:layout_width="300dp"
+                    android:layout_height="225dp"
+                    android:layout_gravity="center"
+                    android:adjustViewBounds="true"
+                    android:background="?attr/colorSurface"
+                    android:contentDescription="水印预览"
+                    android:scaleType="fitCenter" />
+
+                <!-- 加载指示器 -->
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/progress_preview_loading"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    app:indicatorColor="?attr/colorPrimary" />
+
+            </FrameLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 预览状态信息 -->
+        <!--<LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_preview_status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="预览就绪"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            &lt;!&ndash; 预览操作提示 &ndash;&gt;
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💡 调整设置实时预览"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.7" />
+
+        </LinearLayout>-->
+
+    </LinearLayout>
+
+</LinearLayout>

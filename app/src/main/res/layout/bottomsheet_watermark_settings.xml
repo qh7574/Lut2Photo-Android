@@ -13,7 +13,8 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bottomsheet_header_background"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
 
         <!-- 拖拽指示器 -->
         <View
@@ -58,6 +59,13 @@
                 app:icon="@drawable/ic_menu_save" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- 水印预览区域 -->
+    <cn.alittlecookie.lut2photo.ui.component.WatermarkPreviewView
+        android:id="@+id/watermark_preview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
 
     <!-- 主要内容区域 -->
     <ScrollView

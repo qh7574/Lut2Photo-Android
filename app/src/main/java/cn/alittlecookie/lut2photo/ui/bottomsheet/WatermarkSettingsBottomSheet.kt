@@ -33,11 +33,13 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
     private lateinit var fontPickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
+    private lateinit var backgroundImagePickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var exportLauncher: ActivityResultLauncher<Intent>
     private lateinit var importLauncher: ActivityResultLauncher<Intent>
 
     private var selectedFontPath: String? = null
     private var selectedImagePath: String? = null
+    private var selectedBackgroundImagePath: String? = null
 
     companion object {
         fun newInstance(onConfigSaved: (WatermarkConfig) -> Unit): WatermarkSettingsBottomSheet {
@@ -69,6 +71,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             if (result.resultCode == android.app.Activity.RESULT_OK) {
                 result.data?.data?.let { uri ->
                     handleImageSelection(uri)
+                }
+            }
+        }
+
+        backgroundImagePickerLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    handleBackgroundImageSelection(uri)
                 }
             }
         }
@@ -263,8 +275,19 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.textTextPositionXValue.text = "${value.toInt()}%"
         }
 
+        // 为滑块设置触摸监听器，防止拖拽时关闭bottomsheet
+        binding.sliderTextPositionX.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderTextPositionY.addOnChangeListener { _, value, _ ->
             binding.textTextPositionYValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderTextPositionY.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         // 文字水印透明度设置滑块监听器
@@ -272,13 +295,28 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.textTextOpacityValue.text = "${value.toInt()}%"
         }
 
+        binding.sliderTextOpacity.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         // 图片水印位置设置滑块监听器
         binding.sliderImagePositionX.addOnChangeListener { _, value, _ ->
             binding.textImagePositionXValue.text = "${value.toInt()}%"
         }
 
+        binding.sliderImagePositionX.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderImagePositionY.addOnChangeListener { _, value, _ ->
             binding.textImagePositionYValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderImagePositionY.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         // 图片水印透明度设置滑块监听器
@@ -286,12 +324,27 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.textImageOpacityValue.text = "${value.toInt()}%"
         }
 
+        binding.sliderImageOpacity.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderTextSize.addOnChangeListener { _, value, _ ->
             binding.textTextSizeValue.text = "${String.format("%.1f", value)}%"
         }
 
+        binding.sliderTextSize.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderImageSize.addOnChangeListener { _, value, _ ->
             binding.textImageSizeValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderImageSize.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         // 四个方向的边框滑块监听器
@@ -299,16 +352,36 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.textBorderTopWidthValue.text = "${value.toInt()}%"
         }
 
+        binding.sliderBorderTopWidth.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderBorderBottomWidth.addOnChangeListener { _, value, _ ->
             binding.textBorderBottomWidthValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderBorderBottomWidth.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         binding.sliderBorderLeftWidth.addOnChangeListener { _, value, _ ->
             binding.textBorderLeftWidthValue.text = "${value.toInt()}%"
         }
 
+        binding.sliderBorderLeftWidth.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderBorderRightWidth.addOnChangeListener { _, value, _ ->
             binding.textBorderRightWidthValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderBorderRightWidth.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         // 新增字间距和行间距滑块监听器
@@ -316,13 +389,28 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.textLetterSpacingValue.text = "${String.format("%.1f", value)}%"
         }
 
+        binding.sliderLetterSpacing.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         binding.sliderLineSpacing.addOnChangeListener { _, value, _ ->
             binding.textLineSpacingValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderLineSpacing.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         // 添加图片文字间距滑块监听器
         binding.sliderTextImageSpacing.addOnChangeListener { _, value, _ ->
             binding.textTextImageSpacingValue.text = "${value.toInt()}%"
+        }
+
+        binding.sliderTextImageSpacing.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
         }
 
         // 设置按钮监听器
@@ -353,6 +441,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.buttonConfirm.setOnClickListener {
             saveSettings()
         }
+
+        // 设置预览视图的监听器
+        setupPreviewView()
     }
 
     private fun loadSavedSettings() {
@@ -499,6 +590,14 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         imagePickerLauncher.launch(Intent.createChooser(intent, "选择水印图片"))
     }
 
+    private fun selectBackgroundImageFile() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        backgroundImagePickerLauncher.launch(Intent.createChooser(intent, "选择预览背景图片"))
+    }
+
     private fun exportWatermarkConfig() {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -549,6 +648,26 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             Toast.makeText(context, "水印图片已保存", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(context, "保存水印图片失败: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun handleBackgroundImageSelection(uri: Uri) {
+        try {
+            val inputStream = requireContext().contentResolver.openInputStream(uri)
+            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+
+            if (bitmap != null) {
+                // 保存背景图片路径
+                selectedBackgroundImagePath = uri.toString()
+
+                // 更新预览视图的背景图片
+                binding.watermarkPreview.setBackgroundImage(bitmap)
+
+                Toast.makeText(context, "预览背景图片已设置", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "设置背景图片失败: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -778,6 +897,106 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.textImageSpacingLabel.visibility = View.GONE
             binding.layoutTextImageSpacing.visibility = View.GONE
         }
+
+        // 更新预览
+        updatePreview()
+    }
+
+    /**
+     * 设置预览视图
+     */
+    private fun setupPreviewView() {
+        // 设置预览视图的折叠监听器
+        binding.watermarkPreview.onToggleListener = { isCollapsed ->
+            // 可以在这里处理折叠状态变化
+            // 例如，调整ScrollView的高度等
+        }
+
+        // 设置配置提供者回调
+        binding.watermarkPreview.configProvider = {
+            try {
+                getCurrentConfigFromUI()
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        // 设置预览点击监听器 - 点击预览区域选择背景图片
+        binding.watermarkPreview.onPreviewClickListener = {
+            selectBackgroundImageFile()
+        }
+
+        // 为所有设置控件添加预览更新监听器
+        setupPreviewUpdateListeners()
+
+        // 初始化预览
+        updatePreview()
+
+        // 强制初始化预览显示
+        binding.watermarkPreview.forceInitialPreview()
+    }
+
+    /**
+     * 为所有设置控件添加预览更新监听器
+     */
+    private fun setupPreviewUpdateListeners() {
+        // 水印类型变化
+        binding.toggleGroupWatermarkType.addOnButtonCheckedListener { _, _, _ ->
+            updatePreview()
+        }
+
+        // 文字设置变化
+        binding.editTextContent.setOnTextChangedListener { updatePreview() }
+        binding.editTextColor.setOnTextChangedListener { updatePreview() }
+
+        // 滑块变化
+        listOf(
+            binding.sliderTextPositionX,
+            binding.sliderTextPositionY,
+            binding.sliderImagePositionX,
+            binding.sliderImagePositionY,
+            binding.sliderTextSize,
+            binding.sliderImageSize,
+            binding.sliderTextOpacity,
+            binding.sliderImageOpacity,
+            binding.sliderTextImageSpacing
+        ).forEach { slider ->
+            slider.addOnChangeListener { _, _, _ -> updatePreview() }
+        }
+
+        // 文字跟随模式变化
+        binding.switchTextFollowMode.setOnCheckedChangeListener { _, isChecked ->
+            updateTextFollowModeVisibility(isChecked)
+        }
+        binding.toggleGroupTextFollowDirection.addOnButtonCheckedListener { _, _, _ -> updatePreview() }
+
+        // 文本对齐方式变化
+        binding.toggleGroupTextAlignment.addOnButtonCheckedListener { _, _, _ -> updatePreview() }
+    }
+
+    /**
+     * 更新预览
+     */
+    private fun updatePreview() {
+        try {
+            val config = getCurrentConfigFromUI()
+            binding.watermarkPreview.updatePreview(config)
+        } catch (e: Exception) {
+            // 忽略错误，防止崩溃
+        }
+    }
+
+    /**
+     * EditText的文本变化监听器
+     */
+    private fun android.widget.EditText.setOnTextChangedListener(callback: () -> Unit) {
+        this.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                callback()
+            }
+        })
     }
 
     private fun saveSettings() {
