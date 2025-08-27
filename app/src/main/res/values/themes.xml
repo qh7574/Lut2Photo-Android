@@ -68,4 +68,26 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
+
+    <!-- ColorPickerDialog Light Theme -->
+    <style name="Theme.ColorPickerDialog.Light" parent="Theme.Material3.Light.Dialog">
+        <item name="android:colorBackground">@color/md_theme_light_surface</item>
+        <item name="colorSurface">@color/md_theme_light_surface</item>
+        <item name="colorOnSurface">@color/md_theme_light_onSurface</item>
+        <item name="android:textColorPrimary">@color/md_theme_light_onSurface</item>
+        <item name="android:textColorSecondary">@color/md_theme_light_onSurfaceVariant</item>
+        <item name="colorPrimary">@color/md_theme_light_primary</item>
+        <item name="colorAccent">@color/md_theme_light_primary</item>
+    </style>
+
+    <!-- ColorPickerDialog Dark Theme -->
+    <style name="Theme.ColorPickerDialog.Dark" parent="Theme.Material3.Dark.Dialog">
+        <item name="android:colorBackground">@color/md_theme_dark_surface</item>
+        <item name="colorSurface">@color/md_theme_dark_surface</item>
+        <item name="colorOnSurface">@color/md_theme_dark_onSurface</item>
+        <item name="android:textColorPrimary">@color/md_theme_dark_onSurface</item>
+        <item name="android:textColorSecondary">@color/md_theme_dark_onSurfaceVariant</item>
+        <item name="colorPrimary">@color/md_theme_dark_primary</item>
+        <item name="colorAccent">@color/md_theme_dark_primary</item>
+    </style>
 </resources>

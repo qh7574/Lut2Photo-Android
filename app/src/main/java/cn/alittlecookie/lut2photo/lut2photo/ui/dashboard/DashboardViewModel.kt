@@ -8,7 +8,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -29,6 +28,7 @@ import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
 import cn.alittlecookie.lut2photo.lut2photo.utils.ExifReader
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.MemoryOptimizer
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -95,6 +95,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val preferencesManager = PreferencesManager(application)
     private val watermarkProcessor = WatermarkProcessor(application)
     private val exifReader = ExifReader(application)
+    private val memoryOptimizer = MemoryOptimizer(application)
     private var processingJob: Job? = null
     private val processedCounter = AtomicInteger(0)
 
@@ -315,22 +316,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun loadImageBitmap(imageItem: ImageItem): Bitmap? {
         return withContext(Dispatchers.IO) {
             try {
-                getApplication<Application>().contentResolver.openInputStream(imageItem.uri)
-                    ?.use { inputStream ->
-                        // 首先读取EXIF信息
-                        val exif = ExifInterface(inputStream)
-                        val orientation = exif.getAttributeInt(
-                            ExifInterface.TAG_ORIENTATION,
-                            ExifInterface.ORIENTATION_NORMAL
-                        )
-
-                        // 重新打开流来解码图像
-                        getApplication<Application>().contentResolver.openInputStream(imageItem.uri)
-                            ?.use { decodeStream ->
-                                val bitmap = BitmapFactory.decodeStream(decodeStream)
-                                bitmap?.let { applyExifOrientation(it, orientation) }
-                            }
-                    }
+                memoryOptimizer.loadOptimizedBitmap(imageItem.uri)
             } catch (e: Exception) {
                 Log.e(
                     "DashboardViewModel",
@@ -342,41 +328,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // 添加EXIF方向处理方法
-    private fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
-        val matrix = Matrix()
-        when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
-            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
-            ExifInterface.ORIENTATION_TRANSPOSE -> {
-                matrix.postRotate(90f)
-                matrix.postScale(-1f, 1f)
-            }
-
-            ExifInterface.ORIENTATION_TRANSVERSE -> {
-                matrix.postRotate(-90f)
-                matrix.postScale(-1f, 1f)
-            }
-
-            else -> return bitmap // ORIENTATION_NORMAL 或未知方向
-        }
-
-        return try {
-            val rotatedBitmap = Bitmap.createBitmap(
-                bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-            )
-            if (rotatedBitmap != bitmap) {
-                bitmap.recycle()
-            }
-            rotatedBitmap
-        } catch (e: OutOfMemoryError) {
-            Log.e("DashboardViewModel", "内存不足，无法旋转图像", e)
-            bitmap
-        }
-    }
 
     private fun finishProcessing(processedCount: Int, totalCount: Int) {
         val message = if (processedCount == totalCount) {

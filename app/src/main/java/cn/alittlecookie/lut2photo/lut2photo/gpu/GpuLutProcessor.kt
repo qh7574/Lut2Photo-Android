@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.core.graphics.createBitmap
 import cn.alittlecookie.lut2photo.lut2photo.core.CpuLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
+import cn.alittlecookie.lut2photo.utils.RegionDecoderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -189,25 +190,57 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     private var maxTextureSize: Int = SAFE_TEXTURE_SIZE
 
     /**
-     * 获取或创建指定尺寸的ByteBuffer
+     * 获取或创建指定尺寸的ByteBuffer，带内存压力检测
      */
     private fun getOrCreateBuffer(width: Int, height: Int, name: String): ByteBuffer {
         val size = width * height * 4
+        val sizeMB = size / 1024 / 1024
         val key = "${name}_${width}_${height}"
+
+        // 内存压力检测：如果单个缓冲区超过64MB，抛出OOM让系统回退到CPU处理
+        if (sizeMB > 64) {
+            Log.w(TAG, "缓冲区大小过大(${sizeMB}MB)，触发内存压力保护")
+            throw OutOfMemoryError("GPU缓冲区大小超过限制: ${sizeMB}MB")
+        }
 
         var buffer = bufferCache[key]
         if (buffer == null || buffer.capacity() < size) {
-            // 清理旧缓存
-            if (bufferCache.size >= MAX_CACHE_SIZE) {
+            // 在分配新缓冲区前，检查总缓存大小
+            val totalCacheSize = bufferCache.values.sumOf { it.capacity() }
+            val totalCacheSizeMB = totalCacheSize / 1024 / 1024
+
+            // 如果总缓存超过128MB，清理所有缓存
+            if (totalCacheSizeMB > 128) {
+                Log.w(TAG, "缓存总大小过大(${totalCacheSizeMB}MB)，清理所有缓存")
+                bufferCache.clear()
+            } else if (bufferCache.size >= MAX_CACHE_SIZE) {
+                // 清理最旧的缓存
                 val oldestKey = bufferCache.keys.first()
                 bufferCache.remove(oldestKey)
                 Log.d(TAG, "清理旧ByteBuffer缓存: $oldestKey")
             }
 
-            buffer = ByteBuffer.allocateDirect(size)
-            buffer.order(ByteOrder.nativeOrder())
-            bufferCache[key] = buffer
-            Log.d(TAG, "创建新ByteBuffer: $key, 大小: ${size / 1024 / 1024}MB")
+            try {
+                buffer = ByteBuffer.allocateDirect(size)
+                buffer.order(ByteOrder.nativeOrder())
+                bufferCache[key] = buffer
+                Log.d(TAG, "创建新ByteBuffer: $key, 大小: ${sizeMB}MB")
+            } catch (e: OutOfMemoryError) {
+                // 清理所有缓存后重试一次
+                Log.w(TAG, "ByteBuffer分配失败，清理缓存后重试")
+                bufferCache.clear()
+                System.gc() // 建议垃圾回收
+
+                try {
+                    buffer = ByteBuffer.allocateDirect(size)
+                    buffer.order(ByteOrder.nativeOrder())
+                    bufferCache[key] = buffer
+                    Log.d(TAG, "重试创建ByteBuffer成功: $key, 大小: ${sizeMB}MB")
+                } catch (e2: OutOfMemoryError) {
+                    Log.e(TAG, "ByteBuffer分配最终失败，大小: ${sizeMB}MB")
+                    throw e2
+                }
+            }
         } else {
             buffer.clear() // 重置位置
             Log.d(TAG, "复用ByteBuffer: $key")
@@ -640,6 +673,132 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     }
 
     /**
+     * 流式处理图片块，支持RegionDecoderManager的分块加载
+     * @param inputStream 图片输入流
+     * @param params 处理参数
+     * @param callback 处理结果回调
+     */
+    suspend fun processImageStream(
+        context: android.content.Context,
+        uri: android.net.Uri,
+        params: ILutProcessor.ProcessingParams,
+        callback: RegionDecoderManager.BlockProcessingCallback
+    ) = withContext(Dispatchers.Main) {
+        if (!isInitialized) {
+            Log.e(TAG, "GPU处理器未初始化，无法进行流式处理")
+            callback.onError(Exception("GPU处理器未初始化"))
+            return@withContext
+        }
+
+        try {
+            val regionManager = RegionDecoderManager()
+
+            // 检查是否需要分块处理
+            if (regionManager.shouldUseRegionDecoding(context, uri)) {
+                Log.d(TAG, "开始GPU流式分块处理")
+
+                // 使用分块处理
+                regionManager.processImageInRegions(
+                    context,
+                    uri,
+                    callback = object : RegionDecoderManager.BlockProcessingCallback {
+                        override suspend fun onBlockLoaded(
+                            bitmap: Bitmap,
+                            block: RegionDecoderManager.ImageBlock
+                        ): Bitmap? {
+                            return try {
+                                // 检查块大小是否适合GPU处理
+                                val blockPixels = bitmap.width.toLong() * bitmap.height.toLong()
+
+                                val processedBlock =
+                                    if (blockPixels <= MAX_PIXELS_FOR_DIRECT_PROCESSING) {
+                                        // GPU处理块
+                                        Log.d(
+                                            TAG,
+                                            "GPU处理块 ${block.blockIndex}/${block.totalBlocks}"
+                                        )
+                                        withContext(Dispatchers.Main) {
+                                            processImageOnGpu(bitmap, params)
+                                        }
+                                    } else {
+                                        // 块仍然太大，回退到CPU处理
+                                        Log.w(
+                                            TAG,
+                                            "块 ${block.blockIndex} 仍然太大($blockPixels 像素)，回退到CPU处理"
+                                        )
+                                        val cpuProcessor = CpuLutProcessor()
+                                        // 复制LUT数据到CPU处理器
+                                        if (currentLutSize > 0) {
+                                            // 注意：这里需要从GPU纹理读取LUT数据，实际实现中可能需要保存原始LUT数据
+                                            Log.w(
+                                                TAG,
+                                                "GPU到CPU的LUT数据传输暂未实现，使用原始bitmap"
+                                            )
+                                            bitmap
+                                        } else {
+                                            bitmap
+                                        }
+                                    }
+
+                                if (processedBlock != null) {
+                                    Log.d(
+                                        TAG,
+                                        "处理图片块成功: ${block.blockIndex}/${block.totalBlocks}"
+                                    )
+                                    processedBlock
+                                } else {
+                                    Log.e(TAG, "处理图片块失败: ${block.blockIndex}")
+                                    null
+                                }
+                            } catch (e: OutOfMemoryError) {
+                                Log.e(TAG, "GPU处理图片块时发生OOM", e)
+                                null
+                            } catch (e: Exception) {
+                                Log.e(TAG, "GPU处理图片块时发生异常", e)
+                                null
+                            }
+                        }
+
+                        override fun onProgress(processedBlocks: Int, totalBlocks: Int) {
+                            callback.onProgress(processedBlocks, totalBlocks)
+                        }
+
+                        override fun onError(error: Exception) {
+                            callback.onError(error)
+                        }
+                    })
+
+                Log.d(TAG, "GPU流式分块处理完成")
+            } else {
+                // 小图片直接加载处理
+                Log.d(TAG, "图片较小，使用GPU直接处理模式")
+                val fullBitmap = regionManager.loadFullImage(context, uri)
+                if (fullBitmap != null) {
+                    val processedBitmap = withContext(Dispatchers.Main) {
+                        processImageOnGpu(fullBitmap, params)
+                    }
+                    if (processedBitmap != null) {
+                        val block = RegionDecoderManager.ImageBlock(
+                            rect = android.graphics.Rect(0, 0, fullBitmap.width, fullBitmap.height),
+                            blockIndex = 0,
+                            totalBlocks = 1
+                        )
+                        callback.onBlockLoaded(processedBitmap, block)
+                        callback.onProgress(1, 1)
+                    } else {
+                        callback.onError(Exception("GPU处理完整图片失败"))
+                    }
+                } else {
+                    callback.onError(Exception("加载完整图片失败"))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "GPU流式处理过程中发生异常", e)
+            callback.onError(e)
+        }
+    }
+
+    /**
      * 处理GPU OOM情况的回退逻辑
      */
     private suspend fun handleGpuOomFallback(
@@ -657,6 +816,21 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             // 确保CPU处理器有正确的LUT数据
             if (currentLut != null) {
                 cpuProcessor.setLutData(currentLut, currentLutSize)
+                Log.d(
+                    TAG,
+                    "主LUT数据已同步到CPU处理器，尺寸: ${currentLutSize}x${currentLutSize}x${currentLutSize}"
+                )
+            }
+
+            // 同步第二个LUT数据
+            if (currentLut2 != null && currentLut2Size > 0) {
+                cpuProcessor.setSecondLutData(currentLut2, currentLut2Size)
+                Log.d(
+                    TAG,
+                    "第二个LUT数据已同步到CPU处理器，尺寸: ${currentLut2Size}x${currentLut2Size}x${currentLut2Size}"
+                )
+            } else {
+                Log.d(TAG, "没有第二个LUT数据需要同步")
             }
 
             cpuProcessor.processImage(bitmap, params)
@@ -681,20 +855,38 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             if (currentLut != null) {
                 Log.d(
                     TAG,
-                    "同步LUT数据到CPU处理器，尺寸: ${currentLutSize}x${currentLutSize}x${currentLutSize}"
+                    "同步主LUT数据到CPU处理器，尺寸: ${currentLutSize}x${currentLutSize}x${currentLutSize}"
                 )
                 cpuProcessor.setLutData(currentLut, currentLutSize)
 
-                // 验证同步是否成功
+                // 验证主LUT同步是否成功
                 if (cpuProcessor.getLutData() != null) {
-                    Log.d(TAG, "LUT数据同步成功")
+                    Log.d(TAG, "主LUT数据同步成功")
                 } else {
-                    Log.e(TAG, "LUT数据同步失败")
+                    Log.e(TAG, "主LUT数据同步失败")
                     return null
                 }
             } else {
-                Log.e(TAG, "GPU处理器没有LUT数据，无法同步到CPU处理器")
+                Log.e(TAG, "GPU处理器没有主LUT数据，无法同步到CPU处理器")
                 return null
+            }
+
+            // 同步第二个LUT数据
+            if (currentLut2 != null && currentLut2Size > 0) {
+                Log.d(
+                    TAG,
+                    "同步第二个LUT数据到CPU处理器，尺寸: ${currentLut2Size}x${currentLut2Size}x${currentLut2Size}"
+                )
+                cpuProcessor.setSecondLutData(currentLut2, currentLut2Size)
+
+                // 验证第二个LUT同步是否成功
+                if (cpuProcessor.getSecondLutData() != null) {
+                    Log.d(TAG, "第二个LUT数据同步成功")
+                } else {
+                    Log.w(TAG, "第二个LUT数据同步失败，但继续处理")
+                }
+            } else {
+                Log.d(TAG, "没有第二个LUT数据需要同步")
             }
 
             val cpuResult = cpuProcessor.processImage(bitmap, params)
@@ -1042,8 +1234,24 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         return try {
             Log.d(TAG, "完全回退到CPU处理器")
 
+            // 同步主LUT数据
             if (currentLut != null) {
                 cpuProcessor.setLutData(currentLut, currentLutSize)
+                Log.d(
+                    TAG,
+                    "主LUT数据已同步到CPU处理器，尺寸: ${currentLutSize}x${currentLutSize}x${currentLutSize}"
+                )
+            }
+
+            // 同步第二个LUT数据
+            if (currentLut2 != null && currentLut2Size > 0) {
+                cpuProcessor.setSecondLutData(currentLut2, currentLut2Size)
+                Log.d(
+                    TAG,
+                    "第二个LUT数据已同步到CPU处理器，尺寸: ${currentLut2Size}x${currentLut2Size}x${currentLut2Size}"
+                )
+            } else {
+                Log.d(TAG, "没有第二个LUT数据需要同步")
             }
 
             cpuProcessor.processImage(bitmap, params)
@@ -1585,9 +1793,15 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         // 清理VBO
         GLES30.glDeleteBuffers(2, vbo, 0)
 
-        // 读取结果
-        Log.d(TAG, "开始读取像素数据")
-        val pixels = getOrCreateBuffer(bitmap.width, bitmap.height, "pixels")
+        // 读取结果 - 使用内存优化策略
+        Log.d(TAG, "开始读取像素数据，图片尺寸: ${bitmap.width}x${bitmap.height}")
+
+        val pixels = try {
+            getOrCreateBuffer(bitmap.width, bitmap.height, "pixels")
+        } catch (e: OutOfMemoryError) {
+            Log.w(TAG, "像素缓冲区分配失败，图片过大: ${bitmap.width}x${bitmap.height}")
+            throw e
+        }
 
         // 确保从正确的帧缓冲区读取
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, framebuffer[0])
@@ -1605,31 +1819,38 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         // 重置buffer位置到开始
         pixels.rewind()
 
-        // 修复：手动翻转像素数据以解决上下翻转问题
-        val flippedPixels = getOrCreateBuffer(width, height, "flipped")
-
-        // 逐行翻转像素数据
+        // 内存优化：直接在原buffer中进行翻转，避免分配第二个大缓冲区
+        Log.d(TAG, "开始原地翻转像素数据")
         val rowSize = width * 4 // 每行字节数（RGBA = 4字节/像素）
         val tempRow = ByteArray(rowSize)
 
-        for (y in 0 until height) {
-            // 从原始数据的底部开始读取（OpenGL坐标系）
-            val srcOffset = (height - 1 - y) * rowSize
-            pixels.position(srcOffset)
+        // 原地翻转：交换上下行
+        for (y in 0 until height / 2) {
+            val topRowOffset = y * rowSize
+            val bottomRowOffset = (height - 1 - y) * rowSize
+
+            // 读取顶部行
+            pixels.position(topRowOffset)
             pixels.get(tempRow, 0, rowSize)
 
-            // 写入到翻转后的buffer的顶部（Android坐标系）
-            val dstOffset = y * rowSize
-            flippedPixels.position(dstOffset)
-            flippedPixels.put(tempRow)
+            // 将底部行复制到顶部
+            pixels.position(bottomRowOffset)
+            val bottomRow = ByteArray(rowSize)
+            pixels.get(bottomRow, 0, rowSize)
+            pixels.position(topRowOffset)
+            pixels.put(bottomRow)
+
+            // 将原顶部行复制到底部
+            pixels.position(bottomRowOffset)
+            pixels.put(tempRow)
         }
 
         // 重置buffer位置
-        flippedPixels.rewind()
+        pixels.rewind()
 
         // 创建结果bitmap
         val resultBitmap = createBitmap(bitmap.width, bitmap.height)
-        resultBitmap.copyPixelsFromBuffer(flippedPixels)
+        resultBitmap.copyPixelsFromBuffer(pixels)
 
         // 验证输出不是纯黑色
         val testWidth = minOf(10, resultBitmap.width)

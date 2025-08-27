@@ -77,6 +77,13 @@ dependencies {
 
     // 水印处理相关依赖
     implementation(libs.coil)
+
+    // 颜色选择器依赖
+    implementation("me.jfenn.ColorPickerDialog:base:0.2.2")
+    implementation("me.jfenn.ColorPickerDialog:imagepicker:0.2.2")
+
+    // Android Palette库用于从图片提取颜色
+    implementation("androidx.palette:palette-ktx:1.0.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

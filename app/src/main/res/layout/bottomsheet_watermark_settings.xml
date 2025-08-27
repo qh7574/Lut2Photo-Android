@@ -367,20 +367,30 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- 文字颜色 -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:hint="文字颜色 (16进制)">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_text_color"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:inputType="text"
-                            android:text="#FFFFFF" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_weight="1"
+                            android:text="文字颜色"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_text_color"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="120dp"
+                            android:layout_height="wrap_content"
+                            android:text="#FFFFFF"
+                            android:textAllCaps="false"
+                            app:icon="@drawable/outline_palette_24"
+                            app:iconGravity="start" />
+                    </LinearLayout>
 
                     <!-- 字体选择 -->
                     <LinearLayout
@@ -986,20 +996,315 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
                     </LinearLayout>
 
-                    <!-- 边框颜色 -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    <!-- 边框颜色模式选择 -->
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="边框颜色 (16进制)">
+                        android:layout_marginBottom="8dp"
+                        android:text="边框颜色模式"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_border_color"
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggle_border_color_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_manual_color"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="手动" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_auto_color"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="自动" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_material_color"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Material" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <!-- 手动选色区域 -->
+                    <LinearLayout
+                        android:id="@+id/layout_manual_color"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="visible">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="边框颜色"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_border_color"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="#000000"
+                            app:icon="@drawable/ic_palette"
+                            app:iconGravity="start" />
+                    </LinearLayout>
+
+                    <!-- 自动取色区域 -->
+                    <LinearLayout
+                        android:id="@+id/layout_auto_color"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <com.google.android.material.textview.MaterialTextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text"
-                            android:text="#000000" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_marginBottom="8dp"
+                            android:text="点击预览图选择图片以取色"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                        <!-- Palette颜色选择网格 -->
+                        <GridLayout
+                            android:id="@+id/grid_palette_colors"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:columnCount="3"
+                            android:rowCount="2"
+                            android:visibility="gone">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_palette_color_1"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="4dp"
+                                android:text="主色" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_palette_color_2"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="4dp"
+                                android:text="鲜艳" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_palette_color_3"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="4dp"
+                                android:text="柔和" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_palette_color_4"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="4dp"
+                                android:text="深色" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_palette_color_5"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="4dp"
+                                android:text="浅色" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_palette_color_6"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="4dp"
+                                android:text="侘寂" />
+                        </GridLayout>
+                    </LinearLayout>
+
+                    <!-- Material颜色区域 -->
+                    <LinearLayout
+                        android:id="@+id/layout_material_color"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="Material"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                        <!-- Material颜色选择网格 -->
+                        <GridLayout
+                            android:id="@+id/grid_material_colors"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:columnCount="4"
+                            android:rowCount="3">
+
+                            <!-- 第一行：主要颜色 -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_red"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#F44336"
+                                android:text="红色"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_pink"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#E91E63"
+                                android:text="粉色"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_purple"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#9C27B0"
+                                android:text="紫色"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_deep_purple"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#673AB7"
+                                android:text="深紫"
+                                android:textColor="#FFFFFF" />
+
+                            <!-- 第二行：蓝色系 -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_indigo"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#3F51B5"
+                                android:text="靛蓝"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_blue"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#2196F3"
+                                android:text="蓝色"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_light_blue"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#03A9F4"
+                                android:text="浅蓝"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_cyan"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#00BCD4"
+                                android:text="青色"
+                                android:textColor="#FFFFFF" />
+
+                            <!-- 第三行：绿色系和其他 -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_teal"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#009688"
+                                android:text="蓝绿"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_green"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#4CAF50"
+                                android:text="绿色"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_orange"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#FF9800"
+                                android:text="橙色"
+                                android:textColor="#FFFFFF" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/button_material_brown"
+                                style="@style/Widget.Material3.Button.OutlinedButton"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_columnWeight="1"
+                                android:layout_margin="2dp"
+                                android:backgroundTint="#795548"
+                                android:text="棕色"
+                                android:textColor="#FFFFFF" />
+                        </GridLayout>
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

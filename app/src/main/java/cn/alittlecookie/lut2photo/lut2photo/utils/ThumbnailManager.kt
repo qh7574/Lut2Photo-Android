@@ -229,7 +229,7 @@ class ThumbnailManager(private val context: Context) {
                                 null,
                                 BitmapFactory.Options().apply {
                                     inSampleSize = sampleSize
-                                    inPreferredConfig = Bitmap.Config.RGB_565 // 减少内存占用
+                                    inPreferredConfig = Bitmap.Config.ARGB_8888 // 保持最高图片质量
                                 })
 
                             if (bitmap != null) {
@@ -273,7 +273,7 @@ class ThumbnailManager(private val context: Context) {
 
                     val bitmap = BitmapFactory.decodeFile(imagePath, BitmapFactory.Options().apply {
                         inSampleSize = sampleSize
-                        inPreferredConfig = Bitmap.Config.RGB_565
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
                     })
 
                     if (bitmap != null) {

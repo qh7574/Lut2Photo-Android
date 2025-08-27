@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
 import androidx.core.graphics.createBitmap
+import cn.alittlecookie.lut2photo.utils.RegionDecoderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -338,6 +339,97 @@ class CpuLutProcessor : ILutProcessor {
         }
     }
 
+    /**
+     * 流式处理图片块，支持RegionDecoderManager的分块加载
+     * @param context Android上下文
+     * @param uri 图片URI
+     * @param params 处理参数
+     * @param callback 处理结果回调
+     */
+    suspend fun processImageStream(
+        context: android.content.Context,
+        uri: android.net.Uri,
+        params: ILutProcessor.ProcessingParams,
+        callback: RegionDecoderManager.BlockProcessingCallback
+    ) = withContext(Dispatchers.Default) {
+        if (lut == null) {
+            Log.e("CpuLutProcessor", "LUT数据为空，无法进行流式处理")
+            callback.onError(Exception("LUT数据为空"))
+            return@withContext
+        }
+
+        try {
+            val regionManager = RegionDecoderManager()
+
+            // 检查是否需要分块处理
+            if (regionManager.shouldUseRegionDecoding(context, uri)) {
+                Log.d("CpuLutProcessor", "开始CPU流式分块处理")
+
+                // 使用分块处理
+                regionManager.processImageInRegions(
+                    context,
+                    uri,
+                    callback = object : RegionDecoderManager.BlockProcessingCallback {
+                        override suspend fun onBlockLoaded(
+                            bitmap: Bitmap,
+                            block: RegionDecoderManager.ImageBlock
+                        ): Bitmap? {
+                            return try {
+                                // 处理当前块
+                                val processedBlock = processImageDirect(bitmap, params)
+                                if (processedBlock != null) {
+                                    Log.d(
+                                        "CpuLutProcessor",
+                                        "处理图片块成功: ${block.blockIndex}/${block.totalBlocks}"
+                                    )
+                                    processedBlock
+                                } else {
+                                    Log.e("CpuLutProcessor", "处理图片块失败: ${block.blockIndex}")
+                                    null
+                                }
+                            } catch (e: Exception) {
+                                Log.e("CpuLutProcessor", "处理图片块时发生异常", e)
+                                null
+                            }
+                        }
+
+                        override fun onProgress(processedBlocks: Int, totalBlocks: Int) {
+                            callback.onProgress(processedBlocks, totalBlocks)
+                        }
+
+                        override fun onError(error: Exception) {
+                            callback.onError(error)
+                        }
+                    })
+
+                Log.d("CpuLutProcessor", "CPU流式分块处理完成")
+            } else {
+                // 小图片直接加载处理
+                Log.d("CpuLutProcessor", "图片较小，使用直接处理模式")
+                val fullBitmap = regionManager.loadFullImage(context, uri)
+                if (fullBitmap != null) {
+                    val processedBitmap = processImageDirect(fullBitmap, params)
+                    if (processedBitmap != null) {
+                        val block = RegionDecoderManager.ImageBlock(
+                            rect = android.graphics.Rect(0, 0, fullBitmap.width, fullBitmap.height),
+                            blockIndex = 0,
+                            totalBlocks = 1
+                        )
+                        callback.onBlockLoaded(processedBitmap, block)
+                        callback.onProgress(1, 1)
+                    } else {
+                        callback.onError(Exception("处理完整图片失败"))
+                    }
+                } else {
+                    callback.onError(Exception("加载完整图片失败"))
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CpuLutProcessor", "流式处理过程中发生异常", e)
+            callback.onError(e)
+        }
+    }
+
     override suspend fun release() {
         lut = null
         lutSize = 0
@@ -395,7 +487,7 @@ class CpuLutProcessor : ILutProcessor {
                 b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
                 Log.v("CpuLutProcessor", "第二个LUT应用完成，新RGB值: ($r, $g, $b)")
             } else if (params.lut2Strength > 0f) {
-                Log.w("CpuLutProcessor", "第二个LUT强度大于0但LUT数据为空，跳过应用")
+                Log.d("CpuLutProcessor", "第二个LUT强度大于0但LUT数据为空，跳过应用")
             }
 
             pixels[i] = Color.argb(
@@ -472,15 +564,14 @@ class CpuLutProcessor : ILutProcessor {
 
                 // 步骤2：应用第二个LUT（如果存在且强度大于0）
                 if (lut2 != null && params.lut2Strength > 0f) {
-                    Log.v("CpuLutProcessor", "分块处理中应用第二个LUT，强度: ${params.lut2Strength}")
                     val lut2Result = trilinearInterpolation(r, g, b, lut2!!, lut2Size)
                     val strength2 = params.lut2Strength.coerceIn(0f, 1f)
                     r = (r * (1 - strength2) + lut2Result[0] * strength2).coerceIn(0f, 1f)
                     g = (g * (1 - strength2) + lut2Result[1] * strength2).coerceIn(0f, 1f)
                     b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
-                    Log.v("CpuLutProcessor", "分块处理中第二个LUT应用完成，新RGB值: ($r, $g, $b)")
-                } else if (params.lut2Strength > 0f) {
-                    Log.w("CpuLutProcessor", "分块处理中第二个LUT强度大于0但LUT数据为空，跳过应用")
+                } else if (params.lut2Strength > 0f && currentY == 0 && i == 0) {
+                    // 只在每个块的第一个像素时打印调试信息，避免日志泛滥
+                    Log.d("CpuLutProcessor", "分块处理中第二个LUT强度大于0但LUT数据为空，跳过应用")
                 }
 
                 blockPixels[i] = Color.argb(
@@ -675,5 +766,49 @@ class CpuLutProcessor : ILutProcessor {
                 Log.e("CpuLutProcessor", "LUT数据验证失败", e)
             }
         }
+    }
+
+    // 添加设置第二个LUT数据的方法
+    fun setSecondLutData(lut2Data: Array<Array<Array<FloatArray>>>?, size: Int) {
+        Log.d(
+            "CpuLutProcessor",
+            "设置第二个LUT数据，尺寸: ${size}x${size}x${size}，数据: ${if (lut2Data != null) "有效" else "空"}"
+        )
+        this.lut2 = lut2Data
+        this.lut2Size = size
+
+        // 验证第二个LUT数据完整性
+        if (lut2Data != null) {
+            try {
+                val expectedSize = size * size * size
+                var actualDataPoints = 0
+
+                for (r in 0 until size) {
+                    for (g in 0 until size) {
+                        for (b in 0 until size) {
+                            if (lut2Data[r][g][b].size == 3) {
+                                actualDataPoints++
+                            }
+                        }
+                    }
+                }
+
+                Log.d(
+                    "CpuLutProcessor",
+                    "第二个LUT数据验证完成，期望数据点: $expectedSize，实际数据点: $actualDataPoints"
+                )
+
+                if (actualDataPoints != expectedSize) {
+                    Log.w("CpuLutProcessor", "第二个LUT数据不完整，可能影响处理效果")
+                }
+            } catch (e: Exception) {
+                Log.e("CpuLutProcessor", "第二个LUT数据验证失败", e)
+            }
+        }
+    }
+
+    // 添加获取第二个LUT数据的方法
+    fun getSecondLutData(): Array<Array<Array<FloatArray>>>? {
+        return lut2
     }
 }

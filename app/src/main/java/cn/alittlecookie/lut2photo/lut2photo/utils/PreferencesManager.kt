@@ -178,6 +178,9 @@ class PreferencesManager(context: Context) {
             // 新增文字跟随模式配置
             putBoolean("watermark_enable_text_follow_mode", config.enableTextFollowMode)
             putString("watermark_text_follow_direction", config.textFollowDirection.name)
+
+            // 新增边框颜色模式配置
+            putString("watermark_border_color_mode", config.borderColorMode.name)
         }
     }
 
@@ -224,6 +227,17 @@ class PreferencesManager(context: Context) {
             )
         } catch (e: IllegalArgumentException) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.BOTTOM
+        }
+
+        // 读取边框颜色模式配置
+        val borderColorModeName =
+            sharedPreferences.getString("watermark_border_color_mode", "MANUAL") ?: "MANUAL"
+        val borderColorMode = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.valueOf(
+                borderColorModeName
+            )
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
         }
             
         return WatermarkConfig(
@@ -282,7 +296,8 @@ class PreferencesManager(context: Context) {
             borderColor = sharedPreferences.getString("watermark_border_color", "#000000")
                 ?: "#000000",
             letterSpacing = sharedPreferences.getFloat("watermark_letter_spacing", 0f),
-            lineSpacing = sharedPreferences.getFloat("watermark_line_spacing", 0f)
+            lineSpacing = sharedPreferences.getFloat("watermark_line_spacing", 0f),
+            borderColorMode = borderColorMode
         )
     }
 }

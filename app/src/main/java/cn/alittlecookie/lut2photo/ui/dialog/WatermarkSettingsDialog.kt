@@ -2,9 +2,12 @@ package cn.alittlecookie.lut2photo.ui.dialog
 
 import android.app.Dialog
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
@@ -13,9 +16,12 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
+import androidx.palette.graphics.Palette
 import cn.alittlecookie.lut2photo.lut2photo.databinding.DialogWatermarkSettingsBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
+import me.jfenn.colorpickerdialog.dialogs.ColorPickerDialog
+import me.jfenn.colorpickerdialog.views.picker.ImagePickerView
 import java.io.File
 import java.io.FileOutputStream
 
@@ -29,9 +35,12 @@ class WatermarkSettingsDialog : DialogFragment() {
 
     private lateinit var fontPickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
+    private lateinit var paletteImagePickerLauncher: ActivityResultLauncher<Intent>
 
     private var selectedFontPath: String? = null
     private var selectedImagePath: String? = null
+    private var paletteColors: List<Int> = emptyList()
+    private var isManualColorMode = true
 
     companion object {
         fun newInstance(onConfigSaved: (WatermarkConfig) -> Unit): WatermarkSettingsDialog {
@@ -46,9 +55,8 @@ class WatermarkSettingsDialog : DialogFragment() {
         preferencesManager = PreferencesManager(requireContext())
 
         // 初始化文件选择器
-        fontPickerLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
+        fontPickerLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == android.app.Activity.RESULT_OK) {
                 result.data?.data?.let { uri ->
                     handleFontSelection(uri)
@@ -56,15 +64,23 @@ class WatermarkSettingsDialog : DialogFragment() {
             }
         }
 
-        imagePickerLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
+        imagePickerLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == android.app.Activity.RESULT_OK) {
                 result.data?.data?.let { uri ->
                     handleImageSelection(uri)
                 }
             }
         }
+
+        paletteImagePickerLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == android.app.Activity.RESULT_OK) {
+                    result.data?.data?.let { uri ->
+                        handlePaletteImageSelection(uri)
+                    }
+                }
+            }
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -141,7 +157,41 @@ class WatermarkSettingsDialog : DialogFragment() {
             saveSettings()
         }
 
+        // 设置颜色选择按钮监听器
+        binding.buttonTextColor.setOnClickListener {
+            showTextColorPicker()
+        }
 
+        binding.buttonBorderColor.setOnClickListener {
+            showBorderColorPicker()
+        }
+
+        // 设置边框颜色模式切换监听器
+        binding.toggleBorderColorMode.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                when (checkedId) {
+                    binding.buttonManualColor.id -> {
+                        isManualColorMode = true
+                        binding.layoutManualColor.visibility = View.VISIBLE
+                        binding.layoutAutoColor.visibility = View.GONE
+                    }
+
+                    binding.buttonAutoColor.id -> {
+                        isManualColorMode = false
+                        binding.layoutManualColor.visibility = View.GONE
+                        binding.layoutAutoColor.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+
+        // 设置Palette图片选择按钮监听器
+        binding.buttonSelectImageForPalette.setOnClickListener {
+            selectPaletteImage()
+        }
+
+        // 设置Palette颜色按钮监听器
+        setupPaletteColorButtons()
     }
 
     private fun setupSliders() {
@@ -170,7 +220,7 @@ class WatermarkSettingsDialog : DialogFragment() {
 
         // 加载文字设置
         binding.editTextContent.setText(config.textContent)
-        binding.editTextColor.setText(config.textColor)
+        updateTextColorButton(config.textColor)
         selectedFontPath = config.fontPath
         updateFontPathDisplay()
 
@@ -181,7 +231,37 @@ class WatermarkSettingsDialog : DialogFragment() {
 
         // 加载边框设置
         binding.sliderBorderWidth.value = config.borderTopWidth // 使用上边框宽度作为默认值
-        binding.editBorderColor.setText(config.borderColor)
+        updateBorderColorButton(config.borderColor)
+
+        // 初始化边框颜色模式
+        val borderColorModeButtonId = when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> binding.buttonManualColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> binding.buttonAutoColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> binding.buttonManualColor.id // Material模式暂时使用手动模式
+        }
+        binding.toggleBorderColorMode.check(borderColorModeButtonId)
+
+        // 根据边框颜色模式设置UI可见性
+        when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> {
+                isManualColorMode = true
+                binding.layoutManualColor.visibility = View.VISIBLE
+                binding.layoutAutoColor.visibility = View.GONE
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> {
+                isManualColorMode = false
+                binding.layoutManualColor.visibility = View.GONE
+                binding.layoutAutoColor.visibility = View.VISIBLE
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> {
+                // Material模式暂时使用手动模式的UI
+                isManualColorMode = true
+                binding.layoutManualColor.visibility = View.VISIBLE
+                binding.layoutAutoColor.visibility = View.GONE
+            }
+        }
 
         // 更新卡片可见性
         binding.cardTextSettings.visibility =
@@ -277,8 +357,8 @@ class WatermarkSettingsDialog : DialogFragment() {
     private fun saveSettings() {
         try {
             // 验证颜色格式
-            val textColor = binding.editTextColor.text.toString().trim()
-            val borderColor = binding.editBorderColor.text.toString().trim()
+            val textColor = getTextColorFromButton()
+            val borderColor = getBorderColorFromButton()
 
             if (!isValidColor(textColor)) {
                 Toast.makeText(
@@ -319,7 +399,8 @@ class WatermarkSettingsDialog : DialogFragment() {
                 borderRightWidth = binding.sliderBorderWidth.value,
                 borderColor = borderColor ?: "#000000",
                 letterSpacing = 0f, // 默认值
-                lineSpacing = 0f // 默认值
+                lineSpacing = 0f, // 默认值
+                borderColorMode = getBorderColorMode()
             )
 
             preferencesManager.saveWatermarkConfig(config)
@@ -339,6 +420,206 @@ class WatermarkSettingsDialog : DialogFragment() {
             true
         } catch (e: IllegalArgumentException) {
             false
+        }
+    }
+
+    // 颜色选择器相关方法
+    private fun showTextColorPicker() {
+        val isDarkMode =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val currentColor = getTextColorFromButton()
+
+        val dialog = ColorPickerDialog()
+            .withColor(Color.parseColor(currentColor))
+            .withAlphaEnabled(false)
+            .withPresets(
+                Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW,
+                Color.CYAN, Color.MAGENTA, Color.BLACK, Color.WHITE,
+                Color.GRAY, Color.DKGRAY
+            )
+            .withPicker(ImagePickerView::class.java)
+            .withListener { _, color ->
+                val hexColor = String.format("#%06X", 0xFFFFFF and color)
+                updateTextColorButton(hexColor)
+            }
+
+        // 应用自定义主题
+        val themeResId = if (isDarkMode) {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Dark
+        } else {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
+        }
+        dialog.setStyle(DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.show(childFragmentManager, "textColorPicker")
+    }
+
+    private fun showBorderColorPicker() {
+        val isDarkMode =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val currentColor = getBorderColorFromButton()
+
+        val dialog = ColorPickerDialog()
+            .withColor(Color.parseColor(currentColor))
+            .withAlphaEnabled(false)
+            .withPresets(
+                Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW,
+                Color.CYAN, Color.MAGENTA, Color.BLACK, Color.WHITE,
+                Color.GRAY, Color.DKGRAY
+            )
+            .withPicker(ImagePickerView::class.java)
+            .withListener { _, color ->
+                val hexColor = String.format("#%06X", 0xFFFFFF and color)
+                updateBorderColorButton(hexColor)
+            }
+
+        // 应用自定义主题
+        val themeResId = if (isDarkMode) {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Dark
+        } else {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
+        }
+        dialog.setStyle(DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.show(childFragmentManager, "borderColorPicker")
+    }
+
+    private fun updateTextColorButton(colorHex: String) {
+        try {
+            val color = Color.parseColor(colorHex)
+            binding.buttonTextColor.setBackgroundColor(color)
+            binding.buttonTextColor.text = colorHex
+            binding.buttonTextColor.setTextColor(if (isLightColor(color)) Color.BLACK else Color.WHITE)
+            binding.buttonTextColor.tag = colorHex
+        } catch (e: Exception) {
+            binding.buttonTextColor.setBackgroundColor(Color.WHITE)
+            binding.buttonTextColor.text = "#FFFFFF"
+            binding.buttonTextColor.setTextColor(Color.BLACK)
+            binding.buttonTextColor.tag = "#FFFFFF"
+        }
+    }
+
+    private fun updateBorderColorButton(colorHex: String) {
+        try {
+            val color = Color.parseColor(colorHex)
+            binding.buttonBorderColor.setBackgroundColor(color)
+            binding.buttonBorderColor.text = colorHex
+            binding.buttonBorderColor.setTextColor(if (isLightColor(color)) Color.BLACK else Color.WHITE)
+            binding.buttonBorderColor.tag = colorHex
+        } catch (e: Exception) {
+            binding.buttonBorderColor.setBackgroundColor(Color.BLACK)
+            binding.buttonBorderColor.text = "#000000"
+            binding.buttonBorderColor.setTextColor(Color.WHITE)
+            binding.buttonBorderColor.tag = "#000000"
+        }
+    }
+
+    private fun getTextColorFromButton(): String {
+        return binding.buttonTextColor.tag as? String ?: "#FFFFFF"
+    }
+
+    private fun getBorderColorFromButton(): String {
+        return binding.buttonBorderColor.tag as? String ?: "#000000"
+    }
+
+    private fun getBorderColorMode(): cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode {
+        return when (binding.toggleBorderColorMode.checkedButtonId) {
+            binding.buttonManualColor.id -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
+            binding.buttonAutoColor.id -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE
+            else -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
+        }
+    }
+
+    private fun isLightColor(color: Int): Boolean {
+        val red = Color.red(color)
+        val green = Color.green(color)
+        val blue = Color.blue(color)
+        val brightness = (red * 0.299 + green * 0.587 + blue * 0.114) / 255
+        return brightness > 0.5
+    }
+
+    // Palette相关方法
+    private fun selectPaletteImage() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        intent.type = "image/*"
+        paletteImagePickerLauncher.launch(intent)
+    }
+
+    private fun handlePaletteImageSelection(uri: Uri) {
+        try {
+            val bitmap = MediaStore.Images.Media.getBitmap(requireContext().contentResolver, uri)
+            extractColorsFromBitmap(bitmap)
+        } catch (e: Exception) {
+            Toast.makeText(context, "无法加载图片: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun extractColorsFromBitmap(bitmap: Bitmap) {
+        Palette.from(bitmap).generate { palette ->
+            palette?.let {
+                val colors = mutableListOf<Int>()
+
+                // 提取六种不同类型的颜色
+                it.dominantSwatch?.rgb?.let { color -> colors.add(color) }
+                it.vibrantSwatch?.rgb?.let { color -> colors.add(color) }
+                it.mutedSwatch?.rgb?.let { color -> colors.add(color) }
+                it.darkVibrantSwatch?.rgb?.let { color -> colors.add(color) }
+                it.lightVibrantSwatch?.rgb?.let { color -> colors.add(color) }
+                it.darkMutedSwatch?.rgb?.let { color -> colors.add(color) }
+
+                // 如果颜色不足6个，用默认颜色补充
+                while (colors.size < 6) {
+                    colors.add(Color.BLACK)
+                }
+
+                paletteColors = colors.take(6)
+                updatePaletteColorButtons()
+                binding.gridPaletteColors.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun setupPaletteColorButtons() {
+        val buttons = listOf(
+            binding.buttonPaletteColor1,
+            binding.buttonPaletteColor2,
+            binding.buttonPaletteColor3,
+            binding.buttonPaletteColor4,
+            binding.buttonPaletteColor5,
+            binding.buttonPaletteColor6
+        )
+
+        buttons.forEachIndexed { index, button ->
+            button.setOnClickListener {
+                if (index < paletteColors.size) {
+                    val color = paletteColors[index]
+                    val hexColor = String.format("#%06X", 0xFFFFFF and color)
+                    updateBorderColorButton(hexColor)
+                }
+            }
+        }
+    }
+
+    private fun updatePaletteColorButtons() {
+        val buttons = listOf(
+            binding.buttonPaletteColor1,
+            binding.buttonPaletteColor2,
+            binding.buttonPaletteColor3,
+            binding.buttonPaletteColor4,
+            binding.buttonPaletteColor5,
+            binding.buttonPaletteColor6
+        )
+
+        val labels = listOf("主色", "鲜艳", "柔和", "深色", "浅色", "侘寂")
+
+        buttons.forEachIndexed { index, button ->
+            if (index < paletteColors.size) {
+                val color = paletteColors[index]
+                button.setBackgroundColor(color)
+                button.text = labels[index]
+                button.setTextColor(if (isLightColor(color)) Color.BLACK else Color.WHITE)
+                button.visibility = View.VISIBLE
+            } else {
+                button.visibility = View.GONE
+            }
         }
     }
 

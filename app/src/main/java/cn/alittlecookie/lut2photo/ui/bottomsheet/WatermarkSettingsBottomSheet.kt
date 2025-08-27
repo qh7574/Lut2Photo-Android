@@ -1,9 +1,13 @@
 package cn.alittlecookie.lut2photo.ui.bottomsheet
 
 import android.content.Intent
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +15,8 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import androidx.palette.graphics.Palette
 import cn.alittlecookie.lut2photo.lut2photo.databinding.BottomsheetWatermarkSettingsBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
 import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
@@ -19,6 +25,11 @@ import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkConfigManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.jfenn.colorpickerdialog.dialogs.ColorPickerDialog
+import me.jfenn.colorpickerdialog.views.picker.ImagePickerView
 import java.io.File
 import java.io.FileOutputStream
 
@@ -34,12 +45,15 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var fontPickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var backgroundImagePickerLauncher: ActivityResultLauncher<Intent>
+    private lateinit var paletteImagePickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var exportLauncher: ActivityResultLauncher<Intent>
     private lateinit var importLauncher: ActivityResultLauncher<Intent>
 
     private var selectedFontPath: String? = null
     private var selectedImagePath: String? = null
     private var selectedBackgroundImagePath: String? = null
+    private var paletteColors: List<Int> = emptyList()
+    private var isManualColorMode = true
 
     companion object {
         fun newInstance(onConfigSaved: (WatermarkConfig) -> Unit): WatermarkSettingsBottomSheet {
@@ -81,6 +95,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             if (result.resultCode == android.app.Activity.RESULT_OK) {
                 result.data?.data?.let { uri ->
                     handleBackgroundImageSelection(uri)
+                }
+            }
+        }
+
+        paletteImagePickerLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                result.data?.data?.let { uri ->
+                    handlePaletteImageSelection(uri)
                 }
             }
         }
@@ -196,14 +220,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
-    // 判断颜色是否为浅色
-    private fun isLightColor(color: Int): Boolean {
-        val red = android.graphics.Color.red(color)
-        val green = android.graphics.Color.green(color)
-        val blue = android.graphics.Color.blue(color)
-        val luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255
-        return luminance > 0.5
-    }
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -426,6 +443,51 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             selectImageFile()
         }
 
+        // 设置颜色选择按钮监听器
+        binding.buttonTextColor.setOnClickListener {
+            showTextColorPicker()
+        }
+
+        binding.buttonBorderColor.setOnClickListener {
+            showBorderColorPicker()
+        }
+
+        // 设置边框颜色模式切换监听器
+        binding.toggleBorderColorMode.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            if (isChecked) {
+                when (checkedId) {
+                    binding.buttonManualColor.id -> {
+                        isManualColorMode = true
+                        binding.layoutManualColor.visibility = View.VISIBLE
+                        binding.layoutAutoColor.visibility = View.GONE
+                        binding.layoutMaterialColor.visibility = View.GONE
+                    }
+
+                    binding.buttonAutoColor.id -> {
+                        isManualColorMode = false
+                        binding.layoutManualColor.visibility = View.GONE
+                        binding.layoutAutoColor.visibility = View.VISIBLE
+                        binding.layoutMaterialColor.visibility = View.GONE
+                    }
+
+                    binding.buttonMaterialColor.id -> {
+                        isManualColorMode = false
+                        binding.layoutManualColor.visibility = View.GONE
+                        binding.layoutAutoColor.visibility = View.GONE
+                        binding.layoutMaterialColor.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+
+        // 移除Palette图片选择按钮监听器，改为通过预览图点击选择
+
+        // 设置Palette颜色按钮监听器
+        setupPaletteColorButtons()
+
+        // 设置Material颜色按钮监听器
+        setupMaterialColorButtons()
+
         binding.buttonExportConfig.setOnClickListener {
             exportWatermarkConfig()
         }
@@ -500,7 +562,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 加载文字设置
         binding.editTextContent.setText(config.textContent)
-        binding.editTextColor.setText(config.textColor)
+        updateTextColorButton(config.textColor)
         selectedFontPath = config.fontPath
         updateFontPathDisplay()
 
@@ -513,7 +575,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.sliderBorderBottomWidth.value = config.borderBottomWidth
         binding.sliderBorderLeftWidth.value = config.borderLeftWidth
         binding.sliderBorderRightWidth.value = config.borderRightWidth
-        binding.editBorderColor.setText(config.borderColor)
+        updateBorderColorButton(config.borderColor)
 
         // 加载新增的字间距和行间距设置
         binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
@@ -536,6 +598,38 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 更新UI显示状态
         updateTextFollowModeVisibility(config.enableTextFollowMode)
+
+        // 初始化边框颜色模式
+        val borderColorModeButtonId = when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> binding.buttonManualColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> binding.buttonAutoColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> binding.buttonMaterialColor.id
+        }
+        binding.toggleBorderColorMode.check(borderColorModeButtonId)
+
+        // 根据边框颜色模式设置UI可见性
+        when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> {
+                isManualColorMode = true
+                binding.layoutManualColor.visibility = View.VISIBLE
+                binding.layoutAutoColor.visibility = View.GONE
+                binding.layoutMaterialColor.visibility = View.GONE
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> {
+                isManualColorMode = false
+                binding.layoutManualColor.visibility = View.GONE
+                binding.layoutAutoColor.visibility = View.VISIBLE
+                binding.layoutMaterialColor.visibility = View.GONE
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> {
+                isManualColorMode = false
+                binding.layoutManualColor.visibility = View.GONE
+                binding.layoutAutoColor.visibility = View.GONE
+                binding.layoutMaterialColor.visibility = View.VISIBLE
+            }
+        }
 
         // 更新卡片可见性
         binding.cardTextSettings.visibility =
@@ -652,23 +746,111 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun handleBackgroundImageSelection(uri: Uri) {
-        try {
-            val inputStream = requireContext().contentResolver.openInputStream(uri)
-            val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
+        // 使用协程处理图片加载，避免阻塞UI线程
+        lifecycleScope.launch {
+            try {
+                val regionDecoderManager = cn.alittlecookie.lut2photo.utils.RegionDecoderManager()
 
-            if (bitmap != null) {
-                // 保存背景图片路径
-                selectedBackgroundImagePath = uri.toString()
+                // 检查是否需要分块处理
+                val needRegionDecoding =
+                    regionDecoderManager.shouldUseRegionDecoding(requireContext(), uri)
 
-                // 更新预览视图的背景图片
-                binding.watermarkPreview.setBackgroundImage(bitmap)
+                val bitmap = if (needRegionDecoding) {
+                    // 大图片使用流式处理，先加载预览版本
+                    Toast.makeText(context, "正在加载大图片...", Toast.LENGTH_SHORT).show()
+                    loadLargeImageForPreview(uri)
+                } else {
+                    // 小图片直接加载
+                    regionDecoderManager.loadFullImage(requireContext(), uri)
+                }
 
-                Toast.makeText(context, "预览背景图片已设置", Toast.LENGTH_SHORT).show()
+                if (bitmap != null) {
+                    // 保存背景图片路径
+                    selectedBackgroundImagePath = uri.toString()
+
+                    // 更新预览视图的背景图片
+                    binding.watermarkPreview.setBackgroundImage(bitmap)
+
+                    // 如果当前是自动取色模式，自动提取颜色并显示调色板
+                    val borderColorMode = getBorderColorMode()
+                    if (borderColorMode == cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE) {
+                        extractColorsFromBitmap(bitmap)
+                    }
+
+                    Toast.makeText(context, "预览背景图片已设置", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "无法加载图片", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "设置背景图片失败: ${e.message}", Toast.LENGTH_LONG).show()
             }
-        } catch (e: Exception) {
-            Toast.makeText(context, "设置背景图片失败: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    /**
+     * 为预览加载大图片的缩略版本
+     */
+    private suspend fun loadLargeImageForPreview(uri: Uri): android.graphics.Bitmap? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val inputStream = requireContext().contentResolver.openInputStream(uri)
+
+                // 获取图片尺寸
+                val options = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream?.close()
+
+                if (options.outWidth <= 0 || options.outHeight <= 0) {
+                    return@withContext null
+                }
+
+                // 为预览计算合适的采样率（限制在1024x1024以内）
+                val maxPreviewSize = 1024
+                val sampleSize = calculateSampleSize(
+                    options.outWidth,
+                    options.outHeight,
+                    maxPreviewSize,
+                    maxPreviewSize
+                )
+
+                // 加载缩略图用于预览
+                val decodingStream = requireContext().contentResolver.openInputStream(uri)
+                val bitmap = android.graphics.BitmapFactory.decodeStream(
+                    decodingStream,
+                    null,
+                    android.graphics.BitmapFactory.Options().apply {
+                        inSampleSize = sampleSize
+                        inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+                    }
+                )
+                decodingStream?.close()
+
+                bitmap
+            } catch (e: Exception) {
+                Log.e("WatermarkSettings", "加载大图片预览失败", e)
+                null
+            }
+        }
+    }
+
+    /**
+     * 计算合适的采样率
+     */
+    private fun calculateSampleSize(width: Int, height: Int, reqWidth: Int, reqHeight: Int): Int {
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        return inSampleSize
     }
 
     private fun handleExportConfig(uri: Uri) {
@@ -730,7 +912,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             textOpacity = binding.sliderTextOpacity.value,
             imageOpacity = binding.sliderImageOpacity.value,
             textContent = binding.editTextContent.text.toString(),
-            textColor = binding.editTextColor.text.toString(),
+            textColor = getTextColorFromButton(),
             fontPath = selectedFontPath ?: "",
             textAlignment = textAlignment,
             imagePath = selectedImagePath ?: "",
@@ -741,9 +923,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             borderBottomWidth = binding.sliderBorderBottomWidth.value,
             borderLeftWidth = binding.sliderBorderLeftWidth.value,
             borderRightWidth = binding.sliderBorderRightWidth.value,
-            borderColor = binding.editBorderColor.text.toString(),
+            borderColor = getBorderColorFromButton(),
             letterSpacing = binding.sliderLetterSpacing.value,
-            lineSpacing = binding.sliderLineSpacing.value
+            lineSpacing = binding.sliderLineSpacing.value,
+            borderColorMode = getBorderColorMode()
         )
     }
 
@@ -797,7 +980,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.sliderImageSize.value = config.imageSize
 
         binding.editTextContent.setText(config.textContent)
-        binding.editTextColor.setText(config.textColor)
+        updateTextColorButton(config.textColor)
 
         selectedImagePath = config.imagePath
         updateImagePathDisplay()
@@ -811,7 +994,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.sliderBorderBottomWidth.value = config.borderBottomWidth
         binding.sliderBorderLeftWidth.value = config.borderLeftWidth
         binding.sliderBorderRightWidth.value = config.borderRightWidth
-        binding.editBorderColor.setText(config.borderColor)
+        updateBorderColorButton(config.borderColor)
 
         // 应用新增的字间距和行间距设置
         binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
@@ -834,6 +1017,38 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 更新UI显示状态
         updateTextFollowModeVisibility(config.enableTextFollowMode)
+
+        // 应用边框颜色模式设置
+        val borderColorModeButtonId = when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> binding.buttonManualColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> binding.buttonAutoColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> binding.buttonMaterialColor.id
+        }
+        binding.toggleBorderColorMode.check(borderColorModeButtonId)
+
+        // 根据边框颜色模式设置UI可见性
+        when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> {
+                isManualColorMode = true
+                binding.layoutManualColor.visibility = View.VISIBLE
+                binding.layoutAutoColor.visibility = View.GONE
+                binding.layoutMaterialColor.visibility = View.GONE
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> {
+                isManualColorMode = false
+                binding.layoutManualColor.visibility = View.GONE
+                binding.layoutAutoColor.visibility = View.VISIBLE
+                binding.layoutMaterialColor.visibility = View.GONE
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> {
+                isManualColorMode = false
+                binding.layoutManualColor.visibility = View.GONE
+                binding.layoutAutoColor.visibility = View.GONE
+                binding.layoutMaterialColor.visibility = View.VISIBLE
+            }
+        }
 
         // 更新卡片可见性
         binding.cardTextSettings.visibility =
@@ -868,6 +1083,135 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.textImagePath.text = selectedImagePath?.let { path ->
             File(path).name
         } ?: "未选择水印图片"
+    }
+
+    // 颜色选择器相关方法
+    private var currentTextColor = "#FFFFFF"
+    private var currentBorderColor = "#000000"
+
+    private fun showTextColorPicker() {
+        val isDarkMode =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val currentColor = try {
+            Color.parseColor(currentTextColor)
+        } catch (e: Exception) {
+            Color.WHITE
+        }
+
+        val dialog = ColorPickerDialog()
+            .withColor(currentColor)
+            .withAlphaEnabled(false)
+            .withPresets(
+                Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW,
+                Color.CYAN, Color.MAGENTA, Color.BLACK, Color.WHITE,
+                Color.GRAY, Color.DKGRAY
+            )
+            .withPicker(ImagePickerView::class.java)
+            .withListener { _, color ->
+                currentTextColor = String.format("#%06X", 0xFFFFFF and color)
+                updateTextColorButton(currentTextColor)
+                updatePreview()
+            }
+
+        // 应用自定义主题
+        val themeResId = if (isDarkMode) {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Dark
+        } else {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
+        }
+        dialog.setStyle(androidx.fragment.app.DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.show(parentFragmentManager, "textColorPicker")
+    }
+
+    private fun showBorderColorPicker() {
+        val isDarkMode =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val currentColor = try {
+            Color.parseColor(currentBorderColor)
+        } catch (e: Exception) {
+            Color.BLACK
+        }
+
+        val dialog = ColorPickerDialog()
+            .withColor(currentColor)
+            .withAlphaEnabled(false)
+            .withPresets(
+                Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW,
+                Color.CYAN, Color.MAGENTA, Color.BLACK, Color.WHITE,
+                Color.GRAY, Color.DKGRAY
+            )
+            .withPicker(ImagePickerView::class.java)
+            .withListener { _, color ->
+                currentBorderColor = String.format("#%06X", 0xFFFFFF and color)
+                updateBorderColorButton(currentBorderColor)
+                updatePreview()
+            }
+
+        // 应用自定义主题
+        val themeResId = if (isDarkMode) {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Dark
+        } else {
+            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
+        }
+        dialog.setStyle(androidx.fragment.app.DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.show(parentFragmentManager, "borderColorPicker")
+    }
+
+    private fun updateTextColorButton(colorHex: String) {
+        currentTextColor = colorHex
+        binding.buttonTextColor.text = colorHex
+        try {
+            val color = Color.parseColor(colorHex)
+            binding.buttonTextColor.setBackgroundColor(color)
+            // 根据背景颜色调整文字颜色
+            val textColor = if (isLightColor(color)) Color.BLACK else Color.WHITE
+            binding.buttonTextColor.setTextColor(textColor)
+        } catch (e: Exception) {
+            // 如果颜色解析失败，使用默认样式
+            binding.buttonTextColor.setBackgroundColor(Color.WHITE)
+            binding.buttonTextColor.setTextColor(Color.BLACK)
+        }
+    }
+
+    private fun updateBorderColorButton(colorHex: String) {
+        currentBorderColor = colorHex
+        binding.buttonBorderColor.text = colorHex
+        try {
+            val color = Color.parseColor(colorHex)
+            binding.buttonBorderColor.setBackgroundColor(color)
+            // 根据背景颜色调整文字颜色
+            val textColor = if (isLightColor(color)) Color.BLACK else Color.WHITE
+            binding.buttonBorderColor.setTextColor(textColor)
+        } catch (e: Exception) {
+            // 如果颜色解析失败，使用默认样式
+            binding.buttonBorderColor.setBackgroundColor(Color.BLACK)
+            binding.buttonBorderColor.setTextColor(Color.WHITE)
+        }
+    }
+
+    private fun getTextColorFromButton(): String {
+        return currentTextColor
+    }
+
+    private fun getBorderColorFromButton(): String {
+        return currentBorderColor
+    }
+
+    private fun getBorderColorMode(): cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode {
+        return when (binding.toggleBorderColorMode.checkedButtonId) {
+            binding.buttonManualColor.id -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
+            binding.buttonAutoColor.id -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE
+            binding.buttonMaterialColor.id -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL
+            else -> cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
+        }
+    }
+
+    private fun isLightColor(color: Int): Boolean {
+        val red = Color.red(color)
+        val green = Color.green(color)
+        val blue = Color.blue(color)
+        val brightness = (red * 299 + green * 587 + blue * 114) / 1000
+        return brightness > 128
     }
 
     /**
@@ -923,6 +1267,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 设置预览点击监听器 - 点击预览区域选择背景图片
         binding.watermarkPreview.onPreviewClickListener = {
+            // 点击预览区域总是触发选择背景图片
             selectBackgroundImageFile()
         }
 
@@ -947,7 +1292,6 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 文字设置变化
         binding.editTextContent.setOnTextChangedListener { updatePreview() }
-        binding.editTextColor.setOnTextChangedListener { updatePreview() }
 
         // 滑块变化
         listOf(
@@ -959,7 +1303,13 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.sliderImageSize,
             binding.sliderTextOpacity,
             binding.sliderImageOpacity,
-            binding.sliderTextImageSpacing
+            binding.sliderTextImageSpacing,
+            binding.sliderLetterSpacing,
+            binding.sliderLineSpacing,
+            binding.sliderBorderTopWidth,
+            binding.sliderBorderBottomWidth,
+            binding.sliderBorderLeftWidth,
+            binding.sliderBorderRightWidth
         ).forEach { slider ->
             slider.addOnChangeListener { _, _, _ -> updatePreview() }
         }
@@ -1002,8 +1352,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private fun saveSettings() {
         try {
             // 验证颜色格式
-            val textColor = binding.editTextColor.text.toString().trim()
-            val borderColor = binding.editBorderColor.text.toString().trim()
+            val textColor = getTextColorFromButton()
+            val borderColor = getBorderColorFromButton()
 
             if (!isValidColor(textColor)) {
                 Toast.makeText(
@@ -1041,6 +1391,193 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             true
         } catch (e: IllegalArgumentException) {
             false
+        }
+    }
+
+    private fun selectPaletteImage() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        paletteImagePickerLauncher.launch(Intent.createChooser(intent, "选择图片提取颜色"))
+    }
+
+    /**
+     * 从已选择的背景图片中提取颜色
+     */
+    private fun extractColorsFromBackgroundImage() {
+        selectedBackgroundImagePath?.let { uriString ->
+            try {
+                println("开始从背景图片提取颜色，URI: $uriString")
+                val uri = Uri.parse(uriString)
+                val inputStream = requireContext().contentResolver.openInputStream(uri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (bitmap != null) {
+                    println("成功加载背景图片，尺寸: ${bitmap.width}x${bitmap.height}")
+                    extractColorsFromBitmap(bitmap)
+                } else {
+                    println("无法解码背景图片")
+                    Toast.makeText(context, "无法读取背景图片", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                println("提取颜色异常: ${e.message}")
+                Toast.makeText(context, "提取颜色失败: ${e.message}", Toast.LENGTH_LONG).show()
+                e.printStackTrace()
+            }
+        } ?: run {
+            println("selectedBackgroundImagePath 为空")
+            Toast.makeText(context, "请先选择背景图片", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun handlePaletteImageSelection(uri: Uri) {
+        try {
+            val inputStream = requireContext().contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+
+            if (bitmap != null) {
+                extractColorsFromBitmap(bitmap)
+            } else {
+                Toast.makeText(context, "无法加载图片", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "处理图片失败: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun extractColorsFromBitmap(bitmap: Bitmap) {
+        Palette.from(bitmap).generate { palette ->
+            // 确保在主线程中更新UI
+            requireActivity().runOnUiThread {
+                if (palette != null) {
+                    val colors = mutableListOf<Int>()
+
+                    // 提取各种颜色
+                    palette.vibrantSwatch?.rgb?.let { colors.add(it) }
+                    palette.lightVibrantSwatch?.rgb?.let { colors.add(it) }
+                    palette.darkVibrantSwatch?.rgb?.let { colors.add(it) }
+                    palette.mutedSwatch?.rgb?.let { colors.add(it) }
+                    palette.lightMutedSwatch?.rgb?.let { colors.add(it) }
+                    palette.darkMutedSwatch?.rgb?.let { colors.add(it) }
+
+                    // 如果颜色不足6个，从主要颜色中补充
+                    if (colors.size < 6) {
+                        palette.swatches.forEach { swatch ->
+                            if (colors.size < 6 && !colors.contains(swatch.rgb)) {
+                                colors.add(swatch.rgb)
+                            }
+                        }
+                    }
+
+                    // 如果仍然没有颜色，添加一些默认颜色
+                    if (colors.isEmpty()) {
+                        colors.addAll(
+                            listOf(
+                                Color.BLACK, Color.WHITE, Color.RED,
+                                Color.GREEN, Color.BLUE, Color.YELLOW
+                            )
+                        )
+                    }
+
+                    paletteColors = colors.take(6)
+                    println("提取到 ${paletteColors.size} 个颜色: $paletteColors")
+                    updatePaletteColorButtons()
+
+                    // 显示颜色选择网格
+                    binding.gridPaletteColors.visibility = View.VISIBLE
+                    println("调色板网格可见性已设置为 VISIBLE")
+
+                    Toast.makeText(
+                        context,
+                        "已提取 ${paletteColors.size} 个颜色",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(context, "无法从图片中提取颜色", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun setupPaletteColorButtons() {
+        val colorButtons = listOf(
+            binding.buttonPaletteColor1,
+            binding.buttonPaletteColor2,
+            binding.buttonPaletteColor3,
+            binding.buttonPaletteColor4,
+            binding.buttonPaletteColor5,
+            binding.buttonPaletteColor6
+        )
+
+        colorButtons.forEachIndexed { index, button ->
+            button.setOnClickListener {
+                if (index < paletteColors.size) {
+                    val color = paletteColors[index]
+                    val colorHex = String.format("#%06X", 0xFFFFFF and color)
+                    updateBorderColorButton(colorHex)
+                    updatePreview()
+                }
+            }
+        }
+    }
+
+    private fun setupMaterialColorButtons() {
+        // Material Design 调色板颜色映射
+        val materialColors = mapOf(
+            binding.buttonMaterialRed to "#F44336",
+            binding.buttonMaterialPink to "#E91E63",
+            binding.buttonMaterialPurple to "#9C27B0",
+            binding.buttonMaterialDeepPurple to "#673AB7",
+            binding.buttonMaterialIndigo to "#3F51B5",
+            binding.buttonMaterialBlue to "#2196F3",
+            binding.buttonMaterialLightBlue to "#03A9F4",
+            binding.buttonMaterialCyan to "#00BCD4",
+            binding.buttonMaterialTeal to "#009688",
+            binding.buttonMaterialGreen to "#4CAF50",
+            binding.buttonMaterialOrange to "#FF9800",
+            binding.buttonMaterialBrown to "#795548"
+        )
+
+        materialColors.forEach { (button, colorHex) ->
+            button.setOnClickListener {
+                updateBorderColorButton(colorHex)
+                updatePreview()
+            }
+        }
+    }
+
+    private fun updatePaletteColorButtons() {
+        val colorButtons = listOf(
+            binding.buttonPaletteColor1,
+            binding.buttonPaletteColor2,
+            binding.buttonPaletteColor3,
+            binding.buttonPaletteColor4,
+            binding.buttonPaletteColor5,
+            binding.buttonPaletteColor6
+        )
+
+        val labels = listOf("主色", "鲜艳", "柔和", "深色", "浅色", "侘寂")
+
+        println("更新调色板按钮，颜色数量: ${paletteColors.size}")
+
+        colorButtons.forEachIndexed { index, button ->
+            if (index < paletteColors.size) {
+                val color = paletteColors[index]
+                button.setBackgroundColor(color)
+                button.visibility = View.VISIBLE
+                button.text = labels[index]
+
+                // 根据颜色亮度设置文字颜色
+                val textColor = if (isLightColor(color)) Color.BLACK else Color.WHITE
+                button.setTextColor(textColor)
+
+                println("按钮 ${index + 1} 设置颜色: ${String.format("#%06X", 0xFFFFFF and color)}")
+            } else {
+                button.visibility = View.GONE
+            }
         }
     }
 

@@ -9,6 +9,8 @@ import android.graphics.PointF
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.core.graphics.createBitmap
+import androidx.palette.graphics.Palette
+import cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode
 import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
 import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
 import cn.alittlecookie.lut2photo.lut2photo.utils.ExifReader
@@ -161,9 +163,20 @@ class WatermarkProcessor(private val context: Context) {
                 val resultBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(resultBitmap)
 
+                // 获取边框颜色（支持动态提取）
+                val borderColor = when (config.borderColorMode) {
+                    BorderColorMode.PALETTE -> {
+                        // 从图片中提取主要颜色
+                        extractDominantColorFromBitmap(processedBitmap)
+                            ?: config.getBorderColorInt()
+                    }
+
+                    else -> config.getBorderColorInt()
+                }
+                
                 // 绘制边框背景
                 val borderPaint = Paint().apply {
-                    color = config.getBorderColorInt()
+                    color = borderColor
                     style = Paint.Style.FILL
                 }
 
@@ -267,6 +280,61 @@ class WatermarkProcessor(private val context: Context) {
      */
     private fun calculateSpacing(bitmap: Bitmap, spacingPercent: Float): Float {
         return bitmap.height * spacingPercent / 100
+    }
+
+    /**
+     * 从图片中提取主要颜色
+     * @param bitmap 要提取颜色的图片
+     * @return 提取到的主要颜色，如果提取失败返回null
+     */
+    private suspend fun extractDominantColorFromBitmap(bitmap: Bitmap): Int? =
+        withContext(Dispatchers.Default) {
+            try {
+                // 为了提高性能，如果图片太大，先缩小再提取颜色
+                val scaledBitmap = if (bitmap.width > 200 || bitmap.height > 200) {
+                    val scale = 200f / kotlin.math.max(bitmap.width, bitmap.height)
+                    val newWidth = (bitmap.width * scale).toInt()
+                    val newHeight = (bitmap.height * scale).toInt()
+                    Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, false)
+                } else {
+                    bitmap
+                }
+
+                var dominantColor: Int? = null
+
+                // 使用Palette库提取颜色
+                val palette = Palette.from(scaledBitmap).generate()
+
+                // 优先选择有活力的颜色，其次是柔和的颜色
+                dominantColor = palette.vibrantSwatch?.rgb
+                    ?: palette.lightVibrantSwatch?.rgb
+                            ?: palette.darkVibrantSwatch?.rgb
+                            ?: palette.mutedSwatch?.rgb
+                            ?: palette.lightMutedSwatch?.rgb
+                            ?: palette.darkMutedSwatch?.rgb
+                            ?: palette.dominantSwatch?.rgb
+
+                // 如果缩放了图片，释放缩放后的图片
+                if (scaledBitmap != bitmap && !scaledBitmap.isRecycled) {
+                    scaledBitmap.recycle()
+                }
+
+                android.util.Log.d(
+                    TAG,
+                    "从图片中提取到主要颜色: ${
+                        dominantColor?.let {
+                            String.format(
+                                "#%06X",
+                                0xFFFFFF and it
+                            )
+                        }
+                    }"
+                )
+                dominantColor
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "提取图片主要颜色失败", e)
+                null
+            }
     }
 
     /**

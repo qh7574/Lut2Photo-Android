@@ -49,6 +49,7 @@ data class WatermarkConfig(
     val borderLeftWidth: Float = 0f, // 左边框宽度百分比，0%-150%
     val borderRightWidth: Float = 0f, // 右边框宽度百分比，0%-150%
     val borderColor: String = "#000000", // 边框颜色
+    val borderColorMode: BorderColorMode = BorderColorMode.MANUAL, // 边框颜色模式
 
     // 文字间距设置
     val letterSpacing: Float = 0f, // 字间距，使用背景图宽度的百分比（0.1%-100%）
@@ -119,4 +120,13 @@ enum class TextFollowDirection {
     BOTTOM,  // 文字在图片下方
     LEFT,    // 文字在图片左侧
     RIGHT    // 文字在图片右侧
+}
+
+/**
+ * 边框颜色模式枚举
+ */
+enum class BorderColorMode {
+    MANUAL,    // 手动选择颜色
+    PALETTE,   // 从图片自动提取颜色
+    MATERIAL   // Material Design颜色
 }

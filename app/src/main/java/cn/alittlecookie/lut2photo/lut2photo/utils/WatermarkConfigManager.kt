@@ -171,6 +171,7 @@ class WatermarkConfigManager(private val context: Context) {
             put("borderLeftWidth", config.borderLeftWidth.toDouble())
             put("borderRightWidth", config.borderRightWidth.toDouble())
             put("borderColor", config.borderColor)
+            put("borderColorMode", config.borderColorMode.name)
             put("letterSpacing", config.letterSpacing.toDouble())
             put("lineSpacing", config.lineSpacing.toDouble())
 
@@ -201,6 +202,16 @@ class WatermarkConfigManager(private val context: Context) {
             )
         } catch (e: IllegalArgumentException) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.BOTTOM
+        }
+
+        // 读取边框颜色模式配置
+        val borderColorModeName = json.optString("borderColorMode", "MANUAL")
+        val borderColorMode = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.valueOf(
+                borderColorModeName
+            )
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
         }
 
         return WatermarkConfig(
@@ -241,6 +252,7 @@ class WatermarkConfigManager(private val context: Context) {
             borderLeftWidth = json.optDouble("borderLeftWidth", 0.0).toFloat(),
             borderRightWidth = json.optDouble("borderRightWidth", 0.0).toFloat(),
             borderColor = json.optString("borderColor", "#000000"),
+            borderColorMode = borderColorMode,
             letterSpacing = json.optDouble("letterSpacing", 0.0).toFloat(),
             lineSpacing = json.optDouble("lineSpacing", 0.0).toFloat()
         )

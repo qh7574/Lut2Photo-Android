@@ -427,13 +427,13 @@ class WatermarkPreviewView @JvmOverloads constructor(
         config: WatermarkConfig,
         exifData: Map<String, String>
     ) {
-        // 绘制图片水印（如果启用且有路径）
-        if ((config.enableImageWatermark || config.imagePath.isNotEmpty()) && config.imagePath.isNotEmpty()) {
+        // 绘制图片水印（只有在启用且有路径时才显示）
+        if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
             drawImageWatermark(canvas, bitmap, config)
         }
 
-        // 绘制文字水印（如果启用且有内容）
-        if ((config.enableTextWatermark || config.textContent.isNotEmpty()) && config.textContent.isNotEmpty()) {
+        // 绘制文字水印（只有在启用且有内容时才显示）
+        if (config.enableTextWatermark && config.textContent.isNotEmpty()) {
             val processedText = replaceExifVariables(config.textContent, exifData)
             drawTextWatermark(canvas, bitmap, config, processedText)
         }
@@ -458,11 +458,15 @@ class WatermarkPreviewView @JvmOverloads constructor(
         config: WatermarkConfig,
         exifData: Map<String, String>
     ) {
-        // 先绘制图片水印
-        val imagePosition = drawImageWatermark(canvas, bitmap, config)
+        // 先绘制图片水印（只有在启用且有路径时才显示）
+        val imagePosition = if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
+            drawImageWatermark(canvas, bitmap, config)
+        } else {
+            null
+        }
 
-        if (imagePosition != null) {
-            // 根据图片水印位置绘制文字水印
+        if (imagePosition != null && config.enableTextWatermark && config.textContent.isNotEmpty()) {
+            // 根据图片水印位置绘制文字水印（只有在启用且有内容时才显示）
             val processedText = replaceExifVariables(config.textContent, exifData)
             drawTextWatermarkInFollowMode(canvas, bitmap, config, processedText, imagePosition)
         }
@@ -477,7 +481,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
         bitmap: Bitmap,
         config: WatermarkConfig
     ): PointF? {
-        if (config.imagePath.isEmpty()) return null
+        if (!config.enableImageWatermark || config.imagePath.isEmpty()) return null
 
         try {
             val imageFile = File(config.imagePath)
@@ -485,8 +489,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
             val watermarkBitmap = BitmapFactory.decodeFile(config.imagePath) ?: return null
 
-            // 计算水印图片大小
-            val imageWatermarkSize = (bitmap.width * config.imageSize / 100).toInt()
+            // 计算水印图片大小（与WatermarkProcessor保持一致）
+            val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
             val scaledWatermark = Bitmap.createScaledBitmap(
                 watermarkBitmap,
                 imageWatermarkSize,
@@ -539,15 +543,25 @@ class WatermarkPreviewView @JvmOverloads constructor(
         text: String,
         imagePosition: PointF
     ) {
-        // 这里简化实现，实际应该根据图片水印大小计算
-        val spacing = bitmap.height * config.textImageSpacing / 100f
+        // 获取图片水印的实际尺寸
+        val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
+        val imageFile = File(config.imagePath)
+        if (!imageFile.exists()) return
 
-        val textPosition = when (config.textFollowDirection) {
-            TextFollowDirection.TOP -> PointF(imagePosition.x, imagePosition.y - spacing)
-            TextFollowDirection.BOTTOM -> PointF(imagePosition.x, imagePosition.y + spacing)
-            TextFollowDirection.LEFT -> PointF(imagePosition.x - spacing, imagePosition.y)
-            TextFollowDirection.RIGHT -> PointF(imagePosition.x + spacing, imagePosition.y)
-        }
+        val watermarkBitmap = BitmapFactory.decodeFile(config.imagePath) ?: return
+        val imageWidth = imageWatermarkSize
+        val imageHeight = (imageWatermarkSize * watermarkBitmap.height / watermarkBitmap.width)
+
+        // 使用与WatermarkProcessor一致的位置计算逻辑
+        val textPosition = calculateTextFollowPosition(
+            bitmap,
+            imagePosition,
+            imageWidth,
+            imageHeight,
+            config.textFollowDirection,
+            config.textImageSpacing,
+            config.textAlignment
+        )
 
         drawTextAtPosition(canvas, bitmap, config, text, textPosition.x, textPosition.y)
     }
@@ -563,6 +577,20 @@ class WatermarkPreviewView @JvmOverloads constructor(
         x: Float,
         y: Float
     ) {
+        // 处理多行文本
+        val lines = text.split("\n")
+        if (lines.isEmpty()) return
+
+        // 根据背景图宽度计算文字大小
+        val baseTextSizePx = bitmap.width * config.textSize / 100f
+
+        // 确保基础文字大小有效
+        if (baseTextSizePx <= 0) return
+
+        // 找到最长的行来计算合适的字体大小
+        val longestLine = lines.maxByOrNull { it.length } ?: ""
+        if (longestLine.isEmpty()) return
+        
         val paint = Paint().apply {
             color = try {
                 android.graphics.Color.parseColor(config.textColor)
@@ -574,7 +602,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
             isFilterBitmap = true
             isDither = true
             isSubpixelText = true
-            textSize = bitmap.width * config.textSize / 100f
+
+            // 设置文本对齐方式
             textAlign = when (config.textAlignment) {
                 cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> Paint.Align.LEFT
                 cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> Paint.Align.CENTER
@@ -594,20 +623,157 @@ class WatermarkPreviewView @JvmOverloads constructor(
             }
         }
 
-        // 确保文字在可见区域内
-        val adjustedY = when {
-            y < paint.textSize -> paint.textSize // 防止文字超出上边界
-            y > bitmap.height - 10 -> bitmap.height - 10f // 防止文字超出下边界
-            else -> y
+        // 计算最大允许宽度（图片宽度的80%）
+        val maxAllowedWidth = bitmap.width * 0.8f
+
+        // 先设置基础文字大小
+        paint.textSize = baseTextSizePx
+
+        // 测量文字宽度（不考虑字间距）
+        val measuredWidth = paint.measureText(longestLine)
+
+        // 如果文字宽度超过最大允许宽度，按比例缩小
+        val finalTextSize = if (measuredWidth > maxAllowedWidth && measuredWidth > 0) {
+            baseTextSizePx * (maxAllowedWidth / measuredWidth)
+        } else {
+            baseTextSizePx
         }
 
-        val adjustedX = when (paint.textAlign) {
-            Paint.Align.LEFT -> x.coerceAtLeast(10f) // 左对齐时保证不超出左边界
-            Paint.Align.RIGHT -> x.coerceAtMost(bitmap.width - 10f) // 右对齐时保证不超出右边界
-            else -> x // 居中对齐
+        // 设置最终的字体大小
+        paint.textSize = finalTextSize
+
+        // 设置字间距（使用背景图宽度百分比）
+        if (config.letterSpacing > 0 && finalTextSize > 0) {
+            val letterSpacingPx = bitmap.width * config.letterSpacing / 100f
+            paint.letterSpacing = letterSpacingPx / finalTextSize
+        } else {
+            paint.letterSpacing = 0f
         }
 
-        canvas.drawText(text, adjustedX, adjustedY, paint)
+        // 计算行间距
+        val baseLineHeight = finalTextSize * 1.2f
+        val additionalLineSpacing = if (config.lineSpacing > 0) {
+            bitmap.height * config.lineSpacing / 100
+        } else {
+            0f
+        }
+        val lineHeight = baseLineHeight + additionalLineSpacing
+
+        val totalHeight = lines.size * lineHeight
+        val startY = y - totalHeight / 2 + lineHeight / 2
+
+        // 根据对齐方式计算X坐标
+        val drawX = when (config.textAlignment) {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> {
+                // 左对齐：从图片左边缘开始，留出一些边距
+                bitmap.width * 0.05f
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> {
+                // 居中对齐：使用传入的x
+                x
+            }
+
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> {
+                // 右对齐：从图片右边缘开始，留出一些边距
+                bitmap.width * 0.95f
+            }
+        }
+
+        // 绘制每一行文字
+        lines.forEachIndexed { index, line ->
+            if (line.isNotEmpty()) {
+                val lineY = startY + index * lineHeight
+                // 确保文字在可见区域内
+                val adjustedY = when {
+                    lineY < finalTextSize -> finalTextSize // 防止文字超出上边界
+                    lineY > bitmap.height - 10 -> bitmap.height - 10f // 防止文字超出下边界
+                    else -> lineY
+                }
+                canvas.drawText(line, drawX, adjustedY, paint)
+            }
+        }
+    }
+
+    /**
+     * 计算水印大小
+     */
+    private fun calculateWatermarkSize(bitmap: Bitmap, sizePercent: Float): Int {
+        return (bitmap.width * sizePercent / 100).toInt()
+    }
+
+    /**
+     * 计算文字跟随模式下的文字位置
+     */
+    private fun calculateTextFollowPosition(
+        bitmap: Bitmap,
+        imagePosition: PointF,
+        imageWidth: Int,
+        imageHeight: Int,
+        followDirection: TextFollowDirection,
+        spacingPercent: Float,
+        textAlignment: cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
+    ): PointF {
+        // 计算间距（根据方向使用不同的参考尺寸）
+        val spacing = when (followDirection) {
+            TextFollowDirection.TOP, TextFollowDirection.BOTTOM -> {
+                // 上下方向使用图片高度百分比
+                imageHeight * spacingPercent / 100f
+            }
+
+            TextFollowDirection.LEFT, TextFollowDirection.RIGHT -> {
+                // 左右方向使用图片宽度百分比
+                imageWidth * spacingPercent / 100f
+            }
+        }
+
+        // 计算文字位置
+        val textX: Float
+        val textY: Float
+
+        when (followDirection) {
+            TextFollowDirection.TOP -> {
+                // 文字在图片上方
+                textY = imagePosition.y - imageHeight / 2f - spacing
+                textX = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.x - imageWidth / 2f
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.x
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.x + imageWidth / 2f
+                }
+            }
+
+            TextFollowDirection.BOTTOM -> {
+                // 文字在图片下方
+                textY = imagePosition.y + imageHeight / 2f + spacing
+                textX = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.x - imageWidth / 2f
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.x
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.x + imageWidth / 2f
+                }
+            }
+
+            TextFollowDirection.LEFT -> {
+                // 文字在图片左侧
+                textX = imagePosition.x - imageWidth / 2f - spacing
+                textY = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.y - imageHeight / 2f // 上对齐
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.y // 垂直居中
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.y + imageHeight / 2f // 下对齐
+                }
+            }
+
+            TextFollowDirection.RIGHT -> {
+                // 文字在图片右侧
+                textX = imagePosition.x + imageWidth / 2f + spacing
+                textY = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.y - imageHeight / 2f // 上对齐
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.y // 垂直居中
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.y + imageHeight / 2f // 下对齐
+                }
+            }
+        }
+
+        return PointF(textX, textY)
     }
 
     /**
