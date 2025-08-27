@@ -173,6 +173,10 @@ class WatermarkConfigManager(private val context: Context) {
             put("borderColor", config.borderColor)
             put("letterSpacing", config.letterSpacing.toDouble())
             put("lineSpacing", config.lineSpacing.toDouble())
+
+            // 新增文字跟随模式配置
+            put("enableTextFollowMode", config.enableTextFollowMode)
+            put("textFollowDirection", config.textFollowDirection.name)
             // 注意：fontPath和imagePath不包含在JSON中，因为文件会单独存储
         }
         return json.toString(2) // 格式化输出
@@ -187,6 +191,16 @@ class WatermarkConfigManager(private val context: Context) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.valueOf(textAlignmentName)
         } catch (e: IllegalArgumentException) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT
+        }
+
+        // 读取文字跟随模式配置
+        val textFollowDirectionName = json.optString("textFollowDirection", "BOTTOM")
+        val textFollowDirection = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.valueOf(
+                textFollowDirectionName
+            )
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.BOTTOM
         }
 
         return WatermarkConfig(
@@ -219,7 +233,9 @@ class WatermarkConfigManager(private val context: Context) {
             fontPath = "", // 将在导入过程中设置
             textAlignment = textAlignment,
             imagePath = "", // 将在导入过程中设置
-            textImageSpacing = json.optDouble("textImageSpacing", 5.0).toFloat(),
+            enableTextFollowMode = json.optBoolean("enableTextFollowMode", false),
+            textFollowDirection = textFollowDirection,
+            textImageSpacing = json.optDouble("textImageSpacing", 0.0).toFloat(),
             borderTopWidth = json.optDouble("borderTopWidth", 0.0).toFloat(),
             borderBottomWidth = json.optDouble("borderBottomWidth", 0.0).toFloat(),
             borderLeftWidth = json.optDouble("borderLeftWidth", 0.0).toFloat(),

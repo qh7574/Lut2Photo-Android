@@ -36,8 +36,12 @@ data class WatermarkConfig(
     // 图片水印设置
     val imagePath: String = "", // 水印图片路径
 
-    // 文字和图片水印间距设置
-    val textImageSpacing: Float = 5f, // 文字水印与图片水印的距离百分比
+    // 文字跟随模式设置
+    val enableTextFollowMode: Boolean = false, // 是否启用文字跟随模式
+    val textFollowDirection: TextFollowDirection = TextFollowDirection.BOTTOM, // 文字跟随方向
+
+    // 文字和图片水印间距设置 (跟随模式下使用水印图片尺寸的百分比，0-500%，5%步进)
+    val textImageSpacing: Float = 0f, // 文字水印与图片水印的距离百分比
 
     // 边框设置 - 四个方向独立控制
     val borderTopWidth: Float = 0f, // 上边框宽度百分比，0%-150%
@@ -105,4 +109,14 @@ enum class TextAlignment {
     LEFT,    // 左对齐
     CENTER,  // 居中对齐
     RIGHT    // 右对齐
+}
+
+/**
+ * 文字跟随方向枚举
+ */
+enum class TextFollowDirection {
+    TOP,     // 文字在图片上方
+    BOTTOM,  // 文字在图片下方
+    LEFT,    // 文字在图片左侧
+    RIGHT    // 文字在图片右侧
 }

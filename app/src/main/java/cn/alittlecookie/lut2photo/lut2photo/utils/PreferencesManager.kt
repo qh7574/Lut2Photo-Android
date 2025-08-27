@@ -174,6 +174,10 @@ class PreferencesManager(context: Context) {
             putString("watermark_border_color", config.borderColor)
             putFloat("watermark_letter_spacing", config.letterSpacing)
             putFloat("watermark_line_spacing", config.lineSpacing)
+
+            // 新增文字跟随模式配置
+            putBoolean("watermark_enable_text_follow_mode", config.enableTextFollowMode)
+            putString("watermark_text_follow_direction", config.textFollowDirection.name)
         }
     }
 
@@ -209,6 +213,17 @@ class PreferencesManager(context: Context) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.valueOf(textAlignmentName)
         } catch (e: IllegalArgumentException) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT
+        }
+
+        // 读取文字跟随模式配置
+        val textFollowDirectionName =
+            sharedPreferences.getString("watermark_text_follow_direction", "BOTTOM") ?: "BOTTOM"
+        val textFollowDirection = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.valueOf(
+                textFollowDirectionName
+            )
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.BOTTOM
         }
             
         return WatermarkConfig(
@@ -254,7 +269,12 @@ class PreferencesManager(context: Context) {
             fontPath = sharedPreferences.getString("watermark_font_path", "") ?: "",
             textAlignment = textAlignment,
             imagePath = sharedPreferences.getString("watermark_image_path", "") ?: "",
-            textImageSpacing = sharedPreferences.getFloat("watermark_text_image_spacing", 5f),
+            enableTextFollowMode = sharedPreferences.getBoolean(
+                "watermark_enable_text_follow_mode",
+                false
+            ),
+            textFollowDirection = textFollowDirection,
+            textImageSpacing = sharedPreferences.getFloat("watermark_text_image_spacing", 0f),
             borderTopWidth = sharedPreferences.getFloat("watermark_border_top_width", 0f),
             borderBottomWidth = sharedPreferences.getFloat("watermark_border_bottom_width", 0f),
             borderLeftWidth = sharedPreferences.getFloat("watermark_border_left_width", 0f),

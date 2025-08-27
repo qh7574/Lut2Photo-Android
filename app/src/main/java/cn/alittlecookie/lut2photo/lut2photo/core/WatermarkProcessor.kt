@@ -9,6 +9,7 @@ import android.graphics.PointF
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.core.graphics.createBitmap
+import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
 import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
 import cn.alittlecookie.lut2photo.lut2photo.utils.ExifReader
 import kotlinx.coroutines.Dispatchers
@@ -60,43 +61,15 @@ class WatermarkProcessor(private val context: Context) {
         // 读取EXIF信息
         val exifData = imageUri?.let { exifReader.readExifFromUri(it) } ?: emptyMap()
 
-        // 绘制图片水印 - 使用独立的位置和透明度
-        if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
-            val imageWatermarkSize = calculateWatermarkSize(resultBitmap, config.imageSize)
-            val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize)
-            watermarkImage?.let { image ->
-                // 计算图片水印位置
-                val imagePosition = calculateWatermarkPosition(
-                    resultBitmap,
-                    config.imagePositionX,
-                    config.imagePositionY
-                )
-                val imageX = imagePosition.x - image.width / 2f
-                val imageY = imagePosition.y - image.height / 2f
-
-                val paint = Paint().apply {
-                    alpha = (config.imageOpacity * 255 / 100).toInt()
-                }
-
-                canvas.drawBitmap(image, imageX, imageY, paint)
-            }
-        }
-
-        // 绘制文字水印 - 使用独立的位置和透明度
-        if (config.enableTextWatermark && config.textContent.isNotEmpty()) {
-            val processedText = exifReader.replaceExifVariables(config.textContent, exifData)
-            // 计算文字水印位置
-            val textPosition =
-                calculateWatermarkPosition(resultBitmap, config.textPositionX, config.textPositionY)
-            drawTextWatermark(
-                canvas,
-                processedText,
-                textPosition.x,
-                textPosition.y,
-                config.textSize,
-                resultBitmap,
-                config
-            )
+        // 判断是否启用文字跟随模式
+        if (config.enableTextFollowMode && config.enableTextWatermark && config.enableImageWatermark &&
+            config.textContent.isNotEmpty() && config.imagePath.isNotEmpty()
+        ) {
+            // 文字跟随模式：根据图片水印位置计算文字位置
+            drawWatermarksInFollowMode(canvas, resultBitmap, config, exifData)
+        } else {
+            // 普通模式：分别独立绘制图片和文字水印
+            drawWatermarksInNormalMode(canvas, resultBitmap, config, exifData)
         }
 
         resultBitmap
@@ -294,6 +267,183 @@ class WatermarkProcessor(private val context: Context) {
      */
     private fun calculateSpacing(bitmap: Bitmap, spacingPercent: Float): Float {
         return bitmap.height * spacingPercent / 100
+    }
+
+    /**
+     * 文字跟随模式下的水印绘制
+     */
+    private suspend fun drawWatermarksInFollowMode(
+        canvas: Canvas,
+        bitmap: Bitmap,
+        config: WatermarkConfig,
+        exifData: Map<String, String>
+    ) {
+        // 首先加载和绘制图片水印，获取其位置和尺寸
+        val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
+        val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize)
+
+        watermarkImage?.let { image ->
+            // 计算图片水印位置（使用图片水印位置参数）
+            val imagePosition = calculateWatermarkPosition(
+                bitmap,
+                config.imagePositionX,
+                config.imagePositionY
+            )
+            val imageX = imagePosition.x - image.width / 2f
+            val imageY = imagePosition.y - image.height / 2f
+
+            // 绘制图片水印
+            val imagePaint = Paint().apply {
+                alpha = (config.imageOpacity * 255 / 100).toInt()
+            }
+            canvas.drawBitmap(image, imageX, imageY, imagePaint)
+
+            // 根据跟随方向计算文字位置
+            val processedText = exifReader.replaceExifVariables(config.textContent, exifData)
+            val textPosition = calculateTextFollowPosition(
+                bitmap,
+                imagePosition,
+                image.width,
+                image.height,
+                config.textFollowDirection,
+                config.textImageSpacing,
+                config.textAlignment
+            )
+
+            // 绘制文字水印
+            drawTextWatermark(
+                canvas,
+                processedText,
+                textPosition.x,
+                textPosition.y,
+                config.textSize,
+                bitmap,
+                config
+            )
+        }
+    }
+
+    /**
+     * 普通模式下的水印绘制
+     */
+    private suspend fun drawWatermarksInNormalMode(
+        canvas: Canvas,
+        bitmap: Bitmap,
+        config: WatermarkConfig,
+        exifData: Map<String, String>
+    ) {
+        // 绘制图片水印 - 使用独立的位置和透明度
+        if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
+            val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
+            val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize)
+            watermarkImage?.let { image ->
+                // 计算图片水印位置
+                val imagePosition = calculateWatermarkPosition(
+                    bitmap,
+                    config.imagePositionX,
+                    config.imagePositionY
+                )
+                val imageX = imagePosition.x - image.width / 2f
+                val imageY = imagePosition.y - image.height / 2f
+
+                val paint = Paint().apply {
+                    alpha = (config.imageOpacity * 255 / 100).toInt()
+                }
+
+                canvas.drawBitmap(image, imageX, imageY, paint)
+            }
+        }
+
+        // 绘制文字水印 - 使用独立的位置和透明度
+        if (config.enableTextWatermark && config.textContent.isNotEmpty()) {
+            val processedText = exifReader.replaceExifVariables(config.textContent, exifData)
+            // 计算文字水印位置
+            val textPosition =
+                calculateWatermarkPosition(bitmap, config.textPositionX, config.textPositionY)
+            drawTextWatermark(
+                canvas,
+                processedText,
+                textPosition.x,
+                textPosition.y,
+                config.textSize,
+                bitmap,
+                config
+            )
+        }
+    }
+
+    /**
+     * 计算文字跟随模式下的文字位置
+     */
+    private fun calculateTextFollowPosition(
+        bitmap: Bitmap,
+        imagePosition: PointF,
+        imageWidth: Int,
+        imageHeight: Int,
+        followDirection: TextFollowDirection,
+        spacingPercent: Float,
+        textAlignment: cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
+    ): PointF {
+        // 计算间距（根据方向使用不同的参考尺寸）
+        val spacing = when (followDirection) {
+            TextFollowDirection.TOP, TextFollowDirection.BOTTOM -> {
+                // 上下方向使用图片高度百分比
+                imageHeight * spacingPercent / 100f
+            }
+
+            TextFollowDirection.LEFT, TextFollowDirection.RIGHT -> {
+                // 左右方向使用图片宽度百分比
+                imageWidth * spacingPercent / 100f
+            }
+        }
+
+        // 计算文字位置
+        val textX: Float
+        val textY: Float
+
+        when (followDirection) {
+            TextFollowDirection.TOP -> {
+                // 文字在图片上方
+                textY = imagePosition.y - imageHeight / 2f - spacing
+                textX = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.x - imageWidth / 2f
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.x
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.x + imageWidth / 2f
+                }
+            }
+
+            TextFollowDirection.BOTTOM -> {
+                // 文字在图片下方
+                textY = imagePosition.y + imageHeight / 2f + spacing
+                textX = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.x - imageWidth / 2f
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.x
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.x + imageWidth / 2f
+                }
+            }
+
+            TextFollowDirection.LEFT -> {
+                // 文字在图片左侧
+                textX = imagePosition.x - imageWidth / 2f - spacing
+                textY = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.y - imageHeight / 2f // 上对齐
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.y // 垂直居中
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.y + imageHeight / 2f // 下对齐
+                }
+            }
+
+            TextFollowDirection.RIGHT -> {
+                // 文字在图片右侧
+                textX = imagePosition.x + imageWidth / 2f + spacing
+                textY = when (textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.y - imageHeight / 2f // 上对齐
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.y // 垂直居中
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.y + imageHeight / 2f // 下对齐
+                }
+            }
+        }
+
+        return PointF(textX, textY)
     }
 
     /**

@@ -13,6 +13,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import cn.alittlecookie.lut2photo.lut2photo.databinding.BottomsheetWatermarkSettingsBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
+import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
 import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkConfigManager
@@ -247,6 +248,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             // 单选模式，不需要额外处理
         }
 
+        // 设置文字跟随模式开关监听器
+        binding.switchTextFollowMode.setOnCheckedChangeListener { _, isChecked ->
+            updateTextFollowModeVisibility(isChecked)
+        }
+
+        // 设置文字跟随方向 Segmented Button 监听器
+        binding.toggleGroupTextFollowDirection.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            // 单选模式，不需要额外处理
+        }
+
         // 文字水印位置设置滑块监听器
         binding.sliderTextPositionX.addOnChangeListener { _, value, _ ->
             binding.textTextPositionXValue.text = "${value.toInt()}%"
@@ -307,6 +318,11 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         binding.sliderLineSpacing.addOnChangeListener { _, value, _ ->
             binding.textLineSpacingValue.text = "${value.toInt()}%"
+        }
+
+        // 添加图片文字间距滑块监听器
+        binding.sliderTextImageSpacing.addOnChangeListener { _, value, _ ->
+            binding.textTextImageSpacingValue.text = "${value.toInt()}%"
         }
 
         // 设置按钮监听器
@@ -411,6 +427,24 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 加载新增的字间距和行间距设置
         binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
         binding.sliderLineSpacing.value = config.lineSpacing
+
+        // 加载文字跟随模式设置
+        binding.switchTextFollowMode.isChecked = config.enableTextFollowMode
+
+        // 设置文字跟随方向
+        val followDirectionButtonId = when (config.textFollowDirection) {
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.TOP -> binding.buttonFollowTop.id
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.BOTTOM -> binding.buttonFollowBottom.id
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.LEFT -> binding.buttonFollowLeft.id
+            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.RIGHT -> binding.buttonFollowRight.id
+        }
+        binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
+
+        // 设置图片文字间距
+        binding.sliderTextImageSpacing.value = config.textImageSpacing
+
+        // 更新UI显示状态
+        updateTextFollowModeVisibility(config.enableTextFollowMode)
 
         // 更新卡片可见性
         binding.cardTextSettings.visibility =
@@ -553,6 +587,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             else -> TextAlignment.LEFT
         }
 
+        // 获取文字跟随模式设置
+        val enableTextFollowMode = binding.switchTextFollowMode.isChecked
+        val textFollowDirection = when (binding.toggleGroupTextFollowDirection.checkedButtonId) {
+            binding.buttonFollowTop.id -> TextFollowDirection.TOP
+            binding.buttonFollowBottom.id -> TextFollowDirection.BOTTOM
+            binding.buttonFollowLeft.id -> TextFollowDirection.LEFT
+            binding.buttonFollowRight.id -> TextFollowDirection.RIGHT
+            else -> TextFollowDirection.BOTTOM
+        }
+
         return WatermarkConfig(
             isEnabled = preferencesManager.watermarkEnabled,
             enableTextWatermark = enableTextWatermark,
@@ -571,7 +615,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             fontPath = selectedFontPath ?: "",
             textAlignment = textAlignment,
             imagePath = selectedImagePath ?: "",
-            textImageSpacing = 0f, // 移除间距设置，使用默认值 0
+            enableTextFollowMode = enableTextFollowMode,
+            textFollowDirection = textFollowDirection,
+            textImageSpacing = if (enableTextFollowMode) binding.sliderTextImageSpacing.value else 0f,
             borderTopWidth = binding.sliderBorderTopWidth.value,
             borderBottomWidth = binding.sliderBorderBottomWidth.value,
             borderLeftWidth = binding.sliderBorderLeftWidth.value,
@@ -652,6 +698,24 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
         binding.sliderLineSpacing.value = config.lineSpacing
 
+        // 应用文字跟随模式设置
+        binding.switchTextFollowMode.isChecked = config.enableTextFollowMode
+
+        // 设置文字跟随方向
+        val followDirectionButtonId = when (config.textFollowDirection) {
+            TextFollowDirection.TOP -> binding.buttonFollowTop.id
+            TextFollowDirection.BOTTOM -> binding.buttonFollowBottom.id
+            TextFollowDirection.LEFT -> binding.buttonFollowLeft.id
+            TextFollowDirection.RIGHT -> binding.buttonFollowRight.id
+        }
+        binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
+
+        // 设置图片文字间距
+        binding.sliderTextImageSpacing.value = config.textImageSpacing
+
+        // 更新UI显示状态
+        updateTextFollowModeVisibility(config.enableTextFollowMode)
+
         // 更新卡片可见性
         binding.cardTextSettings.visibility =
             if (config.enableTextWatermark) View.VISIBLE else View.GONE
@@ -685,6 +749,35 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.textImagePath.text = selectedImagePath?.let { path ->
             File(path).name
         } ?: "未选择水印图片"
+    }
+
+    /**
+     * 更新文字跟随模式相关UI的显示/隐藏状态
+     */
+    private fun updateTextFollowModeVisibility(isFollowMode: Boolean) {
+        if (isFollowMode) {
+            // 跟随模式下：隐藏文字位置滑块，显示跟随方向和间距设置
+            binding.textPositionXLabel.visibility = View.GONE
+            binding.layoutTextPositionX.visibility = View.GONE
+            binding.textPositionYLabel.visibility = View.GONE
+            binding.layoutTextPositionY.visibility = View.GONE
+
+            binding.textFollowDirectionLabel.visibility = View.VISIBLE
+            binding.toggleGroupTextFollowDirection.visibility = View.VISIBLE
+            binding.textImageSpacingLabel.visibility = View.VISIBLE
+            binding.layoutTextImageSpacing.visibility = View.VISIBLE
+        } else {
+            // 非跟随模式下：显示文字位置滑块，隐藏跟随方向和间距设置
+            binding.textPositionXLabel.visibility = View.VISIBLE
+            binding.layoutTextPositionX.visibility = View.VISIBLE
+            binding.textPositionYLabel.visibility = View.VISIBLE
+            binding.layoutTextPositionY.visibility = View.VISIBLE
+
+            binding.textFollowDirectionLabel.visibility = View.GONE
+            binding.toggleGroupTextFollowDirection.visibility = View.GONE
+            binding.textImageSpacingLabel.visibility = View.GONE
+            binding.layoutTextImageSpacing.visibility = View.GONE
+        }
     }
 
     private fun saveSettings() {
