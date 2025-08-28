@@ -55,10 +55,26 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private var paletteColors: List<Int> = emptyList()
     private var isManualColorMode = true
 
+    // LUT相关参数
+    private var lut1Name: String? = null
+    private var lut2Name: String? = null
+    private var lut1Strength: Float? = null
+    private var lut2Strength: Float? = null
+
     companion object {
-        fun newInstance(onConfigSaved: (WatermarkConfig) -> Unit): WatermarkSettingsBottomSheet {
+        fun newInstance(
+            onConfigSaved: (WatermarkConfig) -> Unit,
+            lut1Name: String? = null,
+            lut2Name: String? = null,
+            lut1Strength: Float? = null,
+            lut2Strength: Float? = null
+        ): WatermarkSettingsBottomSheet {
             return WatermarkSettingsBottomSheet().apply {
                 this.onConfigSaved = onConfigSaved
+                this.lut1Name = lut1Name
+                this.lut2Name = lut2Name
+                this.lut1Strength = lut1Strength
+                this.lut2Strength = lut2Strength
             }
         }
     }
@@ -1320,7 +1336,13 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private fun updatePreview() {
         try {
             val config = getCurrentConfigFromUI()
-            binding.watermarkPreview.updatePreview(config)
+            binding.watermarkPreview.updatePreview(
+                config,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
         } catch (e: Exception) {
             // 忽略错误，防止崩溃
         }

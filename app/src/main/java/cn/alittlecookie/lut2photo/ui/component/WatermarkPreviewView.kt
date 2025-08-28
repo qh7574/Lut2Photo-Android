@@ -138,10 +138,10 @@ class WatermarkPreviewView @JvmOverloads constructor(
             paint.textSize = 24f
             paint.textAlign = Paint.Align.CENTER
 
-            canvas.drawText("示例照片", width / 2f, height / 2f - 20f, paint)
+            canvas.drawText("点击此处添加图片", width / 2f, height / 2f - 20f, paint)
 
             paint.textSize = 16f
-            canvas.drawText("水印预览效果", width / 2f, height / 2f + 20f, paint)
+            canvas.drawText("预览效果", width / 2f, height / 2f + 20f, paint)
 
             bitmap
         } catch (e: Exception) {
@@ -295,8 +295,18 @@ class WatermarkPreviewView @JvmOverloads constructor(
     /**
      * 更新水印预览
      * @param config 水印配置
+     * @param lut1Name LUT1名称
+     * @param lut2Name LUT2名称
+     * @param lut1Strength LUT1强度
+     * @param lut2Strength LUT2强度
      */
-    fun updatePreview(config: WatermarkConfig) {
+    fun updatePreview(
+        config: WatermarkConfig,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
+    ) {
         // 取消之前的更新任务
         previewUpdateRunnable?.let { handler.removeCallbacks(it) }
         updateJob?.cancel()
@@ -305,7 +315,13 @@ class WatermarkPreviewView @JvmOverloads constructor(
         previewUpdateRunnable = Runnable {
             updateJob = CoroutineScope(Dispatchers.Main).launch {
                 try {
-                    val previewBitmap = generatePreviewBitmap(config)
+                    val previewBitmap = generatePreviewBitmap(
+                        config,
+                        lut1Name,
+                        lut2Name,
+                        lut1Strength,
+                        lut2Strength
+                    )
                     binding.imagePreview.setImageBitmap(previewBitmap)
                 } catch (e: Exception) {
                     // 显示错误时保持当前图片，避免闪烁
@@ -339,7 +355,13 @@ class WatermarkPreviewView @JvmOverloads constructor(
     /**
      * 生成预览图片
      */
-    private suspend fun generatePreviewBitmap(config: WatermarkConfig): Bitmap =
+    private suspend fun generatePreviewBitmap(
+        config: WatermarkConfig,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
+    ): Bitmap =
         withContext(Dispatchers.Default) {
             val baseBitmap = backgroundBitmap ?: sampleBitmap ?: createBasicBitmap()
 
@@ -410,9 +432,27 @@ class WatermarkPreviewView @JvmOverloads constructor(
             if (config.enableTextFollowMode && config.enableTextWatermark && config.enableImageWatermark &&
                 config.textContent.isNotEmpty() && config.imagePath.isNotEmpty()
             ) {
-                drawWatermarksInFollowMode(canvas, resultBitmap, config, mockExifData)
+                drawWatermarksInFollowMode(
+                    canvas,
+                    resultBitmap,
+                    config,
+                    mockExifData,
+                    lut1Name,
+                    lut2Name,
+                    lut1Strength,
+                    lut2Strength
+                )
             } else {
-                drawWatermarksInNormalMode(canvas, resultBitmap, config, mockExifData)
+                drawWatermarksInNormalMode(
+                    canvas,
+                    resultBitmap,
+                    config,
+                    mockExifData,
+                    lut1Name,
+                    lut2Name,
+                    lut1Strength,
+                    lut2Strength
+                )
             }
 
             resultBitmap
@@ -421,11 +461,15 @@ class WatermarkPreviewView @JvmOverloads constructor(
     /**
      * 普通模式下绘制水印
      */
-    private suspend fun drawWatermarksInNormalMode(
+    private fun drawWatermarksInNormalMode(
         canvas: Canvas,
         bitmap: Bitmap,
         config: WatermarkConfig,
-        exifData: Map<String, String>
+        exifData: Map<String, String>,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
     ) {
         // 绘制图片水印（只有在启用且有路径时才显示）
         if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
@@ -434,7 +478,14 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
         // 绘制文字水印（只有在启用且有内容时才显示）
         if (config.enableTextWatermark && config.textContent.isNotEmpty()) {
-            val processedText = replaceExifVariables(config.textContent, exifData)
+            val processedText = replaceExifVariables(
+                config.textContent,
+                exifData,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
             drawTextWatermark(canvas, bitmap, config, processedText)
         }
 
@@ -452,11 +503,15 @@ class WatermarkPreviewView @JvmOverloads constructor(
     /**
      * 跟随模式下绘制水印
      */
-    private suspend fun drawWatermarksInFollowMode(
+    private fun drawWatermarksInFollowMode(
         canvas: Canvas,
         bitmap: Bitmap,
         config: WatermarkConfig,
-        exifData: Map<String, String>
+        exifData: Map<String, String>,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
     ) {
         // 先绘制图片水印（只有在启用且有路径时才显示）
         val imagePosition = if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
@@ -467,7 +522,14 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
         if (imagePosition != null && config.enableTextWatermark && config.textContent.isNotEmpty()) {
             // 根据图片水印位置绘制文字水印（只有在启用且有内容时才显示）
-            val processedText = replaceExifVariables(config.textContent, exifData)
+            val processedText = replaceExifVariables(
+                config.textContent,
+                exifData,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
             drawTextWatermarkInFollowMode(canvas, bitmap, config, processedText, imagePosition)
         }
     }
@@ -476,7 +538,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
      * 绘制图片水印
      * @return 图片水印的位置信息
      */
-    private suspend fun drawImageWatermark(
+    private fun drawImageWatermark(
         canvas: Canvas,
         bitmap: Bitmap,
         config: WatermarkConfig
@@ -797,6 +859,43 @@ class WatermarkPreviewView @JvmOverloads constructor(
         exifData.forEach { (key, value) ->
             result = result.replace("{$key}", value)
         }
+        return result
+    }
+
+    /**
+     * 替换EXIF和LUT变量
+     */
+    private fun replaceExifVariables(
+        text: String,
+        exifData: Map<String, String>,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
+    ): String {
+        var result = text
+
+        // 替换EXIF变量
+        exifData.forEach { (key, value) ->
+            result = result.replace("{$key}", value)
+        }
+
+        // 替换LUT变量
+        result = result.replace("{LUT1}", lut1Name ?: "无")
+        result = result.replace("{LUT2}", lut2Name ?: "无")
+        result = result.replace(
+            "{LUT1_STRENGTH}",
+            lut1Strength?.let {
+                val value = if (it <= 1.0f) it * 100 else it
+                String.format("%.0f%%", value)
+            } ?: "0%")
+        result = result.replace(
+            "{LUT2_STRENGTH}",
+            lut2Strength?.let {
+                val value = if (it <= 1.0f) it * 100 else it
+                String.format("%.0f%%", value)
+            } ?: "0%")
+        
         return result
     }
 

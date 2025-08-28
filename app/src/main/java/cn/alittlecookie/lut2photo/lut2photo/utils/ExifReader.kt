@@ -150,4 +150,41 @@ class ExifReader(private val context: Context) {
         }
         return result
     }
+
+    /**
+     * 替换文本中的EXIF和LUT变量
+     */
+    fun replaceExifVariables(
+        text: String,
+        exifData: Map<String, String>,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
+    ): String {
+        var result = text
+
+        // 替换EXIF变量
+        exifData.forEach { (variable, value) ->
+            result = result.replace(variable, value)
+        }
+
+        // 替换LUT变量
+        result = result.replace(ExifVariables.LUT1, lut1Name ?: "无")
+        result = result.replace(ExifVariables.LUT2, lut2Name ?: "无")
+        result = result.replace(
+            ExifVariables.LUT1_STRENGTH,
+            lut1Strength?.let {
+                val value = if (it <= 1.0f) it * 100 else it
+                String.format("%.0f%%", value)
+            } ?: "0%")
+        result = result.replace(
+            ExifVariables.LUT2_STRENGTH,
+            lut2Strength?.let {
+                val value = if (it <= 1.0f) it * 100 else it
+                String.format("%.0f%%", value)
+            } ?: "0%")
+
+        return result
+    }
 }

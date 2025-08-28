@@ -409,9 +409,9 @@ class CpuLutProcessor : ILutProcessor {
             )
             processedPixels++
 
-            // 每处理1000个像素记录一次进度
-            if (processedPixels % 1000 == 0) {
-                Log.v("CpuLutProcessor", "已处理像素: $processedPixels/${pixels.size}")
+            // 减少日志频率：每处理100000个像素记录一次进度
+            if (processedPixels % 100000 == 0) {
+                Log.d("CpuLutProcessor", "已处理像素: $processedPixels/${pixels.size}")
             }
         }
 

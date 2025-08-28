@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.Material3.CardView.Outlined"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="16dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 预览标题 -->
+        <LinearLayout
+            android:id="@+id/layout_preview_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="预览图标"
+                android:src="@drawable/outline_preview_24" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="图片预览"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+            <!-- 刷新按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_refresh_preview"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:contentDescription="刷新预览"
+                android:minWidth="0dp"
+                android:paddingHorizontal="8dp"
+                app:icon="@drawable/outline_refresh_24"
+                app:iconSize="18dp" />
+
+            <ImageView
+                android:id="@+id/button_toggle_preview"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="@string/toggle_section"
+                android:src="@drawable/ic_expand_less" />
+
+
+        </LinearLayout>
+
+        <!-- 预览容器 -->
+        <FrameLayout
+            android:id="@+id/layout_preview_content"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:background="@drawable/preview_background">
+
+            <!-- 占位图 -->
+            <LinearLayout
+                android:id="@+id/layout_placeholder"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    android:alpha="0.6"
+                    android:contentDescription="图片占位符"
+                    android:src="@drawable/outline_image_24" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_placeholder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.6"
+                    android:text="选择图片以显示预览"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+            </LinearLayout>
+
+            <!-- 预览图片 -->
+            <ImageView
+                android:id="@+id/image_preview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:adjustViewBounds="true"
+                android:contentDescription="预览图片"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <!-- 加载指示器 -->
+            <FrameLayout
+                android:id="@+id/layout_loading"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#80000000"
+                android:visibility="gone">
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:indeterminate="true"
+                    app:indicatorColor="?attr/colorPrimary" />
+
+            </FrameLayout>
+
+            <!-- 错误状态 -->
+            <LinearLayout
+                android:id="@+id/layout_error"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    android:alpha="0.6"
+                    android:contentDescription="错误图标"
+                    android:src="@drawable/outline_error_24" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_error"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.6"
+                    android:text="预览生成失败"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+        <!-- 预览信息 -->
+        <LinearLayout
+            android:id="@+id/layout_preview_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_image_info"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:alpha="0.7"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                tools:text="1920x1080 • 2.5MB" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_effects_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alpha="0.7"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                tools:text="LUT1 + 水印" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

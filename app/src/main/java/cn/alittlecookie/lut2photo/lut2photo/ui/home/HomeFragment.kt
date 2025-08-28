@@ -2,17 +2,23 @@ package cn.alittlecookie.lut2photo.lut2photo.ui.home
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
+import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -22,9 +28,19 @@ import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentHomeBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.LutUtils
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkUtils
 import cn.alittlecookie.lut2photo.ui.bottomsheet.WatermarkSettingsBottomSheet
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DecodeFormat
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.target.CustomTarget
+import com.bumptech.glide.request.transition.Transition
+import com.bumptech.glide.signature.ObjectKey
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeFragment : Fragment() {
 
@@ -37,6 +53,12 @@ class HomeFragment : Fragment() {
     private var selectedLutItem: LutItem? = null
     private var selectedLut2Item: LutItem? = null  // 第二个LUT
     private var availableLuts: List<LutItem> = emptyList()
+
+    // 防抖机制相关
+    private val previewUpdateHandler = Handler(Looper.getMainLooper())
+    private var previewUpdateRunnable: Runnable? = null
+    private val PREVIEW_UPDATE_DELAY = 300L // 300ms延迟
+
 
     // Activity Result Launchers
     private val selectInputFolderLauncher = registerForActivityResult(
@@ -51,6 +73,7 @@ class HomeFragment : Fragment() {
                 )
                 preferencesManager.homeInputFolder = it.toString()
                 updateInputFolderDisplay()
+                updatePreviewFromInputFolder()
             } catch (e: SecurityException) {
                 Log.e("HomeFragment", "无法获取持久化URI权限", e)
                 // 显示错误提示给用户
@@ -94,6 +117,7 @@ class HomeFragment : Fragment() {
         
         setupViews()
         setupLutSpinner()
+        setupPreviewCard()
         loadSavedSettings()
         restoreUIState()
 
@@ -130,6 +154,7 @@ class HomeFragment : Fragment() {
         binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
             preferencesManager.folderMonitorWatermarkEnabled = isChecked
             binding.buttonWatermarkSettings.isEnabled = isChecked
+            updatePreview()
             Log.d("HomeFragment", "文件夹监控水印开关状态改变: $isChecked")
         }
     
@@ -382,7 +407,9 @@ class HomeFragment : Fragment() {
     @SuppressLint("SetTextI18n")
     private fun setupSliders() {
         binding.sliderStrength.addOnChangeListener { _, value, _ ->
+            Log.d("HomeFragment", "滑块1变化: $value -> 保存前: ${preferencesManager.homeStrength}")
             preferencesManager.homeStrength = value
+            Log.d("HomeFragment", "滑块1变化: $value -> 保存后: ${preferencesManager.homeStrength}")
             binding.textStrengthValue.text = "${value.toInt()}%"
 
             // 发送LUT配置变化广播
@@ -391,7 +418,15 @@ class HomeFragment : Fragment() {
 
         // 第二个LUT强度滑块
         binding.sliderLut2Strength.addOnChangeListener { _, value, _ ->
+            Log.d(
+                "HomeFragment",
+                "滑块2变化: $value -> 保存前: ${preferencesManager.homeLut2Strength}"
+            )
             preferencesManager.homeLut2Strength = value
+            Log.d(
+                "HomeFragment",
+                "滑块2变化: $value -> 保存后: ${preferencesManager.homeLut2Strength}"
+            )
             binding.textLut2StrengthValue.text = "${value.toInt()}%"
 
             // 发送LUT配置变化广播
@@ -561,19 +596,445 @@ class HomeFragment : Fragment() {
     private fun sendLutConfigChangesBroadcast() {
         val intent = Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED")
         requireContext().sendBroadcast(intent)
-        Log.d("HomeFragment", "已发送LUT配置变化广播")
+        Log.d("HomeFragment", "发送LUT配置变化广播")
+
+        // 使用防抖机制更新预览
+        schedulePreviewUpdate()
+    }
+
+    /**
+     * 使用防抖机制调度预览更新，避免频繁刷新
+     */
+    private fun schedulePreviewUpdate() {
+        Log.d(
+            "HomeFragment",
+            "调度预览更新 - 当前强度1: ${preferencesManager.homeStrength}, 强度2: ${preferencesManager.homeLut2Strength}"
+        )
+
+        // 取消之前的更新任务
+        previewUpdateRunnable?.let {
+            previewUpdateHandler.removeCallbacks(it)
+            Log.d("HomeFragment", "取消之前的预览更新任务")
+        }
+
+        // 创建新的更新任务
+        previewUpdateRunnable = Runnable {
+            Log.d("HomeFragment", "执行预览更新任务")
+            updatePreview()
+        }
+
+        // 延迟执行更新
+        previewUpdateHandler.postDelayed(previewUpdateRunnable!!, PREVIEW_UPDATE_DELAY)
+        Log.d("HomeFragment", "预览更新任务已调度，延迟: ${PREVIEW_UPDATE_DELAY}ms")
+    }
+
+    private fun setupPreviewCard() {
+        // 获取预览卡片的根视图
+        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+        val refreshButton = previewCardView?.findViewById<View>(R.id.button_refresh_preview)
+        val headerLayout = previewCardView?.findViewById<View>(R.id.layout_preview_header)
+        val contentLayout = previewCardView?.findViewById<View>(R.id.layout_preview_content)
+        val toggleButton = previewCardView?.findViewById<ImageView>(R.id.button_toggle_preview)
+
+        // 设置刷新按钮点击事件
+        refreshButton?.setOnClickListener {
+            updatePreviewFromInputFolder()
+        }
+
+        // 设置折叠/展开功能
+        headerLayout?.setOnClickListener {
+            contentLayout?.let { content ->
+                toggleButton?.let { toggle ->
+                    togglePreviewSection(content, toggle)
+                }
+            }
+        }
+
+        // 恢复折叠状态
+        val isExpanded = preferencesManager.homePreviewExpanded
+        if (!isExpanded) {
+            contentLayout?.visibility = View.GONE
+            toggleButton?.rotation = 180f
+        }
+
+        // 初始化预览
+        updatePreviewFromInputFolder()
+    }
+
+    private fun updatePreview() {
+        // 从输入文件夹获取最新图片并更新预览
+        updatePreviewFromInputFolder()
+
+        // 更新效果信息显示
+        updatePreviewEffectsInfo()
+    }
+
+    private fun togglePreviewSection(layout: View, button: ImageView) {
+        val isExpanded = layout.isVisible
+
+        if (isExpanded) {
+            layout.visibility = View.GONE
+            button.rotation = 180f
+            preferencesManager.homePreviewExpanded = false
+        } else {
+            layout.visibility = View.VISIBLE
+            button.rotation = 0f
+            preferencesManager.homePreviewExpanded = true
+        }
+    }
+
+    private fun updatePreviewEffectsInfo() {
+        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+        val effectsInfoText = previewCardView?.findViewById<TextView>(R.id.text_effects_info)
+
+        val effects = mutableListOf<String>()
+
+        // 添加LUT信息
+        selectedLutItem?.let { effects.add("LUT1: ${it.name}") }
+        selectedLut2Item?.let { effects.add("LUT2: ${it.name}") }
+
+        // 添加水印信息
+        if (binding.switchWatermark.isChecked) {
+            effects.add("水印")
+        }
+
+        // 添加抖动信息
+        val ditherType = getDitherType()
+        if (ditherType != LutProcessor.DitherType.NONE) {
+            effects.add("抖动: ${ditherType.name}")
+        }
+
+        effectsInfoText?.text = if (effects.isNotEmpty()) {
+            effects.joinToString(" + ")
+        } else {
+            "无效果"
+        }
+    }
+
+    private fun updatePreviewFromInputFolder() {
+        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+        val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
+
+        val inputFolderPath = preferencesManager.homeInputFolder
+        if (inputFolderPath.isNullOrEmpty()) {
+            showPreviewPlaceholder("请选择输入文件夹")
+            return
+        }
+
+        try {
+            val inputFolderUri = inputFolderPath.toUri()
+            val inputFolder = DocumentFile.fromTreeUri(requireContext(), inputFolderUri)
+
+            if (inputFolder == null || !inputFolder.exists() || !inputFolder.isDirectory) {
+                showPreviewPlaceholder("输入文件夹不存在")
+                return
+            }
+
+            // 获取文件夹中最新的图片文件
+            val imageFiles = inputFolder.listFiles().filter { file ->
+                file.isFile && file.name?.let { name ->
+                    val extension = name.substringAfterLast('.', "").lowercase()
+                    extension in listOf("jpg", "jpeg", "png", "bmp", "webp")
+                } ?: false
+            }.sortedByDescending { it.lastModified() }
+
+            if (imageFiles.isEmpty()) {
+                showPreviewPlaceholder("输入文件夹中没有图片")
+                return
+            }
+
+            // 显示最新的图片并应用效果
+            val latestImage = imageFiles.first()
+            imageView?.let { iv ->
+                // 隐藏占位图和占位文本
+                val placeholderLayout = previewCardView?.findViewById<View>(R.id.layout_placeholder)
+                placeholderLayout?.visibility = View.GONE
+                placeholderText?.visibility = View.GONE
+                iv.visibility = View.VISIBLE
+
+                // 如果没有选择LUT且没有开启水印，直接显示原图
+                if (selectedLutItem == null && selectedLut2Item == null && !binding.switchWatermark.isChecked) {
+                    Glide.with(this)
+                        .load(latestImage.uri)
+                        .into(iv)
+                    return
+                }
+
+                // 使用Glide加载图片并应用LUT和水印效果
+                // 在加载前固定强度值，避免处理时值发生变化
+                val currentStrength1 = preferencesManager.homeStrength
+                val currentStrength2 = preferencesManager.homeLut2Strength
+                val currentWatermarkEnabled = binding.switchWatermark.isChecked
+
+                // 使用真正影响图像的参数作为缓存键
+                val cacheKey =
+                    "${latestImage.uri}_${selectedLutItem?.name}_${selectedLut2Item?.name}_${currentStrength1}_${currentStrength2}_${currentWatermarkEnabled}_${System.currentTimeMillis()}"
+
+                Log.d("HomeFragment", "生成缓存键: $cacheKey")
+                Log.d(
+                    "HomeFragment",
+                    "预览更新 - 强度1: $currentStrength1, 强度2: $currentStrength2, 水印: $currentWatermarkEnabled"
+                )
+
+                Glide.with(this)
+                    .asBitmap()
+                    .load(latestImage.uri)
+                    .signature(ObjectKey(cacheKey)) // 使用包含时间戳的缓存键
+                    .skipMemoryCache(true) // 跳过内存缓存
+                    .diskCacheStrategy(DiskCacheStrategy.NONE) // 跳过磁盘缓存
+                    .override(800, 600) // 限制预览图片大小以提高性能
+                    .dontTransform() // 禁用所有变换
+                    .format(DecodeFormat.PREFER_ARGB_8888) // 强制使用ARGB_8888格式
+                    .into(object : CustomTarget<Bitmap>() {
+                        override fun onResourceReady(
+                            resource: Bitmap,
+                            transition: Transition<in Bitmap>?
+                        ) {
+                            // 在后台线程应用LUT效果和水印效果
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                var processedBitmap = resource
+                                var hasEffects = false
+
+                                try {
+                                    // 应用GPU双LUT效果
+                                    val lutPath =
+                                        selectedLutItem?.let { lutManager.getLutFilePath(it) }
+                                    val lut2Path =
+                                        selectedLut2Item?.let { lutManager.getLutFilePath(it) }
+
+                                    if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty()) {
+                                        // 使用固定的强度值，确保一致性
+                                        // 将0-100范围的值转换为0-1范围
+                                        val strength1 = currentStrength1 / 100f
+                                        val strength2 = currentStrength2 / 100f
+
+                                        Log.d("HomeFragment", "开始GPU双LUT处理")
+                                        Log.d(
+                                            "HomeFragment",
+                                            "- LUT1: ${selectedLutItem?.name ?: "未选择"}, 强度: $strength1"
+                                        )
+                                        Log.d(
+                                            "HomeFragment",
+                                            "- LUT2: ${selectedLut2Item?.name ?: "未选择"}, 强度: $strength2"
+                                        )
+                                        Log.d(
+                                            "HomeFragment",
+                                            "- 原始图片尺寸: ${processedBitmap.width}x${processedBitmap.height}"
+                                        )
+
+                                        val lutResult = LutUtils.applyDualLutGpu(
+                                            processedBitmap,
+                                            lutPath,
+                                            strength1,
+                                            lut2Path,
+                                            strength2,
+                                            requireContext()
+                                        )
+
+                                        if (lutResult != null && lutResult != processedBitmap) {
+                                            processedBitmap = lutResult
+                                            hasEffects = true
+                                            Log.d(
+                                                "HomeFragment",
+                                                "GPU双LUT效果应用成功，结果图片尺寸: ${lutResult.width}x${lutResult.height}"
+                                            )
+                                        } else {
+                                            Log.w(
+                                                "HomeFragment",
+                                                "GPU双LUT效果应用失败或无变化，lutResult=${lutResult?.let { "非null" } ?: "null"}"
+                                            )
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("HomeFragment", "应用GPU双LUT效果失败，回退到CPU处理", e)
+
+                                    // 回退到原来的CPU处理方式
+                                    try {
+                                        val lutPath =
+                                            selectedLutItem?.let { lutManager.getLutFilePath(it) }
+                                        if (!lutPath.isNullOrEmpty()) {
+                                            val strength1 = preferencesManager.homeStrength / 100f
+                                            val lutResult = LutUtils.applyLut(
+                                                processedBitmap,
+                                                lutPath,
+                                                strength1
+                                            )
+                                            if (lutResult != null) {
+                                                processedBitmap = lutResult
+                                                hasEffects = true
+                                                Log.d("HomeFragment", "LUT1 CPU回退处理成功")
+                                            }
+                                        }
+
+                                        val lut2Path =
+                                            selectedLut2Item?.let { lutManager.getLutFilePath(it) }
+                                        if (!lut2Path.isNullOrEmpty()) {
+                                            val strength2 =
+                                                preferencesManager.homeLut2Strength / 100f
+                                            val lut2Result = LutUtils.applyLut(
+                                                processedBitmap,
+                                                lut2Path,
+                                                strength2
+                                            )
+                                            if (lut2Result != null) {
+                                                processedBitmap = lut2Result
+                                                hasEffects = true
+                                                Log.d("HomeFragment", "LUT2 CPU回退处理成功")
+                                            }
+                                        }
+                                        Log.d("HomeFragment", "CPU回退处理完成")
+                                    } catch (fallbackException: Exception) {
+                                        Log.e(
+                                            "HomeFragment",
+                                            "CPU回退处理也失败",
+                                            fallbackException
+                                        )
+                                    }
+                                }
+
+                                try {
+                                    // 应用水印效果
+                                    if (currentWatermarkEnabled) {
+                                        val watermarkConfig =
+                                            preferencesManager.getWatermarkConfig()
+                                        val watermarkResult = WatermarkUtils.addWatermark(
+                                            processedBitmap,
+                                            watermarkConfig,
+                                            requireContext(),
+                                            latestImage.uri,
+                                            selectedLutItem?.name,
+                                            selectedLut2Item?.name,
+                                            currentStrength1,
+                                            currentStrength2
+                                        )
+                                        if (watermarkResult != null) {
+                                            processedBitmap = watermarkResult
+                                            hasEffects = true
+                                            Log.d("HomeFragment", "水印效果应用成功")
+                                        } else {
+                                            Log.w("HomeFragment", "水印效果应用失败")
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("HomeFragment", "应用水印效果失败", e)
+                                }
+
+                                // 在主线程更新UI
+                                withContext(Dispatchers.Main) {
+                                    Log.d(
+                                        "HomeFragment",
+                                        "准备更新UI - isAdded: $isAdded, isDetached: $isDetached"
+                                    )
+                                    if (isAdded && !isDetached) { // 确保Fragment仍然附加
+                                        Log.d("HomeFragment", "开始设置处理后的bitmap到ImageView")
+                                        Log.d(
+                                            "HomeFragment",
+                                            "ImageView状态 - 可见性: ${iv.visibility}, 宽度: ${iv.width}, 高度: ${iv.height}"
+                                        )
+
+                                        // 获取当前ImageView中的bitmap进行对比
+                                        val currentDrawable = iv.drawable
+                                        Log.d(
+                                            "HomeFragment",
+                                            "当前ImageView drawable: ${currentDrawable?.javaClass?.simpleName ?: "null"}"
+                                        )
+
+                                        // 设置新的bitmap
+                                        iv.setImageBitmap(processedBitmap)
+                                        Log.d(
+                                            "HomeFragment",
+                                            "bitmap已设置到ImageView，尺寸: ${processedBitmap.width}x${processedBitmap.height}"
+                                        )
+
+                                        // 验证bitmap是否真的被设置
+                                        val newDrawable = iv.drawable
+                                        Log.d(
+                                            "HomeFragment",
+                                            "设置后ImageView drawable: ${newDrawable?.javaClass?.simpleName ?: "null"}"
+                                        )
+                                        Log.d(
+                                            "HomeFragment",
+                                            "drawable是否发生变化: ${currentDrawable != newDrawable}"
+                                        )
+
+                                        // 强制刷新ImageView
+                                        iv.invalidate()
+                                        iv.requestLayout()
+                                        Log.d(
+                                            "HomeFragment",
+                                            "已调用invalidate()和requestLayout()强制刷新ImageView"
+                                        )
+
+                                        // 检查父容器状态
+                                        val parentView = iv.parent as? View
+                                        Log.d(
+                                            "HomeFragment",
+                                            "父容器状态 - 可见性: ${parentView?.visibility}, 类型: ${parentView?.javaClass?.simpleName}"
+                                        )
+
+                                        if (hasEffects) {
+                                            Log.d("HomeFragment", "预览效果应用完成")
+                                        } else {
+                                            Log.d(
+                                                "HomeFragment",
+                                                "预览显示原图（无效果或效果应用失败）"
+                                            )
+                                        }
+                                    } else {
+                                        Log.w(
+                                            "HomeFragment",
+                                            "Fragment状态异常，跳过UI更新 - isAdded: $isAdded, isDetached: $isDetached"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        override fun onLoadCleared(placeholder: Drawable?) {
+                            // 清理资源
+                        }
+                    })
+            }
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "处理输入文件夹失败", e)
+            showPreviewPlaceholder("无法访问输入文件夹")
+        }
+    }
+
+    private fun showPreviewPlaceholder(message: String) {
+        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+        val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
+        val placeholderLayout = previewCardView?.findViewById<View>(R.id.layout_placeholder)
+
+        imageView?.visibility = View.GONE
+        placeholderLayout?.visibility = View.VISIBLE
+        placeholderText?.let {
+            it.visibility = View.VISIBLE
+            it.text = message
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // 清理防抖任务
+        previewUpdateRunnable?.let { previewUpdateHandler.removeCallbacks(it) }
         _binding = null
     }
 
     private fun showWatermarkSettingsDialog() {
-        val bottomSheet = WatermarkSettingsBottomSheet.newInstance { config ->
-            // 配置保存后的回调
-            Log.d("HomeFragment", "水印配置已保存: $config")
-        }
+        val bottomSheet = WatermarkSettingsBottomSheet.newInstance(
+            onConfigSaved = { config ->
+                // 配置保存后的回调
+                updatePreview()
+                Log.d("HomeFragment", "水印配置已保存: $config")
+            },
+            lut1Name = selectedLutItem?.name,
+            lut2Name = selectedLut2Item?.name,
+            lut1Strength = preferencesManager.homeStrength,
+            lut2Strength = preferencesManager.homeLut2Strength
+        )
         bottomSheet.show(parentFragmentManager, "WatermarkSettingsBottomSheet")
     }
 }

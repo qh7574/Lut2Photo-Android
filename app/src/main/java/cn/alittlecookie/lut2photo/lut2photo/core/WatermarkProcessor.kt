@@ -54,12 +54,20 @@ class WatermarkProcessor(private val context: Context) {
      * @param originalBitmap 原始图片
      * @param config 水印配置
      * @param imageUri 图片URI，用于读取EXIF信息
+     * @param lut1Name LUT1文件名
+     * @param lut2Name LUT2文件名
+     * @param lut1Strength LUT1强度
+     * @param lut2Strength LUT2强度
      * @return 添加水印后的图片
      */
     suspend fun addWatermark(
         originalBitmap: Bitmap,
         config: WatermarkConfig,
-        imageUri: Uri? = null
+        imageUri: Uri? = null,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
     ): Bitmap = withContext(Dispatchers.Default) {
 
         if (!config.isEnabled || (!config.enableTextWatermark && !config.enableImageWatermark)) {
@@ -118,10 +126,28 @@ class WatermarkProcessor(private val context: Context) {
             config.textContent.isNotEmpty() && config.imagePath.isNotEmpty()
         ) {
             // 文字跟随模式：根据图片水印位置计算文字位置
-            drawWatermarksInFollowMode(canvas, resultBitmap, config, exifData)
+            drawWatermarksInFollowMode(
+                canvas,
+                resultBitmap,
+                config,
+                exifData,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
         } else {
             // 普通模式：分别独立绘制图片和文字水印
-            drawWatermarksInNormalMode(canvas, resultBitmap, config, exifData)
+            drawWatermarksInNormalMode(
+                canvas,
+                resultBitmap,
+                config,
+                exifData,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
         }
 
         resultBitmap
@@ -429,13 +455,17 @@ class WatermarkProcessor(private val context: Context) {
     }
 
     /**
-     * 文字跟随模式下的水印绘制
+     * 跟随模式下的水印绘制
      */
     private suspend fun drawWatermarksInFollowMode(
         canvas: Canvas,
         bitmap: Bitmap,
         config: WatermarkConfig,
-        exifData: Map<String, String>
+        exifData: Map<String, String>,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
     ) {
         // 首先加载和绘制图片水印，获取其位置和尺寸
         val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
@@ -458,7 +488,14 @@ class WatermarkProcessor(private val context: Context) {
             canvas.drawBitmap(image, imageX, imageY, imagePaint)
 
             // 根据跟随方向计算文字位置
-            val processedText = exifReader.replaceExifVariables(config.textContent, exifData)
+            val processedText = exifReader.replaceExifVariables(
+                config.textContent,
+                exifData,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
             val textPosition = calculateTextFollowPosition(
                 bitmap,
                 imagePosition,
@@ -489,7 +526,11 @@ class WatermarkProcessor(private val context: Context) {
         canvas: Canvas,
         bitmap: Bitmap,
         config: WatermarkConfig,
-        exifData: Map<String, String>
+        exifData: Map<String, String>,
+        lut1Name: String? = null,
+        lut2Name: String? = null,
+        lut1Strength: Float? = null,
+        lut2Strength: Float? = null
     ) {
         // 绘制图片水印 - 使用独立的位置和透明度
         if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
@@ -515,7 +556,14 @@ class WatermarkProcessor(private val context: Context) {
 
         // 绘制文字水印 - 使用独立的位置和透明度
         if (config.enableTextWatermark && config.textContent.isNotEmpty()) {
-            val processedText = exifReader.replaceExifVariables(config.textContent, exifData)
+            val processedText = exifReader.replaceExifVariables(
+                config.textContent,
+                exifData,
+                lut1Name,
+                lut2Name,
+                lut1Strength,
+                lut2Strength
+            )
             // 计算文字水印位置
             val textPosition =
                 calculateWatermarkPosition(bitmap, config.textPositionX, config.textPositionY)

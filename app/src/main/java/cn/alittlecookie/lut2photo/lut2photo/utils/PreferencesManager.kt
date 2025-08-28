@@ -116,6 +116,10 @@ class PreferencesManager(context: Context) {
         get() = sharedPreferences.getBoolean("dashboard_params_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("dashboard_params_expanded", value) }
 
+    var dashboardPreviewExpanded: Boolean
+        get() = sharedPreferences.getBoolean("dashboard_preview_expanded", true)
+        set(value) = sharedPreferences.edit { putBoolean("dashboard_preview_expanded", value) }
+
 
     var homeFileSettingsExpanded: Boolean
         get() = sharedPreferences.getBoolean("home_file_settings_expanded", true)
@@ -126,6 +130,10 @@ class PreferencesManager(context: Context) {
     var homeParamsExpanded: Boolean
         get() = sharedPreferences.getBoolean("home_params_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("home_params_expanded", value) }
+
+    var homePreviewExpanded: Boolean
+        get() = sharedPreferences.getBoolean("home_preview_expanded", true)
+        set(value) = sharedPreferences.edit { putBoolean("home_preview_expanded", value) }
 
     // 处理器选择设置
     var processorType: String

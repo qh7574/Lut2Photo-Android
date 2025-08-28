@@ -101,6 +101,12 @@ object ExifVariables {
     const val EXPOSURE_COMPENSATION = "{EXPOSURE_COMPENSATION}"
     const val WHITE_BALANCE = "{WHITE_BALANCE}"
     const val FLASH = "{FLASH}"
+
+    // LUT相关变量
+    const val LUT1 = "{LUT1}"
+    const val LUT2 = "{LUT2}"
+    const val LUT1_STRENGTH = "{LUT1_STRENGTH}"
+    const val LUT2_STRENGTH = "{LUT2_STRENGTH}"
 }
 
 /**

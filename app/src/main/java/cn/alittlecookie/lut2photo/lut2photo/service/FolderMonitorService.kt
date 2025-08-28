@@ -723,7 +723,11 @@ class FolderMonitorService : Service() {
                                         val watermarkedBitmap = watermarkProcessor.addWatermark(
                                             lutProcessedBitmap,
                                             watermarkConfig,
-                                            inputFile.uri
+                                            inputFile.uri,
+                                            currentLutName,
+                                            if (currentLut2Name.isNotEmpty()) currentLut2Name else null,
+                                            params.strength,
+                                            params.lut2Strength
                                         )
                                         Log.d(TAG, "水印添加完成: ${inputFile.name}")
                                         watermarkedBitmap

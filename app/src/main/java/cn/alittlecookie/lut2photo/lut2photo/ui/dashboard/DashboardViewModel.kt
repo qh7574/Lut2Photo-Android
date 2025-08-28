@@ -486,7 +486,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                             watermarkProcessor.addWatermark(
                                                 processedBitmap,
                                                 watermarkConfig,
-                                                imageItem.uri
+                                                imageItem.uri,
+                                                lutItem.name,
+                                                lut2Item?.name,
+                                                params.strength,
+                                                params.lut2Strength
                                             )
                                         } catch (e: Exception) {
                                             Log.e(

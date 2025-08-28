@@ -89,7 +89,15 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 2. 文件设置（可折叠） -->
+        <!-- 2. 图片预览 -->
+        <include
+            android:id="@+id/preview_card_home"
+            layout="@layout/component_image_preview_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 3. 文件设置（可折叠） -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -231,7 +239,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 3. 参数设置（可折叠） -->
+        <!-- 4. 参数设置（可折叠） -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
