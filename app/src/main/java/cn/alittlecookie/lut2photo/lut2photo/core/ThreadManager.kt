@@ -1,5 +1,9 @@
 package cn.alittlecookie.lut2photo.lut2photo.core
 
+import cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
@@ -31,7 +35,7 @@ class ThreadManager(context: Context) {
         private const val MAX_CPU_CONCURRENT = 5
 
         // 图片保存时的尺寸限制，防止OOM
-        private const val MAX_SAVE_PIXELS = 200_000_000L // 2亿像素
+        private const val MAX_SAVE_PIXELS = 800_000_000L // 提升到8亿像素，支持更大图片保存
     }
 
     data class ProcessingTask(
@@ -62,6 +66,7 @@ class ThreadManager(context: Context) {
     // Active tasks tracking
     private val activeTasks = ConcurrentHashMap<String, Job>()
     private val taskCounter = AtomicInteger(0)
+    private var nativeProcessor: ILutProcessor? = null
 
     // Coroutine scopes
     private val managerScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -73,6 +78,28 @@ class ThreadManager(context: Context) {
 
     init {
         initializeProcessors()
+        initializeNativeProcessor()
+    }
+
+    /**
+     * 初始化Native处理器用于内存监控
+     */
+    private fun initializeNativeProcessor() {
+        try {
+            // 创建增强版处理器实例
+            val enhancedProcessor = EnhancedLutProcessor()
+
+            // 初始化增强版处理器
+            if (!enhancedProcessor.initialize()) {
+                Log.e(TAG, "增强版处理器初始化失败，降级到Native处理器")
+                nativeProcessor = NativeLutProcessor()
+            } else {
+                nativeProcessor = enhancedProcessor
+            }
+            Log.d(TAG, "Native处理器初始化成功，用于内存监控")
+        } catch (e: Exception) {
+            Log.e(TAG, "Native处理器初始化失败", e)
+        }
     }
 
     private fun initializeProcessors() {
@@ -352,7 +379,36 @@ class ThreadManager(context: Context) {
             cpuSemaphore.acquire()
             try {
                 task.onProgress?.invoke("Processing on CPU...")
+
+                // 检查Native内存使用情况
+                nativeProcessor?.let { processor ->
+                    if (processor is NativeLutProcessor) {
+                        if (processor.isNearMemoryLimit(0.85f)) {
+                            Log.w(TAG, "Native内存使用接近限制，强制执行垃圾回收")
+                            processor.forceGarbageCollection()
+
+                            // 等待一段时间让GC完成
+                            kotlinx.coroutines.delay(100)
+
+                            // 再次检查，如果仍然接近限制，则拒绝处理
+                            if (processor.isNearMemoryLimit(0.9f)) {
+                                task.onComplete(Result.failure(Exception("Native内存不足，无法处理图片")))
+                                return@launch
+                            }
+                        }
+                    }
+                }
+                
                 val result = cpuProcessor.processImage(task.bitmap, task.params)
+
+                // 记录内存使用情况
+                nativeProcessor?.let { nativeProc ->
+                    if (nativeProc is NativeLutProcessor) {
+                        val memoryUsage = nativeProc.getNativeMemoryUsage()
+                        Log.d(TAG, "CPU处理完成，Native内存使用: ${memoryUsage / 1024 / 1024}MB")
+                    }
+                }
+                
                 task.onComplete(Result.success(result))
             } catch (e: Exception) {
                 Log.e(TAG, "CPU processing failed for task ${task.id}", e)
@@ -410,6 +466,16 @@ class ThreadManager(context: Context) {
             gpuProcessor.release()
         }
 
+        // 释放Native处理器资源
+        nativeProcessor?.let {
+            try {
+                it.release()
+                Log.d(TAG, "Native处理器资源已释放")
+            } catch (e: Exception) {
+                Log.e(TAG, "释放Native处理器资源失败", e)
+            }
+        }
+
         Log.d(TAG, "ThreadManager released")
     }
 
@@ -425,7 +491,7 @@ class ThreadManager(context: Context) {
 
     /**
      * 压缩图片防止保存时OOM
-     * 当图片像素数超过2亿时，压缩图片到合适尺寸
+     * 当图片像素数超过8亿时，压缩图片到合适尺寸
      * @param bitmap 原始图片
      * @param fileName 文件名（用于提示）
      * @param onCompressed 压缩回调（fileName, newWidth, newHeight）

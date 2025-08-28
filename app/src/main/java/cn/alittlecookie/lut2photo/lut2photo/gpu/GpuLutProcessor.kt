@@ -14,7 +14,7 @@ import android.util.Log
 import androidx.core.graphics.createBitmap
 import cn.alittlecookie.lut2photo.lut2photo.core.CpuLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
-import cn.alittlecookie.lut2photo.utils.RegionDecoderManager
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -31,12 +31,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         private const val TAG = "GpuLutProcessor"
 
         // 2410万像素限制（24.1 megapixels）
-        private const val MAX_PIXELS_FOR_DIRECT_PROCESSING = 24_100_000L
+        private const val MAX_PIXELS_FOR_DIRECT_PROCESSING = 100_000_000L // 提升到1亿像素，支持更大图片直接GPU处理
         private const val MAX_CACHE_SIZE = 3 // 最多缓存3个不同尺寸的buffer
         // GPU纹理尺寸安全限制（大多数设备支持4096，但使用更保守的值）
         private const val SAFE_TEXTURE_SIZE = 2048
         // 分块处理的最大像素数（1600万像素）
-        private const val MAX_BLOCK_PIXELS = 16_000_000L
+        private const val MAX_BLOCK_PIXELS = 64_000_000L // 提升到6400万像素，减少分块数量
 
         // 更宽松的正则表达式，支持更多数字格式
         private val DATA_LINE_REGEX =
@@ -197,11 +197,13 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         val sizeMB = size / 1024 / 1024
         val key = "${name}_${width}_${height}"
 
-        // 内存压力检测：如果单个缓冲区超过64MB，抛出OOM让系统回退到CPU处理
-        if (sizeMB > 64) {
-            Log.w(TAG, "缓冲区大小过大(${sizeMB}MB)，触发内存压力保护")
-            throw OutOfMemoryError("GPU缓冲区大小超过限制: ${sizeMB}MB")
+        // 高内存限制：支持1G-2G内存使用，单个缓冲区最大512MB
+        if (sizeMB > 512) {
+            Log.w(TAG, "缓冲区大小过大(${sizeMB}MB)，超过最大限制(512MB)")
+            throw OutOfMemoryError("GPU缓冲区大小超过最大限制: ${sizeMB}MB > 512MB")
         }
+
+        Log.d(TAG, "缓冲区大小检查通过: ${sizeMB}MB")
 
         var buffer = bufferCache[key]
         if (buffer == null || buffer.capacity() < size) {
@@ -209,9 +211,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             val totalCacheSize = bufferCache.values.sumOf { it.capacity() }
             val totalCacheSizeMB = totalCacheSize / 1024 / 1024
 
-            // 如果总缓存超过128MB，清理所有缓存
-            if (totalCacheSizeMB > 128) {
-                Log.w(TAG, "缓存总大小过大(${totalCacheSizeMB}MB)，清理所有缓存")
+            // 高内存缓存限制：支持最大1GB总缓存
+            if (totalCacheSizeMB > 1024) {
+                Log.w(
+                    TAG,
+                    "缓存总大小过大(${totalCacheSizeMB}MB)，超过最大限制(1024MB)，清理所有缓存"
+                )
                 bufferCache.clear()
             } else if (bufferCache.size >= MAX_CACHE_SIZE) {
                 // 清理最旧的缓存
@@ -672,131 +677,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         }
     }
 
-    /**
-     * 流式处理图片块，支持RegionDecoderManager的分块加载
-     * @param inputStream 图片输入流
-     * @param params 处理参数
-     * @param callback 处理结果回调
-     */
-    suspend fun processImageStream(
-        context: android.content.Context,
-        uri: android.net.Uri,
-        params: ILutProcessor.ProcessingParams,
-        callback: RegionDecoderManager.BlockProcessingCallback
-    ) = withContext(Dispatchers.Main) {
-        if (!isInitialized) {
-            Log.e(TAG, "GPU处理器未初始化，无法进行流式处理")
-            callback.onError(Exception("GPU处理器未初始化"))
-            return@withContext
-        }
 
-        try {
-            val regionManager = RegionDecoderManager()
-
-            // 检查是否需要分块处理
-            if (regionManager.shouldUseRegionDecoding(context, uri)) {
-                Log.d(TAG, "开始GPU流式分块处理")
-
-                // 使用分块处理
-                regionManager.processImageInRegions(
-                    context,
-                    uri,
-                    callback = object : RegionDecoderManager.BlockProcessingCallback {
-                        override suspend fun onBlockLoaded(
-                            bitmap: Bitmap,
-                            block: RegionDecoderManager.ImageBlock
-                        ): Bitmap? {
-                            return try {
-                                // 检查块大小是否适合GPU处理
-                                val blockPixels = bitmap.width.toLong() * bitmap.height.toLong()
-
-                                val processedBlock =
-                                    if (blockPixels <= MAX_PIXELS_FOR_DIRECT_PROCESSING) {
-                                        // GPU处理块
-                                        Log.d(
-                                            TAG,
-                                            "GPU处理块 ${block.blockIndex}/${block.totalBlocks}"
-                                        )
-                                        withContext(Dispatchers.Main) {
-                                            processImageOnGpu(bitmap, params)
-                                        }
-                                    } else {
-                                        // 块仍然太大，回退到CPU处理
-                                        Log.w(
-                                            TAG,
-                                            "块 ${block.blockIndex} 仍然太大($blockPixels 像素)，回退到CPU处理"
-                                        )
-                                        val cpuProcessor = CpuLutProcessor()
-                                        // 复制LUT数据到CPU处理器
-                                        if (currentLutSize > 0) {
-                                            // 注意：这里需要从GPU纹理读取LUT数据，实际实现中可能需要保存原始LUT数据
-                                            Log.w(
-                                                TAG,
-                                                "GPU到CPU的LUT数据传输暂未实现，使用原始bitmap"
-                                            )
-                                            bitmap
-                                        } else {
-                                            bitmap
-                                        }
-                                    }
-
-                                if (processedBlock != null) {
-                                    Log.d(
-                                        TAG,
-                                        "处理图片块成功: ${block.blockIndex}/${block.totalBlocks}"
-                                    )
-                                    processedBlock
-                                } else {
-                                    Log.e(TAG, "处理图片块失败: ${block.blockIndex}")
-                                    null
-                                }
-                            } catch (e: OutOfMemoryError) {
-                                Log.e(TAG, "GPU处理图片块时发生OOM", e)
-                                null
-                            } catch (e: Exception) {
-                                Log.e(TAG, "GPU处理图片块时发生异常", e)
-                                null
-                            }
-                        }
-
-                        override fun onProgress(processedBlocks: Int, totalBlocks: Int) {
-                            callback.onProgress(processedBlocks, totalBlocks)
-                        }
-
-                        override fun onError(error: Exception) {
-                            callback.onError(error)
-                        }
-                    })
-
-                Log.d(TAG, "GPU流式分块处理完成")
-            } else {
-                // 小图片直接加载处理
-                Log.d(TAG, "图片较小，使用GPU直接处理模式")
-                val fullBitmap = regionManager.loadFullImage(context, uri)
-                if (fullBitmap != null) {
-                    val processedBitmap = withContext(Dispatchers.Main) {
-                        processImageOnGpu(fullBitmap, params)
-                    }
-                    if (processedBitmap != null) {
-                        val block = RegionDecoderManager.ImageBlock(
-                            rect = android.graphics.Rect(0, 0, fullBitmap.width, fullBitmap.height),
-                            blockIndex = 0,
-                            totalBlocks = 1
-                        )
-                        callback.onBlockLoaded(processedBitmap, block)
-                        callback.onProgress(1, 1)
-                    } else {
-                        callback.onError(Exception("GPU处理完整图片失败"))
-                    }
-                } else {
-                    callback.onError(Exception("加载完整图片失败"))
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "GPU流式处理过程中发生异常", e)
-            callback.onError(e)
-        }
-    }
 
     /**
      * 处理GPU OOM情况的回退逻辑

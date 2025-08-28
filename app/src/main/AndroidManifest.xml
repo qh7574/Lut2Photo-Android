@@ -50,10 +50,29 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
+        <!-- 性能基准测试Activity -->
+        <activity
+            android:name=".BenchmarkActivity"
+            android:exported="true"
+            android:label="Performance Benchmark">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- 后台服务 -->
         <service
             android:name=".service.FolderMonitorService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- 内存监控服务 -->
+        <service
+            android:name=".service.MemoryMonitorService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync"

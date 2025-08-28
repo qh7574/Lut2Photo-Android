@@ -132,6 +132,11 @@ class PreferencesManager(context: Context) {
         get() = sharedPreferences.getString("processor_type", "auto") ?: "auto"
         set(value) = sharedPreferences.edit { putString("processor_type", value) }
 
+    // 保持原始分辨率设置
+    var keepOriginalResolution: Boolean
+        get() = sharedPreferences.getBoolean("keep_original_resolution", false)
+        set(value) = sharedPreferences.edit { putBoolean("keep_original_resolution", value) }
+
     // 监控开关状态 - 修复：默认值改为false，防止重启后自动开启
     var monitoringSwitchEnabled: Boolean
         get() = sharedPreferences.getBoolean("monitoring_switch_enabled", false)

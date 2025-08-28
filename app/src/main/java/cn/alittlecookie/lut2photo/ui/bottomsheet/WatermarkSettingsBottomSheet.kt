@@ -749,20 +749,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 使用协程处理图片加载，避免阻塞UI线程
         lifecycleScope.launch {
             try {
-                val regionDecoderManager = cn.alittlecookie.lut2photo.utils.RegionDecoderManager()
-
-                // 检查是否需要分块处理
-                val needRegionDecoding =
-                    regionDecoderManager.shouldUseRegionDecoding(requireContext(), uri)
-
-                val bitmap = if (needRegionDecoding) {
-                    // 大图片使用流式处理，先加载预览版本
-                    Toast.makeText(context, "正在加载大图片...", Toast.LENGTH_SHORT).show()
-                    loadLargeImageForPreview(uri)
-                } else {
-                    // 小图片直接加载
-                    regionDecoderManager.loadFullImage(requireContext(), uri)
-                }
+                // 直接使用内存优化器加载图片
+                val memoryOptimizer =
+                    cn.alittlecookie.lut2photo.lut2photo.utils.MemoryOptimizer(requireContext())
+                val bitmap = memoryOptimizer.loadOptimizedBitmap(uri)
 
                 if (bitmap != null) {
                     // 保存背景图片路径

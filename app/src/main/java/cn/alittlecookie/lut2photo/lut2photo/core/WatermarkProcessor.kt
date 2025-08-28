@@ -8,6 +8,9 @@ import android.graphics.Paint
 import android.graphics.PointF
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.widget.Toast
 import androidx.core.graphics.createBitmap
 import androidx.palette.graphics.Palette
 import cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode
@@ -30,11 +33,21 @@ class WatermarkProcessor(private val context: Context) {
         private const val TAG = "WatermarkProcessor"
 
         // 图片处理时的尺寸限制，防止OOM
-        private const val MAX_PROCESSING_PIXELS = 200_000_000L // 2亿像素
+        private const val MAX_PROCESSING_PIXELS = 800_000_000L // 提升到8亿像素，支持更大图片水印处理
     }
 
     private val exifReader = ExifReader(context)
     private val density = context.resources.displayMetrics.density
+    private val memoryManager = MemoryManager.getInstance(context)
+
+    /**
+     * 在主线程显示Toast提示
+     */
+    private fun showToast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     /**
      * 为图片添加水印
@@ -56,9 +69,46 @@ class WatermarkProcessor(private val context: Context) {
         // 先添加边框（内部已处理压缩逻辑）
         val bitmapWithBorder = addBorderOnly(originalBitmap, config)
 
+        // 计算复制Bitmap需要的内存
+        val copyMemoryBytes = bitmapWithBorder.width.toLong() * bitmapWithBorder.height.toLong() * 4
+
+        // 检查内存是否足够复制Bitmap
+        if (!memoryManager.canAllocate(copyMemoryBytes)) {
+            android.util.Log.w(
+                TAG,
+                "内存不足，无法复制${bitmapWithBorder.width}x${bitmapWithBorder.height}的Bitmap用于水印绘制"
+            )
+
+            // 尝试垃圾回收后再次检查
+            memoryManager.performGarbageCollection()
+
+            if (!memoryManager.canAllocate(copyMemoryBytes)) {
+                android.util.Log.w(TAG, "即使在GC后仍无法分配内存，返回边框图片")
+                return@withContext bitmapWithBorder
+            }
+        }
+
+        // 请求内存分配
+        if (!memoryManager.requestAllocation(copyMemoryBytes)) {
+            android.util.Log.w(TAG, "内存分配请求被拒绝，返回边框图片")
+            return@withContext bitmapWithBorder
+        }
+
         // 创建可变的Bitmap用于绘制水印
-        val resultBitmap = bitmapWithBorder.copy(Bitmap.Config.ARGB_8888, true)
+        val resultBitmap = try {
+            bitmapWithBorder.copy(Bitmap.Config.ARGB_8888, true)
+        } catch (e: OutOfMemoryError) {
+            android.util.Log.e(TAG, "复制Bitmap时发生OOM，返回边框图片", e)
+            return@withContext bitmapWithBorder
+        }
+        
         val canvas = Canvas(resultBitmap)
+
+        // 及时释放边框图片（如果它与原图不同）
+        if (bitmapWithBorder != originalBitmap && !bitmapWithBorder.isRecycled) {
+            bitmapWithBorder.recycle()
+            android.util.Log.d(TAG, "已释放边框图片Bitmap")
+        }
 
         // 读取EXIF信息
         val exifData = imageUri?.let { exifReader.readExifFromUri(it) } ?: emptyMap()
@@ -89,77 +139,48 @@ class WatermarkProcessor(private val context: Context) {
             return@withContext originalBitmap
         }
 
-        val shortSide = min(originalBitmap.width, originalBitmap.height)
+            // 使用新的压缩逻辑，确保最终输出图片（包括边框）不超过8亿像素
+            val processedBitmap = compressBitmapForProcessing(originalBitmap, config)
 
-        // 计算四个方向的边框宽度
+            // 基于压缩后的图片重新计算边框
+            val shortSide = min(processedBitmap.width, processedBitmap.height)
         val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
         val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
         val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
         val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
 
-            // 计算添加边框后的最终尺寸
-            val finalWidth = originalBitmap.width + borderLeftPx + borderRightPx
-            val finalHeight = originalBitmap.height + borderTopPx + borderBottomPx
-            val finalPixels = finalWidth.toLong() * finalHeight.toLong()
+            // 计算新的图片尺寸
+            val newWidth = processedBitmap.width + borderLeftPx + borderRightPx
+            val newHeight = processedBitmap.height + borderTopPx + borderBottomPx
 
-            // 如果最终尺寸超过限制，需要预先压缩原图
-            val processedBitmap = if (finalPixels > MAX_PROCESSING_PIXELS) {
-                android.util.Log.d(
+            // 计算需要的内存大小（ARGB_8888每像素4字节）
+            val requiredMemoryBytes = newWidth.toLong() * newHeight.toLong() * 4
+
+            // 检查内存是否足够
+            if (!memoryManager.canAllocate(requiredMemoryBytes)) {
+                android.util.Log.w(
                     TAG,
-                    "边框后尺寸${finalWidth}x${finalHeight}($finalPixels)超过限制，预压缩原图"
+                    "内存不足，无法创建${newWidth}x${newHeight}的边框Bitmap，需要${requiredMemoryBytes / (1024 * 1024)}MB"
                 )
 
-                // 计算需要的压缩比例，确保边框后的尺寸在限制内
-                val scale = sqrt(MAX_PROCESSING_PIXELS.toDouble() / finalPixels.toDouble())
-                val newOriginalWidth = (originalBitmap.width * scale).toInt()
-                val newOriginalHeight = (originalBitmap.height * scale).toInt()
+                // 尝试垃圾回收后再次检查
+                memoryManager.performGarbageCollection()
 
-                android.util.Log.d(
-                    TAG,
-                    "压缩原图从${originalBitmap.width}x${originalBitmap.height}到${newOriginalWidth}x${newOriginalHeight}"
-                )
-
-                try {
-                    val compressedBitmap = Bitmap.createScaledBitmap(
-                        originalBitmap,
-                        newOriginalWidth,
-                        newOriginalHeight,
-                        true
-                    )
-
-                    // 如果创建了新的bitmap，且与原始的不同，则释放原始的
-                    if (compressedBitmap != originalBitmap && !originalBitmap.isRecycled) {
-                        originalBitmap.recycle()
-                    }
-
-                    compressedBitmap
-                } catch (e: OutOfMemoryError) {
-                    android.util.Log.e(TAG, "预压缩原图时发生OOM，使用原图", e)
-                    originalBitmap
-                } catch (e: Exception) {
-                    android.util.Log.e(TAG, "预压缩原图失败，使用原图", e)
-                    originalBitmap
+                if (!memoryManager.canAllocate(requiredMemoryBytes)) {
+                    android.util.Log.w(TAG, "即使在GC后仍无法分配内存，返回处理后的图片")
+                    showToast("超出像素限制，已返回无边框图片")
+                    return@withContext processedBitmap
                 }
-            } else {
-                android.util.Log.d(
-                    TAG,
-                    "边框后尺寸${finalWidth}x${finalHeight}($finalPixels)在安全范围内"
-                )
-                originalBitmap
             }
 
-            // 重新计算边框像素（基于可能已压缩的图片）
-            val processedShortSide = min(processedBitmap.width, processedBitmap.height)
-            val newBorderTopPx = (processedShortSide * config.borderTopWidth / 100).toInt()
-            val newBorderBottomPx = (processedShortSide * config.borderBottomWidth / 100).toInt()
-            val newBorderLeftPx = (processedShortSide * config.borderLeftWidth / 100).toInt()
-            val newBorderRightPx = (processedShortSide * config.borderRightWidth / 100).toInt()
-
-        // 计算新的图片尺寸
-            val newWidth = processedBitmap.width + newBorderLeftPx + newBorderRightPx
-            val newHeight = processedBitmap.height + newBorderTopPx + newBorderBottomPx
-
             try {
+                // 请求内存分配
+                if (!memoryManager.requestAllocation(requiredMemoryBytes)) {
+                    android.util.Log.w(TAG, "内存分配请求被拒绝，返回处理后的图片")
+                    showToast("内存分配被拒绝，已返回无边框图片")
+                    return@withContext processedBitmap
+            }
+
                 val resultBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(resultBitmap)
 
@@ -173,7 +194,7 @@ class WatermarkProcessor(private val context: Context) {
 
                     else -> config.getBorderColorInt()
                 }
-                
+
                 // 绘制边框背景
                 val borderPaint = Paint().apply {
                     color = borderColor
@@ -183,13 +204,19 @@ class WatermarkProcessor(private val context: Context) {
                 // 绘制整个背景
                 canvas.drawRect(0f, 0f, newWidth.toFloat(), newHeight.toFloat(), borderPaint)
 
-                // 绘制原图（放置在边框内），使用重新计算的边框值
+                // 绘制原图（放置在边框内）
                 canvas.drawBitmap(
                     processedBitmap,  // 使用可能已压缩的图片
-                    newBorderLeftPx.toFloat(),
-                    newBorderTopPx.toFloat(),
+                    borderLeftPx.toFloat(),
+                    borderTopPx.toFloat(),
                     null
                 )
+
+                // 及时释放处理后的图片（如果它是压缩后的新图片）
+                if (processedBitmap != originalBitmap && !processedBitmap.isRecycled) {
+                    processedBitmap.recycle()
+                    android.util.Log.d(TAG, "已释放压缩后的中间Bitmap")
+                }
 
                 android.util.Log.d(
                     TAG,
@@ -208,41 +235,105 @@ class WatermarkProcessor(private val context: Context) {
 
     /**
      * 压缩图片防止处理时OOM
-     * 当图片像素数超过2亿时，压缩图片到合适尺寸
+     * 当最终输出图片（包括边框）像素数超过8亿时，压缩图片到合适尺寸
      * @param bitmap 原始图片
+     * @param config 水印配置（用于计算边框大小）
      * @return 压缩后的图片（如果不需要压缩则返回原图）
      */
-    private suspend fun compressBitmapForProcessing(bitmap: Bitmap): Bitmap =
+    private suspend fun compressBitmapForProcessing(
+        bitmap: Bitmap,
+        config: WatermarkConfig
+    ): Bitmap =
         withContext(Dispatchers.Default) {
-            val currentPixels = bitmap.width.toLong() * bitmap.height.toLong()
+            // 计算边框大小
+            val shortSide = min(bitmap.width, bitmap.height)
+            val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
+            val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
+            val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
+            val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
 
-            if (currentPixels <= MAX_PROCESSING_PIXELS) {
-                android.util.Log.d(TAG, "图片像素数($currentPixels)在处理安全范围内，无需压缩")
+            // 计算最终输出尺寸（包括边框）
+            val finalWidth = bitmap.width + borderLeftPx + borderRightPx
+            val finalHeight = bitmap.height + borderTopPx + borderBottomPx
+            val finalPixels = finalWidth.toLong() * finalHeight.toLong()
+
+            if (finalPixels <= MAX_PROCESSING_PIXELS) {
+                android.util.Log.d(TAG, "最终输出图片像素数($finalPixels)在8亿像素限制内，无需压缩")
                 return@withContext bitmap
             }
 
-            // 计算压缩比例
-            val scale = sqrt(MAX_PROCESSING_PIXELS.toDouble() / currentPixels.toDouble())
+            // 计算压缩比例，确保最终输出图片（包括边框）不超过8亿像素
+            val scale = sqrt(MAX_PROCESSING_PIXELS.toDouble() / finalPixels.toDouble())
             val newWidth = (bitmap.width * scale).toInt()
             val newHeight = (bitmap.height * scale).toInt()
 
+            // 验证压缩后的最终输出尺寸
+            val newShortSide = min(newWidth, newHeight)
+            val newBorderTopPx = (newShortSide * config.borderTopWidth / 100).toInt()
+            val newBorderBottomPx = (newShortSide * config.borderBottomWidth / 100).toInt()
+            val newBorderLeftPx = (newShortSide * config.borderLeftWidth / 100).toInt()
+            val newBorderRightPx = (newShortSide * config.borderRightWidth / 100).toInt()
+            val newFinalWidth = newWidth + newBorderLeftPx + newBorderRightPx
+            val newFinalHeight = newHeight + newBorderTopPx + newBorderBottomPx
+            val newFinalPixels = newFinalWidth.toLong() * newFinalHeight.toLong()
+
             android.util.Log.d(
                 TAG,
-                "图片像素数($currentPixels)超过处理限制($MAX_PROCESSING_PIXELS)，将压缩至${newWidth}x${newHeight}"
+                "最终输出图片像素数($finalPixels)超过8亿像素限制，将压缩原图从${bitmap.width}x${bitmap.height}至${newWidth}x${newHeight}，最终输出尺寸将为${newFinalWidth}x${newFinalHeight}($newFinalPixels)"
             )
 
+            // 计算压缩后需要的内存
+            val compressedMemoryBytes = newWidth.toLong() * newHeight.toLong() * 4
+
+            // 检查内存是否足够
+            if (!memoryManager.canAllocate(compressedMemoryBytes)) {
+                android.util.Log.w(
+                    TAG,
+                    "内存不足，无法创建压缩后的${newWidth}x${newHeight}Bitmap，需要${compressedMemoryBytes / (1024 * 1024)}MB"
+                )
+
+                // 尝试垃圾回收后再次检查
+                memoryManager.performGarbageCollection()
+
+                if (!memoryManager.canAllocate(compressedMemoryBytes)) {
+                    android.util.Log.w(TAG, "即使在GC后仍无法分配内存，返回原图")
+                    return@withContext bitmap
+                }
+            }
+            
             try {
+                // 请求内存分配
+                if (!memoryManager.requestAllocation(compressedMemoryBytes)) {
+                    android.util.Log.w(TAG, "内存分配请求被拒绝，返回原图")
+                    return@withContext bitmap
+                }
+                
                 val compressedBitmap = Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
                 val compressedPixels =
                     compressedBitmap.width.toLong() * compressedBitmap.height.toLong()
+
+                // 重新计算压缩后的最终输出尺寸（用于验证）
+                val verifyShortSide = min(compressedBitmap.width, compressedBitmap.height)
+                val verifyBorderTopPx = (verifyShortSide * config.borderTopWidth / 100).toInt()
+                val verifyBorderBottomPx =
+                    (verifyShortSide * config.borderBottomWidth / 100).toInt()
+                val verifyBorderLeftPx = (verifyShortSide * config.borderLeftWidth / 100).toInt()
+                val verifyBorderRightPx = (verifyShortSide * config.borderRightWidth / 100).toInt()
+                val verifyFinalWidth =
+                    compressedBitmap.width + verifyBorderLeftPx + verifyBorderRightPx
+                val verifyFinalHeight =
+                    compressedBitmap.height + verifyBorderTopPx + verifyBorderBottomPx
+                val verifyFinalPixels = verifyFinalWidth.toLong() * verifyFinalHeight.toLong()
+                
                 android.util.Log.d(
                     TAG,
-                    "图片压缩成功：${bitmap.width}x${bitmap.height}($currentPixels) -> ${compressedBitmap.width}x${compressedBitmap.height}($compressedPixels)"
+                    "图片压缩成功：${bitmap.width}x${bitmap.height}($finalPixels) -> ${compressedBitmap.width}x${compressedBitmap.height}($compressedPixels)，最终输出将为${verifyFinalWidth}x${verifyFinalHeight}($verifyFinalPixels)"
                 )
 
                 // 如果创建了新的bitmap，且与原始的不同，则释放原始的
                 if (compressedBitmap != bitmap && !bitmap.isRecycled) {
                     bitmap.recycle()
+                    android.util.Log.d(TAG, "已释放原始Bitmap")
                 }
 
                 return@withContext compressedBitmap

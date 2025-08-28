@@ -12,16 +12,28 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 31
         targetSdk = 36
-        versionCode = 100011
-        versionName = "2.6.0"
+        versionCode = 100015
+        versionName = "2.7.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21
         renderscriptSupportModeEnabled = true
 
-        // 添加OpenGL ES支持
+        // NDK配置
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+
+        // Native构建配置
+        externalNativeBuild {
+            cmake {
+                cppFlags += listOf("-std=c++17", "-frtti", "-fexceptions")
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+                arguments += listOf(
+                    "-DANDROID_STL=c++_shared",
+                    "-DANDROID_PLATFORM=android-31"
+                )
+            }
         }
     }
 
@@ -35,17 +47,34 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         viewBinding = true
         buildConfig = true
     }
     buildToolsVersion = "35.0.0"
+
+    // Native构建配置
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    // 打包配置
+    packaging {
+        jniLibs {
+            pickFirsts.add("**/libc++_shared.so")
+            pickFirsts.add("**/libjsc.so")
+        }
+    }
+    ndkVersion = "29.0.13846066 rc3"
 }
 
 dependencies {

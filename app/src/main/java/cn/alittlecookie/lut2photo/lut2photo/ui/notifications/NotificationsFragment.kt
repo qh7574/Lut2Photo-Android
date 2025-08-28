@@ -53,6 +53,7 @@ class NotificationsFragment : Fragment() {
         updatePermissionStatus()
         setupThemeDropdown()
         setupProcessorDropdown()
+        setupKeepOriginalResolutionSwitch()
         
         return binding.root
     }
@@ -77,6 +78,22 @@ class NotificationsFragment : Fragment() {
             // 应用信息
             textAppVersion.text = getString(R.string.app_version_format, BuildConfig.VERSION_NAME)
             textAppDescription.text = getString(R.string.app_description)
+        }
+    }
+
+    private fun setupKeepOriginalResolutionSwitch() {
+        // 设置当前状态
+        binding.switchKeepOriginalResolution.isChecked = preferencesManager.keepOriginalResolution
+
+        // 设置监听器
+        binding.switchKeepOriginalResolution.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.keepOriginalResolution = isChecked
+
+            Toast.makeText(
+                requireContext(),
+                if (isChecked) "已启用保持原始分辨率" else "已禁用保持原始分辨率",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
     

@@ -4,7 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.BitmapRegionDecoder
+
 import android.graphics.Matrix
 import android.graphics.Rect
 import android.net.Uri
@@ -19,11 +19,12 @@ import kotlin.math.sqrt
  */
 class MemoryOptimizer(private val context: Context) {
 
+    private val preferencesManager = PreferencesManager(context)
+
     companion object {
         private const val TAG = "MemoryOptimizer"
         private const val MEMORY_SAFETY_FACTOR = 0.7f // 使用70%的可用内存作为安全阈值
-        private const val MIN_TILE_SIZE = 512 // 最小瓦片尺寸
-        private const val MAX_TILE_SIZE = 2048 // 最大瓦片尺寸
+
         private const val BYTES_PER_PIXEL = 4 // ARGB_8888格式每像素4字节
     }
 
@@ -107,7 +108,7 @@ class MemoryOptimizer(private val context: Context) {
     }
 
     /**
-     * 智能加载图片，根据内存情况自动选择策略
+     * 智能加载图片，根据内存情况和用户设置自动选择策略
      */
     fun loadImageSmart(uri: Uri): Bitmap? {
         return try {
@@ -124,6 +125,16 @@ class MemoryOptimizer(private val context: Context) {
             val originalHeight = options.outHeight
 
             Log.d(TAG, "图片原始尺寸: ${originalWidth}x${originalHeight}")
+
+            // 检查用户是否启用了保持原始分辨率
+            if (preferencesManager.keepOriginalResolution) {
+                Log.d(TAG, "用户启用保持原始分辨率，尝试直接加载原图")
+                val directBitmap = loadImageDirect(uri)
+                if (directBitmap != null) {
+                    return directBitmap
+                }
+                Log.w(TAG, "直接加载失败，回退到智能加载策略")
+            }
 
             // 检查是否可以直接加载
             if (canLoadImage(originalWidth, originalHeight)) {
@@ -142,9 +153,10 @@ class MemoryOptimizer(private val context: Context) {
                 return loadImageWithSampling(uri, sampleSize)
             }
 
-            // 如果采样后仍然太大，使用瓦片加载
-            Log.d(TAG, "图片过大，使用瓦片加载")
-            return loadImageWithTiling(uri, originalWidth, originalHeight)
+            // 如果采样后仍然太大，使用更大的采样率
+            val largeSampleSize = sampleSize * 2
+            Log.d(TAG, "图片过大，使用更大采样率: $largeSampleSize")
+            return loadImageWithSampling(uri, largeSampleSize)
 
         } catch (e: Exception) {
             Log.e(TAG, "智能加载图片失败", e)
@@ -185,83 +197,7 @@ class MemoryOptimizer(private val context: Context) {
         }
     }
 
-    /**
-     * 使用瓦片方式加载大图片
-     */
-    private fun loadImageWithTiling(uri: Uri, originalWidth: Int, originalHeight: Int): Bitmap? {
-        return try {
-            // 计算瓦片尺寸
-            val tileSize = calculateOptimalTileSize(originalWidth, originalHeight)
 
-            Log.d(TAG, "瓦片加载: 原图${originalWidth}x${originalHeight}, 瓦片尺寸${tileSize}")
-
-            // 创建结果bitmap
-            val resultBitmap =
-                Bitmap.createBitmap(originalWidth, originalHeight, Bitmap.Config.ARGB_8888)
-            val canvas = android.graphics.Canvas(resultBitmap)
-
-            // 使用BitmapRegionDecoder分块加载
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                val decoder = BitmapRegionDecoder.newInstance(stream, false)
-
-                decoder?.let { regionDecoder ->
-                    val tilesX = (originalWidth + tileSize - 1) / tileSize
-                    val tilesY = (originalHeight + tileSize - 1) / tileSize
-
-                    for (y in 0 until tilesY) {
-                        for (x in 0 until tilesX) {
-                            val left = x * tileSize
-                            val top = y * tileSize
-                            val right = min(left + tileSize, originalWidth)
-                            val bottom = min(top + tileSize, originalHeight)
-
-                            val rect = Rect(left, top, right, bottom)
-                            val tileBitmap =
-                                regionDecoder.decodeRegion(rect, BitmapFactory.Options().apply {
-                                    inPreferredConfig = Bitmap.Config.ARGB_8888
-                                })
-
-                            if (tileBitmap != null) {
-                                canvas.drawBitmap(tileBitmap, left.toFloat(), top.toFloat(), null)
-                                tileBitmap.recycle()
-                            }
-
-                            // 强制垃圾回收，释放瓦片内存
-                            if ((x * tilesY + y) % 4 == 0) {
-                                System.gc()
-                            }
-                        }
-                    }
-
-                    regionDecoder.recycle()
-                }
-            }
-
-            resultBitmap
-
-        } catch (e: Exception) {
-            Log.e(TAG, "瓦片加载失败", e)
-            null
-        }
-    }
-
-    /**
-     * 计算最优瓦片尺寸
-     */
-    private fun calculateOptimalTileSize(width: Int, height: Int): Int {
-        val memInfo = getMemoryInfo()
-        val safeMemory = (memInfo.availableMemory * MEMORY_SAFETY_FACTOR).toLong()
-
-        // 计算单个瓦片可以使用的最大像素数
-        val maxTilePixels = safeMemory / BYTES_PER_PIXEL / 4 // 预留4倍缓冲
-        val maxTileSize = sqrt(maxTilePixels.toDouble()).toInt()
-
-        // 限制在合理范围内
-        val tileSize = maxTileSize.coerceIn(MIN_TILE_SIZE, MAX_TILE_SIZE)
-
-        Log.d(TAG, "计算瓦片尺寸: 可用内存${safeMemory / 1024 / 1024}MB, 瓦片尺寸${tileSize}")
-        return tileSize
-    }
 
     /**
      * 优化的图片加载方法，包含EXIF处理

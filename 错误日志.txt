@@ -1,0 +1,53 @@
+09:12:50.932 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (unsupported, reflection, allowed)
+09:12:50.932 MainActivity            cn....tlecookie.lut2photo.lut2photo  I  开始初始化Activity内存管理
+09:12:50.932 MainActivity            cn....tlecookie.lut2photo.lut2photo  I  全局内存管理器可用
+09:12:50.934 NativeLutProcessor      cn....tlecookie.lut2photo.lut2photo  D  NativeLutProcessor构造函数调用
+09:12:50.934 NativeLutProcessor      cn....tlecookie.lut2photo.lut2photo  D  Native处理器创建成功，地址: 0xb4000070bc10e7e0
+09:12:50.934 NativeLutProcessor      cn....tlecookie.lut2photo.lut2photo  D  Native处理器初始化成功，句柄: -5476376662690961440
+09:12:50.934 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  E  No implementation found for long cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor.nativeCreateEnhanced$app_debug() (tried Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreateEnhanced_00024app_1debug and Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreateEnhanced_00024app_1debug__) - is the library loaded, e.g. System.loadLibrary?
+09:12:50.935 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  D  Shutting down VM
+09:12:50.935 AndroidRuntime          cn....tlecookie.lut2photo.lut2photo  E  FATAL EXCEPTION: main
+                                                                             Process: cn.alittlecookie.lut2photo.lut2photo, PID: 30472
+                                                                             java.lang.UnsatisfiedLinkError: No implementation found for long cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor.nativeCreateEnhanced$app_debug() (tried Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreateEnhanced_00024app_1debug and Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreateEnhanced_00024app_1debug__) - is the library loaded, e.g. System.loadLibrary?
+                                                                             	at cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor.nativeCreateEnhanced$app_debug(Native Method)
+                                                                             	at cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor.initialize(EnhancedLutProcessor.kt:104)
+                                                                             	at cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor.<init>(EnhancedLutProcessor.kt:91)
+                                                                             	at cn.alittlecookie.lut2photo.lut2photo.MainActivity.initializeActivityMemoryManagement(MainActivity.kt:180)
+                                                                             	at cn.alittlecookie.lut2photo.lut2photo.MainActivity.onCreate(MainActivity.kt:58)
+                                                                             	at android.app.Activity.performCreate(Activity.java:9218)
+                                                                             	at android.app.Activity.performCreate(Activity.java:9177)
+                                                                             	at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1538)
+                                                                             	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4391)
+                                                                             	at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4630)
+                                                                             	at android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:112)
+                                                                             	at android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:186)
+                                                                             	at android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:112)
+                                                                             	at android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:84)
+                                                                             	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2872)
+                                                                             	at android.os.Handler.dispatchMessage(Handler.java:107)
+                                                                             	at android.os.Looper.loopOnce(Looper.java:249)
+                                                                             	at android.os.Looper.loop(Looper.java:337)
+                                                                             	at android.app.ActivityThread.main(ActivityThread.java:9586)
+                                                                             	at java.lang.reflect.Method.invoke(Native Method)
+                                                                             	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+                                                                             	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:936)
+09:12:50.936 ScoutUtils              cn....tlecookie.lut2photo.lut2photo  W  Failed to mkdir /data/miuilog/stability/hprof/
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771108): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771109): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771110): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771111): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771112): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771113): avc:  denied  { getattr } for  path="/data/miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.942 Process                 cn....tlecookie.lut2photo.lut2photo  I  Process is going to kill itself!
+                                                                             java.lang.Exception
+                                                                             	at android.os.Process.killProcess(Process.java:1495)
+                                                                             	at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:193)
+                                                                             	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1071)
+                                                                             	at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1066)
+                                                                             	at java.lang.Thread.dispatchUncaughtException(Thread.java:2306)
+09:12:50.942 Process                 cn....tlecookie.lut2photo.lut2photo  I  Sending signal. PID: 30472 SIG: 9
+09:12:50.942 libc                    cn....tlecookie.lut2photo.lut2photo  I  kill: send 9 to pid 30472
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771114): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771115): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+09:12:50.931 photo.lut2photo         cn....tlecookie.lut2photo.lut2photo  W  type=1400 audit(0.0:771116): avc:  denied  { search } for  name="miuilog" dev="dm-78" ino=1046 scontext=u:r:untrusted_app:s0:c39,c258,c512,c768 tcontext=u:object_r:data_log_file:s0 tclass=dir permissive=0
+---------------------------- PROCESS ENDED (30472) for package cn.alittlecookie.lut2photo.lut2photo ----------------------------

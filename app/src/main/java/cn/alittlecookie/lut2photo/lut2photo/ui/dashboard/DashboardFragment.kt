@@ -181,62 +181,36 @@ class DashboardFragment : Fragment() {
                 lutNames.add(getString(R.string.no_lut_selected))
                 lutNames.addAll(availableLuts.map { it.name })
 
-                val adapter =
-                    ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, lutNames)
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                val adapter = ArrayAdapter(
+                    requireContext(),
+                    android.R.layout.simple_dropdown_item_1line,
+                    lutNames
+                )
 
                 // 设置主要LUT下拉框
-                binding.spinnerLut.adapter = adapter
-                binding.spinnerLut.onItemSelectedListener = object :
-                    android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(
-                        parent: android.widget.AdapterView<*>?,
-                        view: View?,
-                        position: Int,
-                        id: Long
-                    ) {
-                        selectedLutItem = if (position == 0) null else availableLuts[position - 1]
-                        selectedLutItem?.let {
-                            preferencesManager.dashboardLutUri = it.filePath
-                        }
-                        val hasImages =
-                            dashboardViewModel.selectedImages.value?.isNotEmpty() == true
-                        binding.buttonStartProcessing.isEnabled =
-                            hasImages && selectedLutItem != null
+                binding.dropdownLut.setAdapter(adapter)
+                binding.dropdownLut.setOnItemClickListener { _, _, position, _ ->
+                    selectedLutItem = if (position == 0) null else availableLuts[position - 1]
+                    selectedLutItem?.let {
+                        preferencesManager.dashboardLutUri = it.filePath
                     }
-
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
-                        selectedLutItem = null
-                        binding.buttonStartProcessing.isEnabled = false
-                    }
+                    val hasImages = dashboardViewModel.selectedImages.value?.isNotEmpty() == true
+                    binding.buttonStartProcessing.isEnabled = hasImages && selectedLutItem != null
                 }
 
                 // 设置第二个LUT下拉框
-                binding.spinnerLut2.adapter = adapter
-                binding.spinnerLut2.onItemSelectedListener = object :
-                    android.widget.AdapterView.OnItemSelectedListener {
-                    override fun onItemSelected(
-                        parent: android.widget.AdapterView<*>?,
-                        view: View?,
-                        position: Int,
-                        id: Long
-                    ) {
-                        selectedLut2Item = if (position == 0) null else availableLuts[position - 1]
-                        selectedLut2Item?.let {
-                            preferencesManager.dashboardLut2Uri = it.filePath
-                        } ?: run {
-                            preferencesManager.dashboardLut2Uri = null
-                        }
-
-                        Log.d(
-                            "DashboardFragment",
-                            "第二个LUT选择更新: ${selectedLut2Item?.name ?: "未选择"}"
-                        )
+                binding.dropdownLut2.setAdapter(adapter)
+                binding.dropdownLut2.setOnItemClickListener { _, _, position, _ ->
+                    selectedLut2Item = if (position == 0) null else availableLuts[position - 1]
+                    selectedLut2Item?.let {
+                        preferencesManager.dashboardLut2Uri = it.filePath
+                    } ?: run {
+                        preferencesManager.dashboardLut2Uri = null
                     }
-
-                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
-                        selectedLut2Item = null
-                    }
+                    Log.d(
+                        "DashboardFragment",
+                        "第二个LUT选择更新: ${selectedLut2Item?.name ?: "未选择"}"
+                    )
                 }
 
                 // 恢复选中的主要LUT
@@ -244,7 +218,10 @@ class DashboardFragment : Fragment() {
                 if (!savedLutUri.isNullOrEmpty()) {
                     val savedLutIndex = availableLuts.indexOfFirst { it.filePath == savedLutUri }
                     if (savedLutIndex >= 0) {
-                        binding.spinnerLut.setSelection(savedLutIndex + 1) // +1 因为第一项是"未选择"
+                        binding.dropdownLut.setText(
+                            lutNames[savedLutIndex + 1],
+                            false
+                        ) // +1 因为第一项是"未选择"
                         selectedLutItem = availableLuts[savedLutIndex]
                     }
                 }
@@ -254,7 +231,7 @@ class DashboardFragment : Fragment() {
                 if (!savedLut2Uri.isNullOrEmpty()) {
                     val savedLut2Index = availableLuts.indexOfFirst { it.filePath == savedLut2Uri }
                     if (savedLut2Index >= 0) {
-                        binding.spinnerLut2.setSelection(savedLut2Index + 1)
+                        binding.dropdownLut2.setText(lutNames[savedLut2Index + 1], false)
                         selectedLut2Item = availableLuts[savedLut2Index]
                         Log.d("DashboardFragment", "恢复第二个LUT选择: ${selectedLut2Item?.name}")
                     }

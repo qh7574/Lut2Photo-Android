@@ -31,13 +31,15 @@
     <string name="close">×</string>
 
     <!-- 处理器设置 -->
-    <string name="processor_settings">处理器设置</string>
+    <string name="processor_settings">处理设置</string>
     <string name="processor_type">处理器类型</string>
     <string name="processor_auto">自动</string>
     <string name="processor_gpu">GPU</string>
     <string name="processor_cpu">CPU</string>
     <string name="processor_description">选择图像处理使用的处理器类型</string>
     <string name="processor_setting_changed">处理器已切换到: %s</string>
+    <string name="keep_original_resolution">保持原始分辨率</string>
+    <string name="keep_original_resolution_description">启用后将保持图片原始分辨率，可能增加内存使用</string>
 
     <!-- 文件夹监控 -->
     <string name="folder_monitoring">文件夹监控</string>
@@ -52,8 +54,8 @@
     <string name="monitoring_status_running">监控中...</string>
     <string name="monitoring_status_stopped">已停止监控</string>
     <string name="folder_not_set">未设置文件夹</string>
-    <string name="select_input_folder">选择输入文件夹</string>
-    <string name="select_output_folder">选择输出文件夹</string>
+    <string name="select_input_folder">输入文件夹</string>
+    <string name="select_output_folder">输出文件夹</string>
     <string name="input_folder_selected">输入文件夹已选择</string>
     <string name="output_folder_selected">输出文件夹已选择</string>
 

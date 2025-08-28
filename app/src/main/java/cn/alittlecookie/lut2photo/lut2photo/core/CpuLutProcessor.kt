@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.util.Log
 import androidx.core.graphics.createBitmap
-import cn.alittlecookie.lut2photo.utils.RegionDecoderManager
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
@@ -323,7 +323,7 @@ class CpuLutProcessor : ILutProcessor {
             val height = bitmap.height
 
             // 计算分块大小，避免单次处理过大的区域
-            val maxBlockSize = 1024 * 1024 // 1M像素为一块
+            val maxBlockSize = 16 * 1024 * 1024 // 提升到1600万像素为一块，配合GPU优化
             val totalPixels = width * height
 
             return@withContext if (totalPixels <= maxBlockSize) {
@@ -339,96 +339,7 @@ class CpuLutProcessor : ILutProcessor {
         }
     }
 
-    /**
-     * 流式处理图片块，支持RegionDecoderManager的分块加载
-     * @param context Android上下文
-     * @param uri 图片URI
-     * @param params 处理参数
-     * @param callback 处理结果回调
-     */
-    suspend fun processImageStream(
-        context: android.content.Context,
-        uri: android.net.Uri,
-        params: ILutProcessor.ProcessingParams,
-        callback: RegionDecoderManager.BlockProcessingCallback
-    ) = withContext(Dispatchers.Default) {
-        if (lut == null) {
-            Log.e("CpuLutProcessor", "LUT数据为空，无法进行流式处理")
-            callback.onError(Exception("LUT数据为空"))
-            return@withContext
-        }
 
-        try {
-            val regionManager = RegionDecoderManager()
-
-            // 检查是否需要分块处理
-            if (regionManager.shouldUseRegionDecoding(context, uri)) {
-                Log.d("CpuLutProcessor", "开始CPU流式分块处理")
-
-                // 使用分块处理
-                regionManager.processImageInRegions(
-                    context,
-                    uri,
-                    callback = object : RegionDecoderManager.BlockProcessingCallback {
-                        override suspend fun onBlockLoaded(
-                            bitmap: Bitmap,
-                            block: RegionDecoderManager.ImageBlock
-                        ): Bitmap? {
-                            return try {
-                                // 处理当前块
-                                val processedBlock = processImageDirect(bitmap, params)
-                                if (processedBlock != null) {
-                                    Log.d(
-                                        "CpuLutProcessor",
-                                        "处理图片块成功: ${block.blockIndex}/${block.totalBlocks}"
-                                    )
-                                    processedBlock
-                                } else {
-                                    Log.e("CpuLutProcessor", "处理图片块失败: ${block.blockIndex}")
-                                    null
-                                }
-                            } catch (e: Exception) {
-                                Log.e("CpuLutProcessor", "处理图片块时发生异常", e)
-                                null
-                            }
-                        }
-
-                        override fun onProgress(processedBlocks: Int, totalBlocks: Int) {
-                            callback.onProgress(processedBlocks, totalBlocks)
-                        }
-
-                        override fun onError(error: Exception) {
-                            callback.onError(error)
-                        }
-                    })
-
-                Log.d("CpuLutProcessor", "CPU流式分块处理完成")
-            } else {
-                // 小图片直接加载处理
-                Log.d("CpuLutProcessor", "图片较小，使用直接处理模式")
-                val fullBitmap = regionManager.loadFullImage(context, uri)
-                if (fullBitmap != null) {
-                    val processedBitmap = processImageDirect(fullBitmap, params)
-                    if (processedBitmap != null) {
-                        val block = RegionDecoderManager.ImageBlock(
-                            rect = android.graphics.Rect(0, 0, fullBitmap.width, fullBitmap.height),
-                            blockIndex = 0,
-                            totalBlocks = 1
-                        )
-                        callback.onBlockLoaded(processedBitmap, block)
-                        callback.onProgress(1, 1)
-                    } else {
-                        callback.onError(Exception("处理完整图片失败"))
-                    }
-                } else {
-                    callback.onError(Exception("加载完整图片失败"))
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CpuLutProcessor", "流式处理过程中发生异常", e)
-            callback.onError(e)
-        }
-    }
 
     override suspend fun release() {
         lut = null

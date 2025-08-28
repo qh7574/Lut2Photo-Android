@@ -245,83 +245,60 @@ class HomeFragment : Fragment() {
                 lutNames.add(getString(R.string.no_lut_selected))
                 lutNames.addAll(availableLuts.map { it.name })
 
-                val adapter =
-                    ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, lutNames)
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                val adapter = ArrayAdapter(
+                    requireContext(),
+                    android.R.layout.simple_dropdown_item_1line,
+                    lutNames
+                )
 
                 // 设置主要LUT下拉框
-                binding.spinnerLut.adapter = adapter
-                binding.spinnerLut.onItemSelectedListener =
-                    object : android.widget.AdapterView.OnItemSelectedListener {
-                        override fun onItemSelected(
-                            parent: android.widget.AdapterView<*>?,
-                            view: View?,
-                            position: Int,
-                            id: Long
-                        ) {
-                            selectedLutItem =
-                                if (position == 0) null else availableLuts[position - 1]
-                            selectedLutItem?.let {
-                                preferencesManager.homeLutUri = it.filePath
-                            }
-                            updateMonitoringButtonState()
-
-                            // 发送LUT配置变化广播
-                            sendLutConfigChangesBroadcast()
-                            
-                            Log.d(
-                                "HomeFragment",
-                                "LUT选择更新: ${selectedLutItem?.name ?: "未选择"}"
-                            )
+                binding.dropdownLut.setAdapter(adapter)
+                binding.dropdownLut.setOnItemClickListener { _, _, position, _ ->
+                    selectedLutItem = if (position == 0) null else availableLuts[position - 1]
+                    selectedLutItem?.let {
+                        preferencesManager.homeLutUri = it.filePath
                     }
+                    updateMonitoringButtonState()
 
-                        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
-                            selectedLutItem = null
-                            updateMonitoringButtonState()
-                    }
+                    // 发送LUT配置变化广播
+                    sendLutConfigChangesBroadcast()
+
+                    Log.d(
+                        "HomeFragment",
+                        "LUT选择更新: ${selectedLutItem?.name ?: "未选择"}"
+                    )
                 }
 
                 // 设置第二个LUT下拉框
-                binding.spinnerLut2.adapter = adapter
-                binding.spinnerLut2.onItemSelectedListener =
-                    object : android.widget.AdapterView.OnItemSelectedListener {
-                        override fun onItemSelected(
-                            parent: android.widget.AdapterView<*>?,
-                            view: View?,
-                            position: Int,
-                            id: Long
-                        ) {
-                            selectedLut2Item =
-                                if (position == 0) null else availableLuts[position - 1]
-                            selectedLut2Item?.let {
-                                preferencesManager.homeLut2Uri = it.filePath
-                            } ?: run {
-                                preferencesManager.homeLut2Uri = null
-                            }
-
-                            // 发送LUT配置变化广播
-                            sendLutConfigChangesBroadcast()
-
-                            Log.d(
-                                "HomeFragment",
-                                "第二个LUT选择更新: ${selectedLut2Item?.name ?: "未选择"}"
-                            )
-                        }
-
-                        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
-                            selectedLut2Item = null
-                        }
+                binding.dropdownLut2.setAdapter(adapter)
+                binding.dropdownLut2.setOnItemClickListener { _, _, position, _ ->
+                    selectedLut2Item = if (position == 0) null else availableLuts[position - 1]
+                    selectedLut2Item?.let {
+                        preferencesManager.homeLut2Uri = it.filePath
+                    } ?: run {
+                        preferencesManager.homeLut2Uri = null
                     }
+
+                    // 发送LUT配置变化广播
+                    sendLutConfigChangesBroadcast()
+
+                    Log.d(
+                        "HomeFragment",
+                        "第二个LUT选择更新: ${selectedLut2Item?.name ?: "未选择"}"
+                    )
+                }
 
                 // 恢复选中的主要LUT
                 val savedLutUri = preferencesManager.homeLutUri
                 if (!savedLutUri.isNullOrEmpty()) {
                     val savedLutIndex = availableLuts.indexOfFirst { it.filePath == savedLutUri }
                     if (savedLutIndex >= 0) {
-                        binding.spinnerLut.setSelection(savedLutIndex + 1)
+                        binding.dropdownLut.setText(lutNames[savedLutIndex + 1], false)
                         selectedLutItem = availableLuts[savedLutIndex]
                         Log.d("HomeFragment", "恢复LUT选择: ${selectedLutItem?.name}")
                     }
+                } else {
+                    binding.dropdownLut.setText(lutNames[0], false)
                 }
 
                 // 恢复选中的第二个LUT
@@ -329,10 +306,12 @@ class HomeFragment : Fragment() {
                 if (!savedLut2Uri.isNullOrEmpty()) {
                     val savedLut2Index = availableLuts.indexOfFirst { it.filePath == savedLut2Uri }
                     if (savedLut2Index >= 0) {
-                        binding.spinnerLut2.setSelection(savedLut2Index + 1)
+                        binding.dropdownLut2.setText(lutNames[savedLut2Index + 1], false)
                         selectedLut2Item = availableLuts[savedLut2Index]
                         Log.d("HomeFragment", "恢复第二个LUT选择: ${selectedLut2Item?.name}")
                     }
+                } else {
+                    binding.dropdownLut2.setText(lutNames[0], false)
                 }
 
                 Log.d("HomeFragment", "LUT加载完成，共${availableLuts.size}个文件")
