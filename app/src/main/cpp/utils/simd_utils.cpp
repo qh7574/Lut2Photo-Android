@@ -54,9 +54,6 @@ void SIMDUtils::processPixelsNeon(
     
     // 处理完整的4像素批次
     for (int batch = 0; batch < fullBatches; ++batch) {
-        // 加载4个ARGB像素（16字节）
-        uint8x16_t pixels = vld1q_u8(input);
-        
         // 转换为浮点RGB
         float32x4_t r, g, b;
         convertRgbToFloat4x(input, r, g, b);
@@ -116,12 +113,6 @@ void SIMDUtils::convertRgbToFloat4x(
     float32x4_t& g,
     float32x4_t& b
 ) {
-    // 加载16字节（4个ARGB像素）
-    uint8x16_t pixels = vld1q_u8(rgbPixels);
-    
-    // 提取R通道（索引2, 6, 10, 14）
-    uint8x8_t r_low = vget_low_u8(pixels);
-    uint8x8_t r_high = vget_high_u8(pixels);
     // 简化NEON实现，直接使用标量方式提取RGB值
     // uint8x4_t在某些NDK版本中不可用，改用直接内存访问
     // 简化实现：直接访问内存

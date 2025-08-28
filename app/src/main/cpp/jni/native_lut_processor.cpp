@@ -26,7 +26,7 @@ void initializeGlobalComponents() {
     try {
         // 初始化全局内存管理器
         g_global_memory_manager = &MemoryManager::getInstance();
-        g_global_memory_manager->setMemoryLimit(2048 * 1024 * 1024); // 2GB默认限制，支持大图片处理
+        g_global_memory_manager->setMemoryLimit(2048LL * 1024 * 1024); // 2GB默认限制，支持大图片处理
 
         // 注册LUT处理器工厂
         LutProcessorUtils::registerLutProcessorFactory();
@@ -299,6 +299,7 @@ extern "C" {
 
 // JNI_OnLoad - 初始化
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+    (void) reserved; // 抑制未使用参数警告
     g_java_vm = vm;
     // 设置MemoryManager的JVM指针
     MemoryManager::getInstance().setJavaVM(vm);
@@ -309,6 +310,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 // JNI_OnUnload - 清理
 JNIEXPORT void JNICALL JNI_OnUnload(JavaVM *vm, void *reserved) {
+    (void) vm; // 抑制未使用参数警告
+    (void) reserved; // 抑制未使用参数警告
     std::lock_guard<std::mutex> lock(g_processor_mutex);
     g_enhanced_processors.clear();
     g_global_memory_manager = nullptr;
@@ -322,6 +325,8 @@ JNIEXPORT jlong JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreate(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         initializeGlobalComponents();
         auto processor = new NativeLutProcessor();
@@ -337,6 +342,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeDestroy(
         JNIEnv *env, jobject thiz, jlong handle
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     if (handle != 0) {
         auto processor = reinterpret_cast<NativeLutProcessor *>(handle);
         LOGD("销毁Native处理器，地址: %p", processor);
@@ -348,6 +355,7 @@ JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeLoadLut(
         JNIEnv *env, jobject thiz, jlong handle, jfloatArray lutData, jint lutSize
 ) {
+    (void) thiz; // 抑制未使用参数警告
     if (handle == 0) {
         LOGE("无效的处理器句柄");
         return static_cast<jint>(ProcessResult::ERROR_INVALID_PARAMETERS);
@@ -379,6 +387,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeProcessB
         jfloat strength, jfloat lut2Strength, jint quality, jint ditherType,
         jboolean useMultiThreading
 ) {
+    (void) thiz; // 抑制未使用参数警告
     if (handle == 0) {
         LOGE("无效的处理器句柄");
         return static_cast<jint>(ProcessResult::ERROR_INVALID_PARAMETERS);
@@ -434,6 +443,8 @@ JNIEXPORT jlong JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeGetMemoryUsage(
         JNIEnv *env, jobject thiz, jlong handle
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     if (handle == 0) {
         return 0;
     }
@@ -446,6 +457,8 @@ JNIEXPORT jstring JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeGetMemoryStats(
         JNIEnv *env, jobject thiz, jlong handle
 ) {
+    (void) thiz; // 抑制未使用参数警告
+    (void) handle; // 抑制未使用参数警告
     if (handle == 0) {
         return env->NewStringUTF("无效句柄");
     }
@@ -462,6 +475,9 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeSetMemoryLimit(
         JNIEnv *env, jobject thiz, jlong handle, jlong limitBytes
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
+    (void) handle; // 抑制未使用参数警告
     if (handle == 0 || !g_global_memory_manager) {
         return;
     }
@@ -476,6 +492,9 @@ JNIEXPORT jboolean JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeIsNearMemoryLimit(
         JNIEnv *env, jobject thiz, jlong handle, jfloat threshold
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
+    (void) handle; // 抑制未使用参数警告
     if (handle == 0 || !g_global_memory_manager) {
         return JNI_FALSE;
     }
@@ -490,6 +509,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeForceGC(
         JNIEnv *env, jobject thiz, jlong handle
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     if (handle != 0) {
         auto processor = reinterpret_cast<NativeLutProcessor *>(handle);
         processor->forceGarbageCollection();
@@ -502,6 +523,8 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeSetMemor
         JNIEnv *env, jobject thiz, jlong handle, jint maxMemoryMB, jboolean enablePooling,
         jboolean enableCompression
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         if (handle == 0) {
             LOGE("无效的处理器句柄");
@@ -552,6 +575,8 @@ JNIEXPORT jlong JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreateEnhanced(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         initializeGlobalComponents();
 
@@ -569,7 +594,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCreateEn
         std::lock_guard<std::mutex> lock(g_processor_mutex);
         g_enhanced_processors[handle] = std::move(processor);
 
-        LOGD("增强处理器创建成功，句柄: %ld", handle);
+        LOGD("增强处理器创建成功，句柄: %lld", (long long) handle);
         return handle;
     } catch (const std::exception &e) {
         LOGE("创建增强处理器失败: %s", e.what());
@@ -581,13 +606,15 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeDestroyEnhanced(
         JNIEnv *env, jobject thiz, jlong handle
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     if (handle != 0) {
         std::lock_guard<std::mutex> lock(g_processor_mutex);
         auto it = g_enhanced_processors.find(handle);
         if (it != g_enhanced_processors.end()) {
             it->second->cleanup();
             g_enhanced_processors.erase(it);
-            LOGD("增强处理器已销毁，句柄: %ld", handle);
+            LOGD("增强处理器已销毁，句柄: %lld", (long long) handle);
         }
     }
 }
@@ -596,6 +623,7 @@ JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeLoadLutEnhanced(
         JNIEnv *env, jobject thiz, jlong handle, jfloatArray lutData, jint lutSize
 ) {
+    (void) thiz; // 抑制未使用参数警告
     auto processor = getEnhancedProcessor(handle);
     if (!processor) {
         LOGE("无效的增强处理器句柄");
@@ -622,6 +650,9 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeProcessB
         jfloat strength, jfloat lut2Strength, jint quality, jint ditherType,
         jboolean useMultiThreading
 ) {
+    (void) thiz; // 抑制未使用参数警告
+    (void) lut2Strength; // 抑制未使用参数警告
+    (void) ditherType; // 抑制未使用参数警告
     auto processor = getEnhancedProcessor(handle);
     if (!processor) {
         LOGE("无效的增强处理器句柄");
@@ -702,6 +733,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_PerformanceTestRunner_runAllTests(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     // 这里会调用性能测试套件
     // 实际实现需要包含test_runner.cpp中的TestRunner类
     LOGI("性能测试接口被调用 - 需要链接测试模块");
@@ -711,6 +744,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_PerformanceTestRunner_runQuickTests(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     LOGI("快速性能测试接口被调用 - 需要链接测试模块");
 }
 
@@ -718,6 +753,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_PerformanceTestRunner_runMemoryTests(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     LOGI("内存性能测试接口被调用 - 需要链接测试模块");
 }
 
@@ -725,6 +762,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_PerformanceTestRunner_runProcessingTests(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     LOGI("处理性能测试接口被调用 - 需要链接测试模块");
 }
 
@@ -732,6 +771,8 @@ JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_PerformanceTestRunner_runStressTests(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     // TODO: 实现压力测试
 }
 
@@ -740,6 +781,8 @@ JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeInitializeGlobalComponents(
         JNIEnv *env, jobject thiz, jint memoryLimitMB
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         if (!g_init_flag) {
             initializeGlobalComponents();
@@ -758,6 +801,8 @@ JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeCleanupGlobalComponents(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         std::lock_guard<std::mutex> lock(g_processor_mutex);
         g_enhanced_processors.clear();
@@ -775,6 +820,8 @@ JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeOptimizeMemory__(
         JNIEnv *env, jobject thiz
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         if (g_global_memory_manager) {
             g_global_memory_manager->optimizeMemoryUsage();
@@ -792,6 +839,8 @@ JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_NativeLutProcessor_nativeOptimizeMemory__J(
         JNIEnv *env, jobject thiz, jlong handle
 ) {
+    (void) env; // 抑制未使用参数警告
+    (void) thiz; // 抑制未使用参数警告
     try {
         auto processor = getEnhancedProcessor(handle);
         if (processor) {

@@ -345,7 +345,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="可用变量：{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}"
+                        android:text="可用变量：{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}{LUT1}{LUT2}{LUT1_STRENGTH}{LUT2_STRENGTH}"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                     <!-- 文字内容 -->
@@ -361,8 +361,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="textMultiLine"
-                            android:maxLines="3"
+                            android:lineSpacingMultiplier="1"
                             android:text="拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"
+                            android:maxLines="4"
                             android:textSize="14dp" />
                     </com.google.android.material.textfield.TextInputLayout>
 

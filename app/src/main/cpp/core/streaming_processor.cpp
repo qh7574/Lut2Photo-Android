@@ -498,6 +498,7 @@ ProcessingStrategySelector::Strategy ProcessingStrategySelector::selectOptimalSt
         size_t availableMemory,
         const ProcessingParams &params
 ) {
+    (void) params; // 抑制未使用参数警告
     size_t directMemory = calculateDirectMemoryRequirement(width, height);
 
     // 如果直接处理内存需求在可用内存的70%以内，使用直接处理
@@ -545,6 +546,8 @@ size_t ProcessingStrategySelector::calculateDirectMemoryRequirement(int width, i
 
 size_t ProcessingStrategySelector::calculateStreamingMemoryRequirement(int width, int height,
                                                                        int tileSize) {
+    (void) width; // 抑制未使用参数警告
+    (void) height; // 抑制未使用参数警告
     size_t tileMemory = static_cast<size_t>(tileSize) * tileSize * 4 * 2; // 输入 + 输出块
     return tileMemory * 4; // 最多4个并发块
 }
