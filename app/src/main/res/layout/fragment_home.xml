@@ -14,13 +14,30 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- 标题 -->
-        <com.google.android.material.textview.MaterialTextView
+        <!-- 标题和联机拍摄按钮 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/folder_monitoring"
-            android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/folder_monitoring"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_tethered_shooting"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="联机拍摄"
+                app:icon="@drawable/ic_camera" />
+
+        </LinearLayout>
 
         <!-- 1. 监控控制 -->
         <com.google.android.material.card.MaterialCardView

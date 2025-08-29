@@ -72,4 +72,9 @@
     <color name="md_theme_dark_surfaceTint">#D0BCFF</color>
     <color name="md_theme_dark_outlineVariant">#49454F</color>
     <color name="md_theme_dark_scrim">#000000</color>
+
+    <!-- 相机状态颜色 -->
+    <color name="status_idle">#FF757575</color>        <!-- 灰色 -->
+    <color name="status_connected">#FF4CAF50</color>    <!-- 绿色 -->
+    <color name="status_error">#FFF44336</color>       <!-- 红色 -->
 </resources>

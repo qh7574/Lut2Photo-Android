@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- USB设备过滤器，定义支持的相机设备 -->
+
+    <!-- Canon相机设备 -->
+    <usb-device vendor-id="1193" />
+
+    <!-- Nikon相机设备 -->
+    <usb-device vendor-id="1200" />
+
+    <!-- Sony相机设备 -->
+    <usb-device vendor-id="1356" />
+
+    <!-- Fujifilm相机设备 -->
+    <usb-device vendor-id="1272" />
+
+    <!-- Olympus相机设备 -->
+    <usb-device vendor-id="1871" />
+
+    <!-- Panasonic相机设备 -->
+    <usb-device vendor-id="1240" />
+
+    <!-- Leica相机设备 -->
+    <usb-device vendor-id="6092" />
+
+    <!-- Pentax相机设备 -->
+    <usb-device vendor-id="2838" />
+
+    <!-- Sigma相机设备 -->
+    <usb-device vendor-id="1848" />
+
+    <!-- 通用PTP设备 -->
+    <usb-device
+        class="6"
+        protocol="1"
+        subclass="1" />
+
+    <!-- 通用MTP设备 -->
+    <usb-device
+        class="255"
+        protocol="0"
+        subclass="255" />
+</resources>

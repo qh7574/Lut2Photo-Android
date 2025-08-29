@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     kotlin("kapt")
+    id("androidx.navigation.safeargs.kotlin")
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
 }
 
 android {
@@ -12,8 +14,8 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 31
         targetSdk = 36
-        versionCode = 100019
-        versionName = "2.8.5"
+        versionCode = 100020
+        versionName = "3.0.0-beta1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21
@@ -31,7 +33,8 @@ android {
                 abiFilters += listOf("arm64-v8a", "armeabi-v7a")
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
-                    "-DANDROID_PLATFORM=android-31"
+                    "-DANDROID_PLATFORM=android-31",
+                    "-DENABLE_CAMERA_SUPPORT=ON"
                 )
             }
         }
@@ -56,6 +59,10 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
     }
     buildToolsVersion = "35.0.0"
 
@@ -72,6 +79,9 @@ android {
         jniLibs {
             pickFirsts.add("**/libc++_shared.so")
             pickFirsts.add("**/libjsc.so")
+            pickFirsts.add("**/libgphoto2.so")
+            pickFirsts.add("**/libgphoto2_port.so")
+            pickFirsts.add("**/libusb-1.0.so")
         }
     }
     ndkVersion = "29.0.13846066 rc3"
@@ -113,6 +123,22 @@ dependencies {
 
     // Android Palette库用于从图片提取颜色
     implementation("androidx.palette:palette-ktx:1.0.0")
+
+    // 相机功能相关依赖
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    // Compose BOM
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

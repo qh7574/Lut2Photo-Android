@@ -9,7 +9,13 @@
         android:id="@+id/navigation_home"
         android:name="cn.alittlecookie.lut2photo.lut2photo.ui.home.HomeFragment"
         android:label="@string/title_home"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+
+        <action
+            android:id="@+id/action_homeFragment_to_cameraFragment"
+            app:destination="@id/navigation_camera" />
+
+    </fragment>
 
     <fragment
         android:id="@+id/navigation_dashboard"
@@ -34,4 +40,10 @@
         android:name="cn.alittlecookie.lut2photo.lut2photo.ui.history.ProcessingHistoryFragment"
         android:label="处理历史"
         tools:layout="@layout/fragment_processing_history" />
+
+    <fragment
+        android:id="@+id/navigation_camera"
+        android:name="cn.alittlecookie.lut2photo.lut2photo.camera.CameraFragment"
+        android:label="联机拍摄"
+        tools:layout="@layout/fragment_camera" />
 </navigation>

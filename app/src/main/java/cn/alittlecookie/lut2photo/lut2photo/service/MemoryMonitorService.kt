@@ -366,12 +366,24 @@ class MemoryMonitorService : Service() {
                 // 内存管理器优化
                 memoryManager?.optimizeMemory()
 
-                // Native内存优化（避免创建新实例导致死循环）
+                // 获取全局处理器实例进行Native内存优化
                 try {
-                    // 直接调用Native内存优化，不创建新的处理器实例
-                    cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor()
-                        .nativeOptimizeMemory()
-                    Log.d(TAG, "Native内存优化完成")
+                    val processor = MyApplication.getCurrentProcessor()
+                    when (processor) {
+                        is cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor -> {
+                            processor.optimizeMemory()
+                            Log.d(TAG, "紧急Native内存优化完成")
+                        }
+
+                        is cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor -> {
+                            processor.optimizeMemory()
+                            Log.d(TAG, "紧急Enhanced内存优化完成")
+                        }
+
+                        else -> {
+                            Log.w(TAG, "未找到可用的处理器实例，跳过Native内存优化")
+                        }
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "Native内存优化失败", e)
                 }

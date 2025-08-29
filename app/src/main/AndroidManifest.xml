@@ -16,6 +16,29 @@
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
+    <!-- 相机相关权限 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- USB相关权限 -->
+    <uses-permission android:name="android.permission.USB_PERMISSION" />
+
+    <!-- 相机功能声明 -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false" />
+
+    <!-- OpenGL ES功能声明 -->
+    <uses-feature
+        android:glEsVersion="0x00030000"
+        android:required="true" />
+
     <application
         android:name=".MyApplication"
         android:hardwareAccelerated="true"
@@ -49,6 +72,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
         </activity>
 
         <!-- 性能基准测试Activity -->
@@ -99,7 +129,20 @@
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
-            
+
+        <!-- 相机服务 -->
+        <service
+            android:name=".camera.CameraService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- 隐藏的相机测试Activity -->
+        <activity
+            android:name=".camera.CameraTestActivity"
+            android:exported="false"
+            android:label="Camera Debug Tool"
+            android:theme="@style/Theme.Lut2Photo" />
+
     </application>
 
 </manifest>

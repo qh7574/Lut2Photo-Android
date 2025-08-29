@@ -96,6 +96,10 @@ class ThreadManager(context: Context) {
             } else {
                 nativeProcessor = enhancedProcessor
             }
+
+            // 将处理器实例注册到MyApplication
+            cn.alittlecookie.lut2photo.lut2photo.MyApplication.setCurrentProcessor(nativeProcessor)
+            
             Log.d(TAG, "Native处理器初始化成功，用于内存监控")
         } catch (e: Exception) {
             Log.e(TAG, "Native处理器初始化失败", e)

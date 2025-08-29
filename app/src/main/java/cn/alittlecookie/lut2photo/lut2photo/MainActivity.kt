@@ -22,8 +22,11 @@ import cn.alittlecookie.lut2photo.lut2photo.utils.ThemeManager
 import cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.service.MemoryMonitorService
+import cn.alittlecookie.lut2photo.lut2photo.camera.CameraTestActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.DynamicColors
+import android.view.View
+import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,6 +38,12 @@ class MainActivity : AppCompatActivity() {
     // 添加权限请求标志，避免重复请求
     private var isPermissionRequesting = false
     private val PERMISSION_REQUEST_CODE = 1001
+
+    // 相机测试入口相关
+    private var clickCount = 0
+    private var lastClickTime = 0L
+    private val CLICK_TIMEOUT = 3000L // 3秒内连续点击有效
+    private val REQUIRED_CLICKS = 7 // 需要连续点击7次
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // 在super.onCreate之前应用主题
@@ -78,10 +87,42 @@ class MainActivity : AppCompatActivity() {
                     )
                 )
                 navView.setupWithNavController(navController)
+
+                // 添加导航监听器，处理相机页面的底部导航栏显示/隐藏
+                navController.addOnDestinationChangedListener { _, destination, _ ->
+                    val container =
+                        findViewById<androidx.constraintlayout.widget.ConstraintLayout>(R.id.container)
+                    when (destination.id) {
+                        R.id.navigation_camera -> {
+                            // 进入相机页面时隐藏底部导航栏
+                            navView.visibility = View.GONE
+                            // 移除顶部ActionBar占位
+                            container?.setPadding(0, 0, 0, 0)
+                        }
+
+                        else -> {
+                            // 其他页面显示底部导航栏
+                            navView.visibility = View.VISIBLE
+                            // 恢复顶部ActionBar占位
+                            val actionBarSize = android.util.TypedValue().apply {
+                                theme.resolveAttribute(android.R.attr.actionBarSize, this, true)
+                            }
+                            val actionBarHeight =
+                                android.util.TypedValue.complexToDimensionPixelSize(
+                                    actionBarSize.data,
+                                    resources.displayMetrics
+                                )
+                            container?.setPadding(0, actionBarHeight, 0, 0)
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+
+        // 添加隐藏的相机测试入口（长按导航栏5次）
+        setupCameraTestEntry()
 
     }
     
@@ -338,6 +379,46 @@ class MainActivity : AppCompatActivity() {
                 permissions.toTypedArray(),
                 PERMISSION_REQUEST_CODE
             )
+        }
+    }
+
+    /**
+     * 设置隐藏的相机测试入口
+     * 连续快速点击导航栏7次可以打开相机测试界面
+     */
+    private fun setupCameraTestEntry() {
+        binding.navView.setOnClickListener {
+            val currentTime = System.currentTimeMillis()
+
+            // 如果距离上次点击超过超时时间，重置计数
+            if (currentTime - lastClickTime > CLICK_TIMEOUT) {
+                clickCount = 0
+            }
+
+            clickCount++
+            lastClickTime = currentTime
+
+            Log.d("MainActivity", "导航栏点击次数: $clickCount")
+
+            if (clickCount >= REQUIRED_CLICKS) {
+                clickCount = 0
+                openCameraTestActivity()
+            }
+        }
+    }
+
+    /**
+     * 打开相机测试Activity
+     */
+    private fun openCameraTestActivity() {
+        try {
+            Toast.makeText(this, "正在打开相机调试工具...", Toast.LENGTH_SHORT).show()
+            val intent = CameraTestActivity.createIntent(this)
+            startActivity(intent)
+            Log.i("MainActivity", "启动相机测试Activity")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "启动相机测试Activity失败", e)
+            Toast.makeText(this, "启动相机测试失败: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 

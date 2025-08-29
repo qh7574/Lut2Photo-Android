@@ -22,6 +22,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentHomeBinding
@@ -176,6 +177,11 @@ class HomeFragment : Fragment() {
 
         // 设置抖动按钮
         setupDitherButtons()
+
+        // 联机拍摄按钮
+        binding.buttonTetheredShooting.setOnClickListener {
+            navigateToCameraFragment()
+        }
     }
 
     private fun setupSwitchListener() {
@@ -1036,5 +1042,16 @@ class HomeFragment : Fragment() {
             lut2Strength = preferencesManager.homeLut2Strength
         )
         bottomSheet.show(parentFragmentManager, "WatermarkSettingsBottomSheet")
+    }
+
+    private fun navigateToCameraFragment() {
+        try {
+            // 使用Navigation组件跳转到相机界面
+            val action = HomeFragmentDirections.actionHomeFragmentToCameraFragment()
+            findNavController().navigate(action)
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "跳转到相机界面失败", e)
+            showToast("无法打开相机界面")
+        }
     }
 }

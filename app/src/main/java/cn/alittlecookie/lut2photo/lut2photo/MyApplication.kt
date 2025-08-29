@@ -21,13 +21,30 @@ class MyApplication : Application() {
         private const val TAG = "MyApplication"
 
         @Volatile
+        private var instance: MyApplication? = null
+        
+        @Volatile
         private var memoryManager: MemoryManager? = null
 
+        @Volatile
+        private var currentProcessor: Any? = null
+
+        fun getInstance(): MyApplication? = instance
+        
         fun getMemoryManager(): MemoryManager? = memoryManager
+
+        fun getCurrentProcessor(): Any? = currentProcessor
+
+        fun setCurrentProcessor(processor: Any?) {
+            currentProcessor = processor
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
+
+        // 设置全局实例
+        instance = this
 
         Log.i(TAG, "应用启动，开始初始化全局组件")
 
@@ -149,11 +166,24 @@ class MyApplication : Application() {
         // 触发内存管理器的内存优化
         memoryManager?.optimizeMemory()
 
-        // 触发Native内存优化（避免创建新实例导致死循环）
+        // 触发Native内存优化（使用全局处理器实例）
         try {
-            // 直接调用全局Native内存优化，不创建新的处理器实例
-            NativeLutProcessor().nativeOptimizeMemory()
-            Log.d(TAG, "全局Native内存优化完成")
+            val processor = currentProcessor
+            when (processor) {
+                is cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor -> {
+                    processor.optimizeMemory()
+                    Log.d(TAG, "全局Native内存优化完成")
+                }
+
+                is cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor -> {
+                    processor.optimizeMemory()
+                    Log.d(TAG, "全局Enhanced内存优化完成")
+                }
+
+                else -> {
+                    Log.w(TAG, "未找到可用的处理器实例，跳过Native内存优化")
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Native内存优化失败", e)
         }

@@ -1,9 +1,13 @@
-attribute vec4 a_position;
-attribute vec2 a_texCoord;
+#version 300 es
 
-varying vec2 v_texCoord;
+layout(location = 0) in vec4 a_position;
+layout(location = 1) in vec2 a_texCoord;
+
+uniform mat4 u_mvpMatrix;
+
+out vec2 v_texCoord;
 
 void main() {
-    gl_Position = a_position;
+    gl_Position = u_mvpMatrix * a_position;
     v_texCoord = a_texCoord;
 }

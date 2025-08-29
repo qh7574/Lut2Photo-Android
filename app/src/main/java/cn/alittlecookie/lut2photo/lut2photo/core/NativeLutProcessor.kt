@@ -303,6 +303,23 @@ class NativeLutProcessor : ILutProcessor {
     }
 
     /**
+     * 优化内存使用
+     */
+    fun optimizeMemory(): Boolean {
+        return if (isInitialized) {
+            try {
+                val result = nativeOptimizeMemory(nativeHandle)
+                result == 0
+            } catch (e: Exception) {
+                Log.e(TAG, "内存优化失败", e)
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    /**
      * 解析Cube LUT文件
      */
     private fun parseCubeLut(inputStream: InputStream): List<Float> {

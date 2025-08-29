@@ -18,6 +18,11 @@ elseif (${ANDROID_ABI} STREQUAL "armeabi-v7a")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mfpu=neon -mfloat-abi=softfp")
 endif ()
 
+# 设置libgphoto2库路径
+set(GPHOTO2_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../../../libs)
+set(GPHOTO2_INCLUDE_DIR ${GPHOTO2_ROOT_PATH}/include)
+set(GPHOTO2_LIB_DIR ${GPHOTO2_ROOT_PATH}/lib/${ANDROID_ABI})
+
 # 包含目录
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -25,6 +30,7 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/utils
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${GPHOTO2_INCLUDE_DIR}
 )
 
 # 核心源文件列表
@@ -34,6 +40,7 @@ set(CORE_SOURCES
         core/lut_processor.cpp
         utils/simd_utils.cpp
         utils/bitmap_utils.cpp
+        libgphoto2_wrapper.cpp
 )
 
 # 增强功能源文件
@@ -88,6 +95,39 @@ find_library(
         android
 )
 
+# 创建libgphoto2 stub库用于编译测试
+set(GPHOTO2_STUB_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/../../../../libs/libgphoto2_stub.cpp)
+
+if (EXISTS ${GPHOTO2_STUB_SOURCE})
+    # 创建libgphoto2 stub静态库
+    add_library(gphoto2_stub STATIC ${GPHOTO2_STUB_SOURCE})
+    target_include_directories(gphoto2_stub PRIVATE ${GPHOTO2_INCLUDE_DIR})
+    target_link_libraries(gphoto2_stub ${log-lib})
+
+    set(GPHOTO2_LIBRARIES gphoto2_stub)
+    message(STATUS "Using libgphoto2 stub library for compilation testing")
+else ()
+    # 尝试查找真实的libgphoto2库
+    if (EXISTS ${GPHOTO2_LIB_DIR}/libgphoto2.so)
+        add_library(gphoto2 SHARED IMPORTED)
+        set_target_properties(gphoto2 PROPERTIES
+                IMPORTED_LOCATION ${GPHOTO2_LIB_DIR}/libgphoto2.so
+        )
+
+        add_library(gphoto2_port SHARED IMPORTED)
+        set_target_properties(gphoto2_port PROPERTIES
+                IMPORTED_LOCATION ${GPHOTO2_LIB_DIR}/libgphoto2_port.so
+        )
+
+        set(GPHOTO2_LIBRARIES gphoto2 gphoto2_port)
+        message(STATUS "libgphoto2 found at ${GPHOTO2_LIB_DIR}")
+    else ()
+        set(GPHOTO2_LIBRARIES "")
+        message(WARNING "libgphoto2 not found at ${GPHOTO2_LIB_DIR}")
+        message(WARNING "Camera functionality will be disabled")
+    endif ()
+endif ()
+
 # 查找OpenMP（可选）
 find_package(OpenMP)
 if (OpenMP_CXX_FOUND)
@@ -104,6 +144,7 @@ target_link_libraries(
         ${log-lib}
         ${jnigraphics-lib}
         ${android-lib}
+        ${GPHOTO2_LIBRARIES}
 )
 
 # 编译定义
@@ -116,6 +157,15 @@ target_compile_definitions(
         ENHANCED_MEMORY_MANAGEMENT
         EXCEPTION_HANDLING_ENABLED
 )
+
+# 如果libgphoto2可用，添加相机支持定义
+if (GPHOTO2_LIBRARIES)
+    target_compile_definitions(
+            native_lut_processor
+            PRIVATE
+            CAMERA_SUPPORT_ENABLED
+    )
+endif ()
 
 # 如果启用测试，添加测试相关定义
 if (ENABLE_PERFORMANCE_TESTS)

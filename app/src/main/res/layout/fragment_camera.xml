@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".camera.CameraFragment">
+
+    <!-- 竖屏布局 -->
+    <LinearLayout
+        android:id="@+id/portraitLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <!-- 顶部状态栏 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:background="@color/black"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <!-- 返回按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/backButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawableStart="@drawable/ic_arrow_back"
+                android:drawableTint="@color/white"
+                android:text="返回"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <!-- 相机状态 -->
+            <TextView
+                android:id="@+id/connectionStatusText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/status_background_idle"
+                android:gravity="center"
+                android:padding="4dp"
+                android:text="空闲"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <!-- 刷新按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/refreshCamerasButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="刷新"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- 实时预览区域 -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/black">
+
+            <ImageView
+                android:id="@+id/liveViewImageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                tools:src="@drawable/ic_launcher_background" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="点击连接相机开始预览"
+                android:textColor="@color/white"
+                android:textSize="16sp" />
+
+            <!-- 自动对焦按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/autoFocusButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="16dp"
+                android:enabled="false"
+                android:text="AF"
+                android:textColor="@color/white" />
+
+        </FrameLayout>
+
+        <!-- 参数控制区域 -->
+        <LinearLayout
+            android:id="@+id/controlsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurfaceVariant"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- 连接控制 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/connectCameraButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:text="连接相机" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/disconnectCameraButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="断开连接" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/startLiveViewButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="开始预览" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/stopLiveViewButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="停止预览" />
+
+            </LinearLayout>
+
+            <!-- 预览控制 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal">
+
+
+            </LinearLayout>
+
+            <!-- 参数控制按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/apertureButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="光圈"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/shutterSpeedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="2dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="快门"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/isoButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="ISO"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/whiteBalanceButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="白平衡"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/focusModeButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="对焦模式"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- 录制和快门按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <!-- 录制按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/recordButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                android:enabled="false"
+                android:text="开始录制" />
+
+            <!-- 快门按钮 -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/captureButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:src="@drawable/ic_camera"
+                app:tint="@color/white" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 横屏布局 -->
+    <FrameLayout
+        android:id="@+id/landscapeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <!-- 全屏视频显示区域 -->
+        <ImageView
+            android:id="@+id/landscapeLiveViewImageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:background="@color/black"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            tools:src="@drawable/ic_launcher_background" />
+
+        <TextView
+            android:id="@+id/landscapeHintText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="点击连接相机开始预览"
+            android:textColor="@color/white"
+            android:textSize="18sp" />
+
+        <!-- 顶部状态栏（横屏） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:background="@android:color/transparent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:paddingTop="32dp">
+
+            <!-- 返回按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeBackButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawableStart="@drawable/ic_arrow_back"
+                android:drawableTint="@color/white"
+                android:text="返回"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <!-- 相机状态 -->
+            <TextView
+                android:id="@+id/landscapeConnectionStatusText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/status_background_idle"
+                android:gravity="center"
+                android:padding="4dp"
+                android:text="空闲"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <!-- 刷新按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeRefreshCamerasButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="刷新"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- 左侧悬浮控制面板 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical"
+            android:layout_margin="16dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <!-- 连接相机按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeConnectCameraButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:minWidth="80dp"
+                android:text="连接"
+                android:textSize="12sp" />
+
+            <!-- 断开连接按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeDisconnectCameraButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="断开"
+                android:textSize="12sp" />
+
+            <!-- 开始预览按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeStartLiveViewButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="预览"
+                android:textSize="12sp" />
+
+            <!-- 自动对焦按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeAutoFocusButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="对焦"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- 右侧悬浮参数控制面板 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:layout_margin="16dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <!-- 光圈按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeApertureButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="光圈"
+                android:textSize="12sp" />
+
+            <!-- 快门速度按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeShutterSpeedButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="快门"
+                android:textSize="12sp" />
+
+            <!-- ISO按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeIsoButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="ISO"
+                android:textSize="12sp" />
+
+            <!-- 白平衡按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeWhiteBalanceButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="白平衡"
+                android:textSize="12sp" />
+
+            <!-- 对焦模式按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeFocusModeButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="对焦模式"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- 底部中央快门和录制按钮 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_margin="24dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <!-- 录制按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/landscapeRecordButton"
+                style="@style/Widget.App.Button.LandscapeOutlined"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="16dp"
+                android:enabled="false"
+                android:minWidth="80dp"
+                android:text="录制"
+                android:textSize="12sp" />
+
+            <!-- 快门按钮 -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/landscapeCaptureButton"
+                style="@style/Widget.App.FloatingActionButton.Landscape"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:enabled="false"
+                android:src="@drawable/ic_camera"
+                app:tint="@color/white" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</FrameLayout>
