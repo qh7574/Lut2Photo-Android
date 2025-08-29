@@ -2,7 +2,7 @@
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
 
-![应用版本](https://img.shields.io/badge/版本-2.5-blue)
+![应用版本](https://img.shields.io/badge/版本-2.8.5-blue)
 ![Android](https://img.shields.io/badge/Android-12+-green)
 ![Kotlin](https://img.shields.io/badge/Kotlin-1.8.0-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
@@ -72,6 +72,8 @@
 - **批量图片处理**：支持同时处理多张图片
 - **双引擎处理**：CPU/GPU双重处理引擎，智能回退机制
 - **双Lut处理**：可选叠加第二个Lut效果
+- **实时预览**：可实时预览lut和水印的应用效果
+- **NDK/JNI内存管理**：绕开jvm内存限制，支持超大像素图片处理
 - **多种抖动算法**：Floyd-Steinberg、随机抖动，有效减少色彩断层
 - **可调节效果强度**：0-100%强度调节，支持精细控制
 - **高质量输出**：50-100%质量范围，平衡文件大小与画质
@@ -135,6 +137,11 @@ CPU理：~15秒
 | `{EXPOSURE_COMPENSATION}` | 曝光补偿 |  | +0.7 EV |
 | `{WHITE_BALANCE}` | 白平衡 |  | 自动 |
 | `{FLASH}` | 闪光灯 | 是/否 | 否 |
+| `{LUT1}` | LUT1文件名 | 无.cube后缀 |  |
+| `{LUT2}` | LUT2文件名 | 无.cube后缀 |  |
+| `{LUT1_STRENGTH}` | LUT1强度 | 百分比 | 66% |
+| `{LUT2_STRENGTH}` | LUT2强度 | 百分比 | 66% |
+
 
 **高级排版特性**：
 - **多行文本**：支持换行
