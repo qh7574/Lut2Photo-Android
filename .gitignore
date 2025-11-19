@@ -18,3 +18,4 @@ local.properties
 /app/release/app-release.apk
 /app/release/output-metadata.json
 /.kotlin/errors/errors-1756173510688.log
+/.kiro/
