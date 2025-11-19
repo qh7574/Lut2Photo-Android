@@ -757,7 +757,23 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun getFileNameFromUri(uri: Uri): String {
-        return uri.lastPathSegment ?: "unknown"
+        // 从URI获取文件名，去掉路径前缀（如 primary:DCIM/Camera/）
+        val lastSegment = uri.lastPathSegment ?: "unknown"
+        
+        // 如果包含路径分隔符，只取最后的文件名部分
+        return if (lastSegment.contains("/")) {
+            lastSegment.substringAfterLast("/")
+        } else if (lastSegment.contains(":")) {
+            // 处理类似 "primary:filename.jpg" 的情况
+            val afterColon = lastSegment.substringAfterLast(":")
+            if (afterColon.contains("/")) {
+                afterColon.substringAfterLast("/")
+            } else {
+                afterColon
+            }
+        } else {
+            lastSegment
+        }
     }
 
     private fun copyExifData(sourceUri: Uri, targetUri: Uri) {
