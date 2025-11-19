@@ -98,10 +98,10 @@
 
     <!-- 应用信息 -->
     <string name="app_version_format">App版本: %s</string>
-    <string name="app_description">LUT2Photo\n一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• 支持标准CUBE格式LUT文件\n• Material 3 动态颜色主题\n\n基于Python版本的LUT处理算法移植，Python版本项目地址：\nhttps://github.com/qh7574/Lut2Photo-Py\n\n作者：偷光你的小鱼干（某些情况下也叫 狸花饺子喵）</string>
+    <string name="app_description">LUT2Photo\n一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n内置富士胶片模拟LUT，感谢 小红书@JC\'s here 制作的srgb转rec2020.flog2。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• 支持标准CUBE格式LUT文件\n• Material 3 动态颜色主题\n\n基于Python版本的LUT处理算法移植，Python版本项目地址：\nhttps://github.com/qh7574/Lut2Photo-Py\n\n作者：偷光你的小鱼干（某些情况下也叫 狸花饺子喵）</string>
 
     <!-- 权限状态格式化 -->
-    <string name="permission_status_format">权限状态: %1$d/%2$d 已授权</string>
+    <string name="permission_status_format">权限状态: %d/%d 已授权</string>
     <string name="permission_granted">✓ 已授权</string>
     <string name="permission_denied">✕ 未授权</string>
     <string name="request_permissions">请求权限</string>
@@ -168,10 +168,10 @@
     <string name="status_processing_cancelled">处理已取消</string>
     <string name="status_processing_error_format">处理第 %d 张图片时出错: %s</string>
     <string name="processing_completed_success">处理完成！成功处理了 %d 张图片</string>
-    <string name="processing_completed_partial">处理完成！成功处理了 %1$d 张图片，共 %2$d 张图片</string>
+    <string name="processing_completed_partial">处理完成！成功处理了 %d 张图片，共 %d 张图片</string>
     <string name="status_processing_completed">处理完成，共处理 %d 张图片</string>
-    <string name="status_processing_partial">处理完成，共处理 %1$d/%2$d 张图片</string>
-    <string name="processing_image_progress">正在处理第 %1$d/%2$d 张图片: %3$s</string>
+    <string name="status_processing_partial">处理完成，共处理 %d/%d 张图片</string>
+    <string name="processing_image_progress">正在处理第 %d/%d 张图片: %s</string>
     <string name="processing_completed_and_cleared">处理完成！已处理 %d 张图片，图片列表已清空</string>
     <string name="status_processing">处理中...</string>
     <string name="status_processing_stopped">处理已停止</string>

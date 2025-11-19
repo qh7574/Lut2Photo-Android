@@ -65,11 +65,23 @@ class DashboardFragment : Fragment() {
     private val PREVIEW_UPDATE_DELAY = 300L // 300ms延迟
 
     // Activity Result Launchers
+    // 使用SAF的OpenMultipleDocuments来选择图片
     private val selectImagesLauncher = registerForActivityResult(
-        ActivityResultContracts.GetMultipleContents()
+        ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         uris.let { uriList ->
             if (uriList.isNotEmpty()) {
+                // 对每个URI授予持久化权限
+                uriList.forEach { uri ->
+                    try {
+                        requireContext().contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (e: SecurityException) {
+                        Log.w("DashboardFragment", "无法获取持久化URI权限: $uri", e)
+                    }
+                }
                 // 使用批量添加方法而不是逐个添加
                 dashboardViewModel.addImages(uriList)
             }
@@ -120,9 +132,10 @@ class DashboardFragment : Fragment() {
     }
 
     private fun setupViews() {
-        // 图片选择按钮
+        // 图片选择按钮 - 使用SAF选择图片
         binding.buttonSelectImages.setOnClickListener {
-            selectImagesLauncher.launch("image/*")
+            // OpenMultipleDocuments需要传入MIME类型数组
+            selectImagesLauncher.launch(arrayOf("image/*"))
         }
 
         // 输出文件夹选择按钮

@@ -2,7 +2,7 @@
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
 
-![应用版本](https://img.shields.io/badge/版本-2.8.5-blue)
+![应用版本](https://img.shields.io/badge/版本-2.8.6-blue)
 ![Android](https://img.shields.io/badge/Android-12+-green)
 ![Kotlin](https://img.shields.io/badge/Kotlin-1.8.0-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
@@ -41,6 +41,11 @@
 6. 设置**水印**（可选）
 7. 开启**文件夹监控**开关
 
+#### 4. LUT管理
+1. 进入**LUT管理**页面
+2. 点击**导入**（可长按多选文件导入）
+3. 选择已导入的文件点击**导出**可将LUT导出
+4. 内置富士胶片模拟LUT，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作的srgb转rec2020.flog2
 
 ## 📝todolist
 ### ⌛计划内

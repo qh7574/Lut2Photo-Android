@@ -9,6 +9,11 @@ import androidx.work.WorkManager
 import cn.alittlecookie.lut2photo.lut2photo.core.MemoryManager
 import cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.utils.BuiltInLutInitializer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * 自定义Application类
@@ -25,6 +30,9 @@ class MyApplication : Application() {
 
         fun getMemoryManager(): MemoryManager? = memoryManager
     }
+    
+    // 应用级协程作用域
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
         super.onCreate()
@@ -45,6 +53,9 @@ class MyApplication : Application() {
 
         // 初始化全局内存管理
         initializeGlobalMemoryManagement()
+        
+        // 初始化内置LUT文件
+        initializeBuiltInLuts()
     }
 
     /**
@@ -141,6 +152,40 @@ class MyApplication : Application() {
         }
     }
 
+    /**
+     * 初始化内置LUT文件
+     * 在应用首次启动时将res/raw中的内置LUT文件复制到内部存储
+     */
+    private fun initializeBuiltInLuts() {
+        applicationScope.launch {
+            try {
+                Log.i(TAG, "开始检查内置LUT文件初始化状态")
+                
+                val initializer = BuiltInLutInitializer(this@MyApplication)
+                
+                // 检查是否已经初始化过
+                if (initializer.isInitialized()) {
+                    Log.i(TAG, "内置LUT文件已初始化，跳过")
+                    return@launch
+                }
+                
+                Log.i(TAG, "首次启动，开始初始化内置LUT文件")
+                
+                // 执行初始化
+                val success = initializer.initializeBuiltInLuts()
+                
+                if (success) {
+                    Log.i(TAG, "内置LUT文件初始化成功")
+                } else {
+                    Log.e(TAG, "内置LUT文件初始化失败")
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "初始化内置LUT文件时发生异常", e)
+            }
+        }
+    }
+    
     override fun onLowMemory() {
         super.onLowMemory()
 
