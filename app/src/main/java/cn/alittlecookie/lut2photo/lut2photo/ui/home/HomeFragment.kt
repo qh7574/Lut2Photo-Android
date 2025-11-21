@@ -276,6 +276,9 @@ class HomeFragment : Fragment() {
                     else -> LutProcessor.DitherType.NONE
                 }
                 preferencesManager.homeDitherType = ditherType.name
+                
+                // 发送LUT配置变化广播
+                sendLutConfigChangesBroadcast()
             }
         }
     }
@@ -462,6 +465,9 @@ class HomeFragment : Fragment() {
         binding.sliderQuality.addOnChangeListener { _, value, _ ->
             preferencesManager.homeQuality = value
             binding.textQualityValue.text = "${value.toInt()}"
+            
+            // 发送LUT配置变化广播
+            sendLutConfigChangesBroadcast()
         }
     }
 
