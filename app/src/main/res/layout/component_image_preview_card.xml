@@ -12,14 +12,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingRight="16dp"
+        android:paddingLeft="16dp"
+        android:paddingBottom="0dp"
+        android:paddingTop="0dp">
 
         <!-- 预览标题 -->
         <LinearLayout
             android:id="@+id/layout_preview_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="0dp"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
@@ -68,7 +71,8 @@
             android:id="@+id/layout_preview_content"
             android:layout_width="match_parent"
             android:layout_height="200dp"
-            android:background="@drawable/preview_background">
+            android:background="@drawable/preview_background"
+            android:layout_marginBottom="16dp">
 
             <!-- 占位图 -->
             <LinearLayout

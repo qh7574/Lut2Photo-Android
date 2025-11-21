@@ -44,12 +44,12 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <com.google.android.material.textview.MaterialTextView
+                    <!--<com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:text="@string/processing_control"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />-->
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/text_image_count"
@@ -57,26 +57,48 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:text="@string/images_selected_zero"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="0dp">
 
                     <!-- 文件选择按钮 -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_select_images"
                         style="@style/Widget.Material3.Button"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginBottom="16dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="3"
+                        android:layout_height="wrap_content"
+                        android:layout_marginRight="8dp"
                         android:text="@string/select_images_from_gallery"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        app:icon="@drawable/outline_photo_24"
+                        app:iconGravity="textStart"
+                        app:iconPadding="8dp"
+                        app:iconSize="24dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"/>
 
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_start_processing"
+                        app:icon="@drawable/outline_photo_filter_24"
+                        app:iconGravity="textStart"
+                        app:iconPadding="8dp"
+                        app:iconSize="24dp"
                         style="@style/Widget.Material3.Button"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
+                        android:layout_width="0dp"
+                        android:layout_weight="2"
+                        android:layout_height="wrap_content"
                         android:text="@string/start_processing"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"/>
+
+                </LinearLayout>
 
                     <com.google.android.material.progressindicator.LinearProgressIndicator
                         android:id="@+id/progress_bar"
@@ -85,15 +107,14 @@
                         android:layout_marginTop="16dp"
                         android:visibility="gone" />
 
-                    <!-- 在处理控制卡片中添加缺失的元素 -->
-                    <com.google.android.material.textview.MaterialTextView
+                    <!--<com.google.android.material.textview.MaterialTextView
                         android:id="@+id/text_processing_status"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:layout_marginBottom="8dp"
                         android:text="@string/ready"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />-->
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/text_processed_count"

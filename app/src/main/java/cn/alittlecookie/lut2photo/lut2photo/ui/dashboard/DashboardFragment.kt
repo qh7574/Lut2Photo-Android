@@ -65,13 +65,52 @@ class DashboardFragment : Fragment() {
     private val PREVIEW_UPDATE_DELAY = 300L // 300ms延迟
 
     // Activity Result Launchers
-    // 使用SAF的OpenMultipleDocuments来选择图片
-    private val selectImagesLauncher = registerForActivityResult(
+    // 使用系统相册选择器（ACTION_PICK）
+    private val pickImagesLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val uris = mutableListOf<Uri>()
+            
+            // 处理多选结果
+            data?.clipData?.let { clipData ->
+                for (i in 0 until clipData.itemCount) {
+                    clipData.getItemAt(i).uri?.let { uri ->
+                        uris.add(uri)
+                    }
+                }
+            } ?: data?.data?.let { uri ->
+                // 处理单选结果
+                uris.add(uri)
+            }
+            
+            if (uris.isNotEmpty()) {
+                // ACTION_PICK返回的URI通常不需要持久化权限
+                // 但仍然尝试获取，失败也不影响使用
+                uris.forEach { uri ->
+                    try {
+                        requireContext().contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (e: Exception) {
+                        // ACTION_PICK的URI可能不支持持久化权限，这是正常的
+                        Log.d("DashboardFragment", "URI不支持持久化权限（这是正常的）: $uri")
+                    }
+                }
+                dashboardViewModel.addImages(uris)
+            }
+        }
+    }
+    
+    // SAF备选方案（当系统相册不可用时使用）
+    private val selectImagesSafLauncher = registerForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         uris.let { uriList ->
             if (uriList.isNotEmpty()) {
-                // 对每个URI授予持久化权限
+                // SAF需要持久化权限
                 uriList.forEach { uri ->
                     try {
                         requireContext().contentResolver.takePersistableUriPermission(
@@ -82,7 +121,6 @@ class DashboardFragment : Fragment() {
                         Log.w("DashboardFragment", "无法获取持久化URI权限: $uri", e)
                     }
                 }
-                // 使用批量添加方法而不是逐个添加
                 dashboardViewModel.addImages(uriList)
             }
         }
@@ -102,7 +140,6 @@ class DashboardFragment : Fragment() {
                 updateOutputFolderDisplay()
             } catch (e: SecurityException) {
                 Log.e("DashboardFragment", "无法获取持久化URI权限", e)
-                // 显示错误提示给用户
             }
         }
     }
@@ -132,10 +169,9 @@ class DashboardFragment : Fragment() {
     }
 
     private fun setupViews() {
-        // 图片选择按钮 - 使用SAF选择图片
+        // 图片选择按钮 - 优先使用系统相册，不可用时使用SAF
         binding.buttonSelectImages.setOnClickListener {
-            // OpenMultipleDocuments需要传入MIME类型数组
-            selectImagesLauncher.launch(arrayOf("image/*"))
+            launchImagePicker()
         }
 
         // 输出文件夹选择按钮
@@ -302,9 +338,9 @@ class DashboardFragment : Fragment() {
             updatePreview()
         }
 
-        dashboardViewModel.processingStatus.observe(viewLifecycleOwner) { status ->
+        /*dashboardViewModel.processingStatus.observe(viewLifecycleOwner) { status ->
             updateProcessingStatus(status)
-        }
+        }*/
 
         dashboardViewModel.processedCount.observe(viewLifecycleOwner) { processed ->
             val total = dashboardViewModel.totalCount.value ?: 0
@@ -815,9 +851,9 @@ class DashboardFragment : Fragment() {
         binding.textImageCount.text = getString(R.string.image_count_format, count)
     }
 
-    private fun updateProcessingStatus(status: String) {
+    /*private fun updateProcessingStatus(status: String) {
         binding.textProcessingStatus.text = status
-    }
+    }*/
 
     private fun updateProcessedCount(processed: Int, total: Int) {
         binding.textProcessedCount.text =
@@ -903,5 +939,51 @@ class DashboardFragment : Fragment() {
         // 清理防抖任务
         previewUpdateRunnable?.let { previewUpdateHandler.removeCallbacks(it) }
         _binding = null
+    }
+    
+    /**
+     * 启动图片选择器
+     * 优先使用系统相册（ACTION_PICK），不可用时回退到SAF
+     */
+    private fun launchImagePicker() {
+        try {
+            // 尝试使用系统相册选择器
+            val intent = Intent(Intent.ACTION_PICK).apply {
+                type = "image/*"
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                // 添加MIME类型过滤
+                putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/jpeg", "image/png", "image/jpg", "image/webp"))
+            }
+            
+            // 检查是否有应用可以处理这个Intent
+            val packageManager = requireContext().packageManager
+            if (intent.resolveActivity(packageManager) != null) {
+                Log.d("DashboardFragment", "使用系统相册选择器（ACTION_PICK）")
+                pickImagesLauncher.launch(intent)
+            } else {
+                // 系统相册不可用，使用SAF
+                Log.d("DashboardFragment", "系统相册不可用，使用SAF")
+                useSafPicker()
+            }
+        } catch (e: Exception) {
+            Log.e("DashboardFragment", "启动系统相册失败，使用SAF", e)
+            useSafPicker()
+        }
+    }
+    
+    /**
+     * 使用SAF选择图片（备选方案）
+     */
+    private fun useSafPicker() {
+        try {
+            selectImagesSafLauncher.launch(arrayOf("image/*"))
+        } catch (e: Exception) {
+            Log.e("DashboardFragment", "启动SAF失败", e)
+            Toast.makeText(
+                requireContext(),
+                "无法打开图片选择器",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 }

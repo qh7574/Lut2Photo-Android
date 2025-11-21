@@ -63,7 +63,7 @@
     <string name="single_file_processing">手动处理</string>
     <string name="select_images">选择图片</string>
     <string name="clear_images">清空</string>
-    <string name="start_processing">开始处理</string>
+    <string name="start_processing">处理</string>
     <string name="processing_in_progress">正在处理</string>
     <string name="images_selected">已选择: %d 张图片</string>
     <string name="image_count_format">已选择 %d 张图片</string>
@@ -210,7 +210,7 @@
     <string name="error_save_image">保存图片失败</string>
 
     <!-- BottomSheet相关 -->
-    <string name="select_images_from_gallery">从相册选择图片</string>
+    <string name="select_images_from_gallery">选择图片</string>
     <string name="import_images">导入图片</string>
     <string name="toggle_section">切换区域</string>
     <string name="drag_to_expand">上滑展开</string>
