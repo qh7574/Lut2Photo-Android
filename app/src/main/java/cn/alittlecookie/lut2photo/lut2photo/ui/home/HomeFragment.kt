@@ -157,6 +157,24 @@ class HomeFragment : Fragment() {
             updatePreview()
             Log.d("HomeFragment", "文件夹监控水印开关状态改变: $isChecked")
         }
+
+        // 添加"仅处理新增文件"开关监听器
+        binding.switchProcessNewFilesOnly.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.processNewFilesOnly = isChecked
+            Log.d("HomeFragment", "仅处理新增文件开关状态改变: $isChecked")
+            
+            // 如果关闭开关，清除所有已跳过的记录
+            if (!isChecked) {
+                preferencesManager.clearSkippedRecords(requireContext())
+                Log.d("HomeFragment", "已清除所有已跳过记录")
+                
+                // 发送广播通知历史页面更新
+                val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+                requireContext().sendBroadcast(intent)
+                
+                showToast("已清除所有已跳过记录")
+            }
+        }
     
         // 设置监控开关监听器 - 简化版本
         setupSwitchListener()
@@ -237,10 +255,14 @@ class HomeFragment : Fragment() {
         }
 
         homeViewModel.isMonitoring.observe(viewLifecycleOwner) { isMonitoring ->
-            // 只更新开关状态，不重新设置监听器
+            // 修复：只更新UI状态，不触发监听器
+            // 临时移除监听器，避免触发启动/停止服务的逻辑
             binding.switchMonitoring.setOnCheckedChangeListener(null)
             binding.switchMonitoring.isChecked = isMonitoring
-            setupSwitchListener() // 恢复监听器
+            // 恢复监听器
+            setupSwitchListener()
+            
+            Log.d("HomeFragment", "ViewModel状态同步到UI: isMonitoring=$isMonitoring (不触发服务启动/停止)")
         }
     }
 
@@ -373,6 +395,9 @@ class HomeFragment : Fragment() {
         // 加载水印开关状态
         binding.switchWatermark.isChecked = preferencesManager.folderMonitorWatermarkEnabled
         binding.buttonWatermarkSettings.isEnabled = preferencesManager.folderMonitorWatermarkEnabled
+
+        // 加载"仅处理新增文件"开关状态
+        binding.switchProcessNewFilesOnly.isChecked = preferencesManager.processNewFilesOnly
     
         // 加载文件夹路径显示
         updateInputFolderDisplay()
@@ -572,6 +597,10 @@ class HomeFragment : Fragment() {
             )
             putExtra(FolderMonitorService.EXTRA_QUALITY, preferencesManager.homeQuality.toInt())
             putExtra(FolderMonitorService.EXTRA_DITHER, getDitherType().name)
+            putExtra(
+                FolderMonitorService.EXTRA_PROCESS_NEW_FILES_ONLY,
+                preferencesManager.processNewFilesOnly
+            )
         }
         requireContext().startForegroundService(intent)
         homeViewModel.setMonitoring(true)

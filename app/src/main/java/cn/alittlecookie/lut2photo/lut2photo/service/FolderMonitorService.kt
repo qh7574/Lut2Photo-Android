@@ -61,6 +61,7 @@ class FolderMonitorService : Service() {
         const val EXTRA_LUT2_STRENGTH = "lut2_strength"
         const val EXTRA_QUALITY = "quality"
         const val EXTRA_DITHER = "dither"
+        const val EXTRA_PROCESS_NEW_FILES_ONLY = "process_new_files_only"
     }
 
 
@@ -83,6 +84,7 @@ class FolderMonitorService : Service() {
     private var lut2FilePath: String = ""
     private var processingParams: ILutProcessor.ProcessingParams? = null
     private var currentLut2Name = ""
+    private var processNewFilesOnly: Boolean = false
 
     // 统一集合声明
     // 添加处理中的文件跟踪
@@ -192,6 +194,7 @@ class FolderMonitorService : Service() {
                 val lut2Strength = intent.getIntExtra(EXTRA_LUT2_STRENGTH, 100)
                 val quality = intent.getIntExtra(EXTRA_QUALITY, 90)
                 val dither = intent.getStringExtra(EXTRA_DITHER) ?: "none"
+                val processNewFilesOnly = intent.getBooleanExtra(EXTRA_PROCESS_NEW_FILES_ONLY, false)
 
                 startMonitoring(
                     inputFolder,
@@ -201,7 +204,8 @@ class FolderMonitorService : Service() {
                     dither,
                     lutFilePath,
                     lut2FilePath,
-                    lut2Strength
+                    lut2Strength,
+                    processNewFilesOnly
                 )
             }
 
@@ -217,11 +221,14 @@ class FolderMonitorService : Service() {
             }
             ACTION_STOP_MONITORING -> {
                 stopMonitoring()
+                stopSelf()  // 停止服务
+                return START_NOT_STICKY  // 不要重启服务
             }
             else -> {
                 // 修复：如果没有明确的action，不显示启动通知
                 Log.w(TAG, "服务启动但没有明确的action,已停止服务")
                 stopMonitoring()
+                stopSelf()
                 return START_NOT_STICKY
             }
         }
@@ -285,7 +292,8 @@ class FolderMonitorService : Service() {
         dither: String,
         lutFilePath: String,
         lut2FilePath: String = "",
-        lut2Strength: Int = 100
+        lut2Strength: Int = 100,
+        processNewFilesOnly: Boolean = false
     ) {
         if (isMonitoring) {
             Log.w(TAG, "监控已在运行中")
@@ -301,6 +309,15 @@ class FolderMonitorService : Service() {
         this.outputFolderUri = outputFolder
         this.lutFilePath = lutFilePath
         this.lut2FilePath = lut2FilePath
+        this.processNewFilesOnly = processNewFilesOnly
+
+        // 修复：只在开关打开时才标记现有文件
+        if (processNewFilesOnly) {
+            Log.d(TAG, "仅处理新增文件模式已启用，开始标记现有文件")
+            markExistingFilesAsProcessed(inputFolder)
+        } else {
+            Log.d(TAG, "仅处理新增文件模式未启用，不标记现有文件")
+        }
 
         // 修复：正确设置LUT文件名
         val lutFile = File(lutFilePath)
@@ -369,10 +386,115 @@ class FolderMonitorService : Service() {
         return existingRecords.any { recordStr ->
             try {
                 val parts = recordStr.split("|")
-                parts.size >= 2 && parts[1] == fileName
+                if (parts.size >= 2 && parts[1] == fileName) {
+                    // 如果是"仅处理新增文件"模式，所有记录（包括SKIPPED）都算已处理
+                    // 如果不是"仅处理新增文件"模式，只有非SKIPPED状态的记录才算已处理
+                    if (processNewFilesOnly) {
+                        true
+                    } else {
+                        // 检查状态字段（如果存在）
+                        if (parts.size >= 5) {
+                            parts[4] != "SKIPPED"
+                        } else {
+                            // 旧格式没有状态字段，默认为已处理
+                            true
+                        }
+                    }
+                } else {
+                    false
+                }
             } catch (_: Exception) {
                 false
             }
+        }
+    }
+
+    /**
+     * 标记现有文件为已处理（用于"仅处理新增文件"功能）
+     * @param inputFolderUri 输入文件夹URI
+     */
+    private fun markExistingFilesAsProcessed(inputFolderUri: String) {
+        try {
+            val inputUri = inputFolderUri.toUri()
+            val inputDir = DocumentFile.fromTreeUri(this, inputUri)
+            
+            if (inputDir == null) {
+                Log.e(TAG, "无法访问输入文件夹")
+                return
+            }
+            
+            // 扫描输入文件夹中的所有图片文件
+            val imageFiles = inputDir.listFiles().filter { file ->
+                file.isFile &&
+                file.name?.lowercase()?.let { name ->
+                    name.endsWith(".jpg") || name.endsWith(".jpeg") ||
+                    name.endsWith(".png") || name.endsWith(".webp")
+                } == true
+            }
+            
+            val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
+            val existingRecords = prefs.getStringSet("records", emptySet())?.toMutableSet() 
+                ?: mutableSetOf()
+            
+            val timestamp = System.currentTimeMillis()
+            var markedCount = 0
+            
+            for (imageFile in imageFiles) {
+                val fileName = imageFile.name ?: continue
+                
+                // 检查是否已经在历史记录中
+                val alreadyProcessed = existingRecords.any { recordStr ->
+                    try {
+                        val parts = recordStr.split("|")
+                        parts.size >= 2 && parts[1] == fileName
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
+                
+                if (!alreadyProcessed) {
+                    // 创建一个标记记录（使用特殊状态标识，便于后续过滤）
+                    val recordString = buildString {
+                        append(timestamp)
+                        append("|")
+                        append(fileName)
+                        append("|")
+                        append(imageFile.uri.toString())
+                        append("|")
+                        append("") // 空输出路径
+                        append("|")
+                        append("SKIPPED") // 使用特殊状态标识，便于过滤
+                        append("|")
+                        append("") // 空LUT名称
+                        append("|")
+                        append("") // 空LUT2名称
+                        append("|")
+                        append("0") // 强度
+                        append("|")
+                        append("0") // LUT2强度
+                        append("|")
+                        append("0") // 质量
+                        append("|")
+                        append("NONE") // 抖动类型
+                    }
+                    
+                    existingRecords.add(recordString)
+                    markedCount++
+                }
+            }
+            
+            if (markedCount > 0) {
+                prefs.edit { putStringSet("records", existingRecords) }
+                Log.d(TAG, "已标记 $markedCount 个现有文件为已处理")
+                
+                // 发送广播通知历史页面更新
+                val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+                sendBroadcast(intent)
+            } else {
+                Log.d(TAG, "没有需要标记的新文件")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "标记现有文件失败", e)
         }
     }
 
@@ -804,11 +926,9 @@ class FolderMonitorService : Service() {
         monitoringJob?.cancel()
         monitoringJob = null
 
-        // 添加状态同步到PreferencesManager
-        val preferencesManager =
-            PreferencesManager(this)
+        // 修复：清理状态，表示服务已停止
+        val preferencesManager = PreferencesManager(this)
         preferencesManager.isMonitoring = false
-        // 修复：同时清理UI开关状态，防止状态不一致
         preferencesManager.monitoringSwitchEnabled = false
 
         val notification = createNotification("监控已停止")
@@ -826,29 +946,37 @@ class FolderMonitorService : Service() {
             Log.e(TAG, "Failed to unregister config change receiver", e)
         }
 
-        // 修复：确保状态完全清理，防止服务残留
-        val preferencesManager =
-            PreferencesManager(this)
-        preferencesManager.isMonitoring = false
-        preferencesManager.monitoringSwitchEnabled = false
-
-        monitoringJob?.cancel()
-        runBlocking {
-            threadManager.release()
+        // 修复：只有在监控已停止的情况下才清理UI状态
+        // 如果服务是被系统杀死的，不应该清理UI状态，以便重启后恢复
+        if (!isMonitoring) {
+            val preferencesManager = PreferencesManager(this)
+            preferencesManager.isMonitoring = false
+            preferencesManager.monitoringSwitchEnabled = false
+            Log.d(TAG, "监控已停止，清理UI状态")
+        } else {
+            Log.d(TAG, "监控仍在运行，保留UI状态以便恢复")
         }
 
-        Log.d(TAG, "服务正在销毁，所有状态已清理")
+        monitoringJob?.cancel()
+        
+        // 修复：在协程中异步释放资源，避免阻塞主线程导致ANR
+        // 使用GlobalScope因为serviceScope可能已经被取消
+        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+            try {
+                threadManager.release()
+                Log.d(TAG, "ThreadManager资源已释放")
+            } catch (e: Exception) {
+                Log.e(TAG, "释放ThreadManager资源失败", e)
+            }
+        }
+
+        Log.d(TAG, "服务正在销毁")
 
         // 释放WakeLock
         wakeLock?.takeIf { it.isHeld }?.release()
 
         // 移除重启定时器
         restartHandler.removeCallbacks(restartRunnable)
-
-        // 如果正在监控，尝试重启服务
-        //if (isMonitoring) {
-        //  restartService()
-        //}
 
         stopMonitoring()
         serviceScope.cancel()

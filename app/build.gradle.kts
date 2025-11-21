@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
-        minSdk = 31
+        minSdk = 29
         targetSdk = 36
-        versionCode = 100022
-        versionName = "2.8.8"
+        versionCode = 100023
+        versionName = "2.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21

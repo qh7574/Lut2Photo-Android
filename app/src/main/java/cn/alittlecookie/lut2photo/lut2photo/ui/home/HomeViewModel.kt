@@ -23,8 +23,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private val _isMonitoring = MutableLiveData<Boolean>().apply {
-        // 修复：初始值应该从保存的状态恢复，而不是硬编码为false
-        value = PreferencesManager(getApplication()).monitoringSwitchEnabled
+        // 修复：初始值设为false，等待restoreMonitoringState()来设置正确的值
+        // 不要在这里读取保存的状态，因为需要先检查服务是否真的在运行
+        value = false
     }
     val isMonitoring: LiveData<Boolean> = _isMonitoring
     
@@ -98,8 +99,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 getApplication<Application>().getString(R.string.status_monitoring_stopped)
         }
         
-        // 保存监控状态到SharedPreferences
+        // 修复：同时保存两个状态
+        // monitoringSwitchEnabled: UI开关状态（用户意图）
+        // isMonitoring: 服务运行状态（实际状态）
+        preferencesManager.monitoringSwitchEnabled = monitoring
         preferencesManager.isMonitoring = monitoring
+        
+        Log.d(TAG, "设置监控状态: monitoring=$monitoring")
     }
 
     // 检查服务是否正在运行（不更新UI）
@@ -124,39 +130,38 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         Log.d(TAG, "监控状态检查 - 服务运行: $serviceRunning, 保存的UI状态: $savedSwitchState")
 
-        // 修复：状态文本应该基于实际服务状态
+        // 修复：根据实际情况同步状态
         if (serviceRunning) {
+            // 服务正在运行，同步UI状态为开启
             _statusText.value = getApplication<Application>().getString(R.string.status_monitoring)
-            Log.d(TAG, "服务运行中，更新状态文本为监控中")
-        } else {
-            _statusText.value =
-                getApplication<Application>().getString(R.string.status_monitoring_stopped)
-            Log.d(TAG, "服务未运行，更新状态文本为已停止")
-        }
-
-        // 修复：只有在用户明确启动服务时才同步开关状态，避免意外的服务残留导致开关自动打开
-        if (serviceRunning && !savedSwitchState) {
-            // 如果服务在运行但UI显示关闭，可能是服务异常残留
-            Log.w(TAG, "检测到服务异常残留，强制停止服务")
-            // 修复：使用正确的action常量
-            val stopIntent = Intent(getApplication(), FolderMonitorService::class.java).apply {
-                action = FolderMonitorService.ACTION_STOP_MONITORING  // ✅ 使用正确的常量
+            _isMonitoring.value = true
+            // 只有当保存的状态与实际不符时才更新
+            if (!savedSwitchState) {
+                preferencesManager.monitoringSwitchEnabled = true
+                Log.d(TAG, "服务运行中但开关状态为关闭，同步为开启")
+            } else {
+                Log.d(TAG, "服务运行中，UI状态已是开启")
             }
-            getApplication<Application>().startService(stopIntent)
-
-            // 确保状态文本显示为已停止
-            _statusText.value =
-                getApplication<Application>().getString(R.string.status_monitoring_stopped)
-        } else if (!serviceRunning && savedSwitchState) {
-            // 如果UI显示开启但服务未运行，同步UI状态为关闭
-            Log.d(TAG, "服务未运行但UI显示开启，同步UI状态为关闭")
-            preferencesManager.monitoringSwitchEnabled = false
-            _isMonitoring.value = false
+        } else {
+            // 服务未运行
+            _statusText.value = getApplication<Application>().getString(R.string.status_monitoring_stopped)
+            
+            // 修复：先检查状态一致性，再设置UI
+            if (savedSwitchState) {
+                // 状态不一致：开关为开启但服务未运行
+                Log.w(TAG, "检测到状态不一致：开关为开启但服务未运行，修正为关闭")
+                _isMonitoring.value = false
+                preferencesManager.monitoringSwitchEnabled = false
+            } else {
+                // 状态一致：开关为关闭，服务也未运行
+                _isMonitoring.value = false
+                Log.d(TAG, "服务未运行，开关状态为关闭，保持一致")
+            }
         }
 
         Log.d(
             TAG,
-            "监控状态检查完成 - 服务运行: $serviceRunning, 保存状态: ${preferencesManager.monitoringSwitchEnabled}"
+            "监控状态检查完成 - 服务运行: $serviceRunning, UI状态: ${_isMonitoring.value}, 保存状态: ${preferencesManager.monitoringSwitchEnabled}"
         )
     }
 

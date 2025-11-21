@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">LUT2Photo</string>
+    <string name="app_name">Lut2Photo</string>
 
     <!-- 导航标题 -->
     <string name="title_home">文件夹监控</string>
@@ -98,7 +98,7 @@
 
     <!-- 应用信息 -->
     <string name="app_version_format">App版本: %s</string>
-    <string name="app_description">LUT2Photo\n一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n内置富士胶片模拟LUT，感谢 小红书@JC\'s here 制作的srgb转rec2020.flog2。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• 支持标准CUBE格式LUT文件\n• Material 3 动态颜色主题\n\n基于Python版本的LUT处理算法移植，Python版本项目地址：\nhttps://github.com/qh7574/Lut2Photo-Py\n\n作者：偷光你的小鱼干（某些情况下也叫 狸花饺子喵）</string>
+    <string name="app_description">一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n内置富士胶片模拟LUT，感谢 小红书@JC\'s here 制作的srgb转rec2020.flog2。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• 支持标准CUBE格式LUT文件\n• Material 3 动态颜色主题\n\n项目地址：\nhttps://github.com/qh7574/Lut2Photo-Android\n\n作者：偷光你的小鱼干（Alittlecookie）</string>
 
     <!-- 权限状态格式化 -->
     <string name="permission_status_format">权限状态: %d/%d 已授权</string>

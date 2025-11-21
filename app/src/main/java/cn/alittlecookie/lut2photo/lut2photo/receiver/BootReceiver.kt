@@ -24,14 +24,15 @@ class BootReceiver : BroadcastReceiver() {
 
                 val preferencesManager = PreferencesManager(context)
 
-                // 检查是否之前正在监控
-                if (preferencesManager.isMonitoring &&
+                // 修复：使用monitoringSwitchEnabled而不是isMonitoring来判断
+                // monitoringSwitchEnabled表示用户的意图，isMonitoring只是服务的运行状态
+                if (preferencesManager.monitoringSwitchEnabled &&
                     preferencesManager.homeInputFolder.isNotEmpty() &&
                     preferencesManager.homeOutputFolder.isNotEmpty() &&
                     preferencesManager.homeLutUri?.isNotEmpty() == true
                 ) {
 
-                    Log.d(TAG, "恢复文件夹监控服务")
+                    Log.d(TAG, "恢复文件夹监控服务（用户之前启用了监控）")
 
                     val serviceIntent = Intent(context, FolderMonitorService::class.java).apply {
                         action = FolderMonitorService.ACTION_START_MONITORING

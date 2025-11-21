@@ -102,8 +102,15 @@ class PreferencesManager(context: Context) {
         set(value) = sharedPreferences.edit { putString("dashboard_output_folder", value) }
 
     var isMonitoring: Boolean
-        get() = sharedPreferences.getBoolean("is_monitoring", false)
-        set(value) = sharedPreferences.edit { putBoolean("is_monitoring", value) }
+        get() {
+            val value = sharedPreferences.getBoolean("is_monitoring", false)
+            Log.d("PreferencesManager", "读取 isMonitoring: $value")
+            return value
+        }
+        set(value) {
+            Log.d("PreferencesManager", "设置 isMonitoring: $value")
+            sharedPreferences.edit { putBoolean("is_monitoring", value) }
+        }
 
     // Dashboard折叠状态保存
     var dashboardFileSettingsExpanded: Boolean
@@ -147,8 +154,45 @@ class PreferencesManager(context: Context) {
 
     // 监控开关状态 - 修复：默认值改为false，防止重启后自动开启
     var monitoringSwitchEnabled: Boolean
-        get() = sharedPreferences.getBoolean("monitoring_switch_enabled", false)
-        set(value) = sharedPreferences.edit { putBoolean("monitoring_switch_enabled", value) }
+        get() {
+            val value = sharedPreferences.getBoolean("monitoring_switch_enabled", false)
+            Log.d("PreferencesManager", "读取 monitoringSwitchEnabled: $value")
+            return value
+        }
+        set(value) {
+            Log.d("PreferencesManager", "设置 monitoringSwitchEnabled: $value")
+            sharedPreferences.edit { putBoolean("monitoring_switch_enabled", value) }
+        }
+
+    // 仅处理新增文件的开关状态
+    var processNewFilesOnly: Boolean
+        get() = sharedPreferences.getBoolean("process_new_files_only", false)
+        set(value) = sharedPreferences.edit { putBoolean("process_new_files_only", value) }
+
+    /**
+     * 清除所有状态为"SKIPPED"的已跳过记录，保留正常处理过的记录
+     */
+    fun clearSkippedRecords(context: Context) {
+        val prefs = context.getSharedPreferences("processing_history", Context.MODE_PRIVATE)
+        val existingRecords = prefs.getStringSet("records", emptySet())?.toMutableSet() 
+            ?: mutableSetOf()
+        
+        // 过滤掉状态为"SKIPPED"的记录
+        val filteredRecords = existingRecords.filter { recordStr ->
+            try {
+                val parts = recordStr.split("|")
+                // 保留状态不是"SKIPPED"的记录
+                parts.size >= 5 && parts[4] != "SKIPPED"
+            } catch (_: Exception) {
+                true // 如果解析失败，保留该记录
+            }
+        }.toSet()
+        
+        // 保存过滤后的记录
+        prefs.edit { putStringSet("records", filteredRecords) }
+        
+        Log.d("PreferencesManager", "已清除 ${existingRecords.size - filteredRecords.size} 条已跳过记录")
+    }
 
     // 水印配置设置
     fun saveWatermarkConfig(config: WatermarkConfig) {
