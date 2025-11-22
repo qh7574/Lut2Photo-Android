@@ -118,9 +118,14 @@ class FolderMonitorService : Service() {
                 }
 
                 "cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED" -> {
-                    Log.d(TAG, "Received LUT config change, reloading LUT files")
+                    Log.d(TAG, "========== 接收到LUT配置变化广播 ==========")
+                    Log.d(TAG, "当前监控状态: isMonitoring=$isMonitoring")
+                    Log.d(TAG, "当前配置: strength=${processingParams?.strength}, quality=${processingParams?.quality}")
                     serviceScope.launch {
+                        Log.d(TAG, "开始执行配置重新加载协程")
                         reloadLutConfiguration()
+                        Log.d(TAG, "配置重新加载协程执行完成")
+                        Log.d(TAG, "新配置: strength=${processingParams?.strength}, quality=${processingParams?.quality}")
                     }
                 }
             }
@@ -323,18 +328,27 @@ class FolderMonitorService : Service() {
         val lutFile = File(lutFilePath)
         currentLutName = lutFile.nameWithoutExtension
 
-        // 设置第二个LUT文件名
-        currentLut2Name = if (lut2FilePath.isNotEmpty()) {
+        // 设置第二个LUT文件名，并检查文件是否存在
+        val hasSecondLut = if (lut2FilePath.isNotEmpty()) {
             val lut2File = File(lut2FilePath)
-            lut2File.nameWithoutExtension
+            if (lut2File.exists()) {
+                currentLut2Name = lut2File.nameWithoutExtension
+                true
+            } else {
+                currentLut2Name = ""
+                Log.w(TAG, "第二个LUT文件不存在: $lut2FilePath")
+                false
+            }
         } else {
-            ""
+            currentLut2Name = ""
+            false
         }
 
         // 修复：正确的抖动类型转换
+        // 如果没有第二个LUT，强制将lut2Strength设置为0，避免使用之前加载的LUT
         this.processingParams = ILutProcessor.ProcessingParams(
             strength = strength / 100f,
-            lut2Strength = lut2Strength / 100f,
+            lut2Strength = if (hasSecondLut) lut2Strength / 100f else 0f,
             quality = quality,
             ditherType = when (dither.uppercase()) {
                 "FLOYD_STEINBERG" -> ILutProcessor.DitherType.FLOYD_STEINBERG
@@ -503,20 +517,41 @@ class FolderMonitorService : Service() {
      */
     private suspend fun reloadLutConfiguration() {
         try {
-            Log.d(TAG, "开始重新加载LUT配置")
+            Log.d(TAG, "========== 开始重新加载LUT配置 ==========")
 
-            // 从偏好设置获取最新的LUT配置
-            val lutFilePath = preferencesManager.homeLutUri
-            val lut2FilePath = preferencesManager.homeLut2Uri ?: ""
+            // 从偏好设置获取最新的LUT配置（文件名）
+            val lutFileName = preferencesManager.homeLutUri
+            val lut2FileName = preferencesManager.homeLut2Uri ?: ""
             val strength = preferencesManager.homeStrength.toInt()
             val lut2Strength = preferencesManager.homeLut2Strength.toInt()
             val quality = preferencesManager.homeQuality.toInt()
             val ditherType = preferencesManager.homeDitherType
 
-            if (lutFilePath.isNullOrEmpty()) {
+            Log.d(TAG, "从SharedPreferences读取的配置:")
+            Log.d(TAG, "  LUT1: $lutFileName")
+            Log.d(TAG, "  LUT2: $lut2FileName")
+            Log.d(TAG, "  强度: $strength%")
+            Log.d(TAG, "  LUT2强度: $lut2Strength%")
+            Log.d(TAG, "  质量: $quality")
+            Log.d(TAG, "  抖动: $ditherType")
+
+            if (lutFileName.isNullOrEmpty()) {
                 Log.w(TAG, "主要LUT文件路径为空，不能重新加载")
                 return
             }
+
+            // 获取LUT文件的完整路径
+            val lutDirectory = File(getExternalFilesDir(null), "android_data/luts")
+            val lutFilePath = File(lutDirectory, lutFileName).absolutePath
+            val lut2FilePath = if (lut2FileName.isNotEmpty()) {
+                File(lutDirectory, lut2FileName).absolutePath
+            } else {
+                ""
+            }
+
+            Log.d(TAG, "转换为完整路径:")
+            Log.d(TAG, "  LUT1完整路径: $lutFilePath")
+            Log.d(TAG, "  LUT2完整路径: $lut2FilePath")
 
             // 更新内部状态
             this.lutFilePath = lutFilePath
@@ -534,25 +569,31 @@ class FolderMonitorService : Service() {
             }
 
             // 加载第二个LUT文件（如果提供）
-            if (lut2FilePath.isNotEmpty()) {
+            val hasSecondLut = if (lut2FilePath.isNotEmpty()) {
                 val lut2File = File(lut2FilePath)
                 if (lut2File.exists()) {
                     threadManager.loadSecondLut(lut2File.inputStream())
                     currentLut2Name = lut2File.nameWithoutExtension
                     Log.d(TAG, "重新加载第二个LUT成功: $currentLut2Name")
+                    true
                 } else {
                     Log.w(TAG, "第二个LUT文件不存在: $lut2FilePath")
                     currentLut2Name = ""
+                    false
                 }
             } else {
                 currentLut2Name = ""
                 Log.d(TAG, "没有配置第二个LUT文件")
+                false
             }
 
             // 更新处理参数
+            // 如果没有第二个LUT，强制将lut2Strength设置为0，避免使用之前加载的LUT
+            val finalLut2Strength = if (hasSecondLut) lut2Strength / 100f else 0f
+            
             this.processingParams = ILutProcessor.ProcessingParams(
                 strength = strength / 100f,
-                lut2Strength = lut2Strength / 100f,
+                lut2Strength = finalLut2Strength,
                 quality = quality,
                 ditherType = when (ditherType.uppercase()) {
                     "FLOYD_STEINBERG" -> ILutProcessor.DitherType.FLOYD_STEINBERG
@@ -561,6 +602,12 @@ class FolderMonitorService : Service() {
                     else -> ILutProcessor.DitherType.NONE
                 }
             )
+
+            Log.d(TAG, "处理参数已更新:")
+            Log.d(TAG, "  strength=${this.processingParams?.strength}")
+            Log.d(TAG, "  lut2Strength=${this.processingParams?.lut2Strength}")
+            Log.d(TAG, "  quality=${this.processingParams?.quality}")
+            Log.d(TAG, "  ditherType=${this.processingParams?.ditherType}")
 
             // 更新通知
             val lutDisplayName = if (currentLut2Name.isNotEmpty()) {
@@ -571,11 +618,11 @@ class FolderMonitorService : Service() {
 
             val notification = createNotification(
                 "文件夹监控服务",
-                "LUT配置已更新: $lutDisplayName"
+                "配置已更新: $lutDisplayName (强度:${strength}% 质量:${quality})"
             )
             startForeground(NOTIFICATION_ID, notification)
 
-            Log.d(TAG, "LUT配置重新加载完成")
+            Log.d(TAG, "========== LUT配置重新加载完成 ==========")
 
         } catch (e: Exception) {
             Log.e(TAG, "LUT配置重新加载失败", e)
@@ -590,6 +637,13 @@ class FolderMonitorService : Service() {
         params: ILutProcessor.ProcessingParams
     ) {
         val timestamp = System.currentTimeMillis()
+        
+        Log.d(TAG, "========== 保存处理记录 ==========")
+        Log.d(TAG, "文件名: $fileName")
+        Log.d(TAG, "LUT1: $lutFileName, 强度: ${params.strength}")
+        Log.d(TAG, "LUT2: $currentLut2Name, 强度: ${params.lut2Strength}")
+        Log.d(TAG, "质量: ${params.quality}, 抖动: ${params.ditherType.name}")
+        
         // 新格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|lut2FileName|strength|lut2Strength|quality|ditherType
         val recordString = buildString {
             append(timestamp)
@@ -614,6 +668,8 @@ class FolderMonitorService : Service() {
             append("|")
             append(params.ditherType.name)
         }
+        
+        Log.d(TAG, "记录字符串: $recordString")
 
         val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
         val existingRecords =
@@ -759,6 +815,7 @@ class FolderMonitorService : Service() {
 
                             try {
                                 processingParams?.let { params ->
+                                    Log.d(TAG, "处理文件 $fileName 使用的参数: strength=${params.strength}, lut2Strength=${params.lut2Strength}, quality=${params.quality}, dither=${params.ditherType}")
                                     processDocumentFile(imageFile, outputDir, params)
                                 }
                                 completeProcessingFile(fileName)

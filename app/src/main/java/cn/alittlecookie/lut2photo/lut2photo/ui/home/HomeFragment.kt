@@ -58,6 +58,11 @@ class HomeFragment : Fragment() {
     private val previewUpdateHandler = Handler(Looper.getMainLooper())
     private var previewUpdateRunnable: Runnable? = null
     private val PREVIEW_UPDATE_DELAY = 300L // 300ms延迟
+    
+    // 配置广播防抖机制
+    private val configBroadcastHandler = Handler(Looper.getMainLooper())
+    private var configBroadcastRunnable: Runnable? = null
+    private val CONFIG_BROADCAST_DELAY = 500L // 500ms延迟，避免频繁重新加载LUT
 
 
     // Activity Result Launchers
@@ -627,11 +632,25 @@ class HomeFragment : Fragment() {
 
     /**
      * 发送LUT配置变化广播，通知文件夹监控服务更新LUT配置
+     * 使用防抖机制，避免频繁发送广播导致服务频繁重新加载LUT
      */
     private fun sendLutConfigChangesBroadcast() {
-        val intent = Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED")
-        requireContext().sendBroadcast(intent)
-        Log.d("HomeFragment", "发送LUT配置变化广播")
+        // 取消之前的待发送广播
+        configBroadcastRunnable?.let { configBroadcastHandler.removeCallbacks(it) }
+        
+        // 创建新的广播任务
+        configBroadcastRunnable = Runnable {
+            // 使用显式广播，明确指定接收者为FolderMonitorService
+            val intent = Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED").apply {
+                setPackage(requireContext().packageName)  // 限制在本应用内
+            }
+            requireContext().sendBroadcast(intent)
+            Log.d("HomeFragment", "发送LUT配置变化广播（显式广播）")
+        }
+        
+        // 延迟发送广播
+        configBroadcastHandler.postDelayed(configBroadcastRunnable!!, CONFIG_BROADCAST_DELAY)
+        Log.d("HomeFragment", "LUT配置变化广播已调度，延迟: ${CONFIG_BROADCAST_DELAY}ms")
 
         // 使用防抖机制更新预览
         schedulePreviewUpdate()
@@ -932,7 +951,7 @@ class HomeFragment : Fragment() {
                                     // 应用水印效果
                                     if (currentWatermarkEnabled) {
                                         val watermarkConfig =
-                                            preferencesManager.getWatermarkConfig()
+                                            preferencesManager.getWatermarkConfig(forFolderMonitor = true)
                                         val watermarkResult = WatermarkUtils.addWatermark(
                                             processedBitmap,
                                             watermarkConfig,
@@ -1055,6 +1074,7 @@ class HomeFragment : Fragment() {
         super.onDestroyView()
         // 清理防抖任务
         previewUpdateRunnable?.let { previewUpdateHandler.removeCallbacks(it) }
+        configBroadcastRunnable?.let { configBroadcastHandler.removeCallbacks(it) }
         _binding = null
     }
 
@@ -1065,6 +1085,7 @@ class HomeFragment : Fragment() {
                 updatePreview()
                 Log.d("HomeFragment", "水印配置已保存: $config")
             },
+            forFolderMonitor = true,  // 标识为文件夹监控页面
             lut1Name = selectedLutItem?.name,
             lut2Name = selectedLut2Item?.name,
             lut1Strength = preferencesManager.homeStrength,

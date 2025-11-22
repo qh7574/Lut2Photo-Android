@@ -19,3 +19,4 @@ local.properties
 /app/release/output-metadata.json
 /.kotlin/errors/errors-1756173510688.log
 /.kiro/
+/logcat.txt

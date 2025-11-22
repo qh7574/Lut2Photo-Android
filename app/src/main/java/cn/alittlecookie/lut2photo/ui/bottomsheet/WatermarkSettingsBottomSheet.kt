@@ -41,6 +41,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var watermarkConfigManager: WatermarkConfigManager
     private var onConfigSaved: ((WatermarkConfig) -> Unit)? = null
+    private var forFolderMonitor: Boolean = false  // 标识是否为文件夹监控页面调用
 
     private lateinit var fontPickerLauncher: ActivityResultLauncher<Intent>
     private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
@@ -64,6 +65,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     companion object {
         fun newInstance(
             onConfigSaved: (WatermarkConfig) -> Unit,
+            forFolderMonitor: Boolean = false,  // 新增参数，标识调用来源
             lut1Name: String? = null,
             lut2Name: String? = null,
             lut1Strength: Float? = null,
@@ -71,6 +73,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         ): WatermarkSettingsBottomSheet {
             return WatermarkSettingsBottomSheet().apply {
                 this.onConfigSaved = onConfigSaved
+                this.forFolderMonitor = forFolderMonitor
                 this.lut1Name = lut1Name
                 this.lut2Name = lut2Name
                 this.lut1Strength = lut1Strength
@@ -525,7 +528,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun loadSavedSettings() {
-        val config = preferencesManager.getWatermarkConfig()
+        // 根据调用来源加载对应的配置
+        val config = preferencesManager.getWatermarkConfig(forFolderMonitor = forFolderMonitor)
 
         // 设置水印类型 Segmented Button
         val checkedButtons = mutableListOf<Int>()
@@ -1386,8 +1390,17 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             }
 
             val config = getCurrentConfigFromUI()
-            preferencesManager.saveWatermarkConfig(config)
+            // 保存配置时指定是否为文件夹监控页面
+            preferencesManager.saveWatermarkConfig(config, forFolderMonitor)
             onConfigSaved?.invoke(config)
+
+            // 发送广播通知文件夹监控服务更新配置
+            // 使用显式广播，明确指定接收者为FolderMonitorService
+            val intent = android.content.Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED").apply {
+                setPackage(requireContext().packageName)  // 限制在本应用内
+            }
+            requireContext().sendBroadcast(intent)
+            android.util.Log.d("WatermarkSettings", "发送配置变化广播（显式广播），forFolderMonitor=$forFolderMonitor")
 
             Toast.makeText(context, "水印设置已保存", Toast.LENGTH_SHORT).show()
             dismiss()

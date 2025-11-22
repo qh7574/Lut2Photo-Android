@@ -231,6 +231,7 @@ class DashboardFragment : Fragment() {
                     // 设置保存后的回调
                     updatePreview()
                 },
+                forFolderMonitor = false,  // 标识为手动处理页面
                 lut1Name = selectedLutItem?.name,
                 lut2Name = selectedLut2Item?.name,
                 lut1Strength = preferencesManager.dashboardStrength,
@@ -647,7 +648,7 @@ class DashboardFragment : Fragment() {
                             try {
                                 // 应用水印效果
                                 if (binding.switchWatermark.isChecked) {
-                                    val watermarkConfig = preferencesManager.getWatermarkConfig()
+                                    val watermarkConfig = preferencesManager.getWatermarkConfig(forFolderMonitor = false)
                                     val watermarkResult = WatermarkUtils.addWatermark(
                                         processedBitmap,
                                         watermarkConfig,

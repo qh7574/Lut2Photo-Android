@@ -195,9 +195,19 @@ class PreferencesManager(context: Context) {
     }
 
     // 水印配置设置
-    fun saveWatermarkConfig(config: WatermarkConfig) {
+    fun saveWatermarkConfig(config: WatermarkConfig, forFolderMonitor: Boolean? = null) {
         sharedPreferences.edit {
             putBoolean("watermark_enabled", config.isEnabled)
+            
+            // 如果指定了forFolderMonitor参数，则同时更新对应页面的开关状态
+            when (forFolderMonitor) {
+                true -> putBoolean("folder_monitor_watermark_enabled", config.isEnabled)
+                false -> putBoolean("dashboard_watermark_enabled", config.isEnabled)
+                null -> {
+                    // 如果没有指定，则不更新页面特定的开关（保持向后兼容）
+                }
+            }
+            
             putBoolean("watermark_enable_text", config.enableTextWatermark)
             putBoolean("watermark_enable_image", config.enableImageWatermark)
             
