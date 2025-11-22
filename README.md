@@ -2,8 +2,8 @@
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
 
-![应用版本](https://img.shields.io/badge/版本-2.8.6-blue)
-![Android](https://img.shields.io/badge/Android-12+-green)
+![应用版本](https://img.shields.io/badge/版本-2.9.0-blue)
+![Android](https://img.shields.io/badge/Android-11+-green)
 ![Kotlin](https://img.shields.io/badge/Kotlin-1.8.0-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
 
@@ -58,7 +58,7 @@
 - **透过hdmi采集卡实现的实时预览**
 
 ### ⛔已放弃
-~~- **通过usb实时监看与控制**：由于libgphoto2库在安卓上还存在部分问题，因此暂时搁置，v3分支已移除，项目回退至2.8.5（分辨率低，图传与照片同时传输会导致usb占用，本质还是带宽不足的原因）~~
+~~- **通过usb实时监看与控制**：由于libgphoto2库在安卓上还存在部分问题，因此暂时搁置，v3分支已移除，项目回退至2.8.5（分辨率低，图传与照片同时传输会导致usb占用，无法绕过）~~
 
 ## 🚀 主要特性
 
