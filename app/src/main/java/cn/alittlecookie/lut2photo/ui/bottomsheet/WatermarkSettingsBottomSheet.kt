@@ -609,6 +609,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 设置按钮状态
         binding.toggleGroupWatermarkType.clearOnButtonCheckedListeners()
+        // 修复：先清除所有选中状态，避免XML默认值干扰
+        binding.toggleGroupWatermarkType.clearChecked()
+        // 然后设置正确的选中状态
         checkedButtons.forEach { buttonId ->
             binding.toggleGroupWatermarkType.check(buttonId)
         }
@@ -975,8 +978,15 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             else -> TextFollowDirection.BOTTOM
         }
 
+        // 修复：根据调用来源获取正确的开关状态
+        val isEnabled = if (forFolderMonitor) {
+            preferencesManager.folderMonitorWatermarkEnabled
+        } else {
+            preferencesManager.dashboardWatermarkEnabled
+        }
+
         return WatermarkConfig(
-            isEnabled = preferencesManager.watermarkEnabled,
+            isEnabled = isEnabled,
             enableTextWatermark = enableTextWatermark,
             enableImageWatermark = enableImageWatermark,
             // 新的分离位置和透明度设置

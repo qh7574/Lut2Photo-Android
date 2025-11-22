@@ -31,6 +31,9 @@ class CpuLutProcessor : ILutProcessor {
     // 第二个LUT数据
     internal var lut2: Array<Array<Array<FloatArray>>>? = null
     internal var lut2Size: Int = 0
+    
+    // 用于控制警告日志只打印一次
+    private var hasLoggedLut2Warning = false
 
     /**
      * 获取加载的LUT数据
@@ -56,6 +59,8 @@ class CpuLutProcessor : ILutProcessor {
     suspend fun loadSecondCubeLut(inputStream: InputStream): Boolean {
         return withContext(Dispatchers.IO) {
             try {
+                // 重置警告标志，允许在新的处理中打印警告
+                hasLoggedLut2Warning = false
                 Log.d("CpuLutProcessor", "开始加载第二个LUT文件")
 
                 val reader = inputStream.bufferedReader()
@@ -188,6 +193,8 @@ class CpuLutProcessor : ILutProcessor {
     override suspend fun loadCubeLut(inputStream: InputStream): Boolean {
         return withContext(Dispatchers.IO) {
             try {
+                // 重置警告标志，允许在新的处理中打印警告
+                hasLoggedLut2Warning = false
                 Log.d("CpuLutProcessor", "开始加载LUT文件")
 
                 // 使用BufferedReader提高读取性能
@@ -397,8 +404,10 @@ class CpuLutProcessor : ILutProcessor {
                 g = (g * (1 - strength2) + lut2Result[1] * strength2).coerceIn(0f, 1f)
                 b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
                 Log.v("CpuLutProcessor", "第二个LUT应用完成，新RGB值: ($r, $g, $b)")
-            } else if (params.lut2Strength > 0f) {
+            } else if (params.lut2Strength > 0f && !hasLoggedLut2Warning) {
+                // 只打印一次警告，避免日志泛滥
                 Log.d("CpuLutProcessor", "第二个LUT强度大于0但LUT数据为空，跳过应用")
+                hasLoggedLut2Warning = true
             }
 
             pixels[i] = Color.argb(
@@ -480,9 +489,10 @@ class CpuLutProcessor : ILutProcessor {
                     r = (r * (1 - strength2) + lut2Result[0] * strength2).coerceIn(0f, 1f)
                     g = (g * (1 - strength2) + lut2Result[1] * strength2).coerceIn(0f, 1f)
                     b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
-                } else if (params.lut2Strength > 0f && currentY == 0 && i == 0) {
-                    // 只在每个块的第一个像素时打印调试信息，避免日志泛滥
+                } else if (params.lut2Strength > 0f && currentY == 0 && i == 0 && !hasLoggedLut2Warning) {
+                    // 只打印一次警告，避免日志泛滥
                     Log.d("CpuLutProcessor", "分块处理中第二个LUT强度大于0但LUT数据为空，跳过应用")
+                    hasLoggedLut2Warning = true
                 }
 
                 blockPixels[i] = Color.argb(

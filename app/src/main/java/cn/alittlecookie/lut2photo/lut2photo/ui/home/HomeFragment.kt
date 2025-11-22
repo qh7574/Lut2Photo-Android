@@ -57,12 +57,16 @@ class HomeFragment : Fragment() {
     // 防抖机制相关
     private val previewUpdateHandler = Handler(Looper.getMainLooper())
     private var previewUpdateRunnable: Runnable? = null
-    private val PREVIEW_UPDATE_DELAY = 300L // 300ms延迟
+    private val PREVIEW_UPDATE_DELAY = 500L // 增加到500ms延迟，优化性能
     
     // 配置广播防抖机制
     private val configBroadcastHandler = Handler(Looper.getMainLooper())
     private var configBroadcastRunnable: Runnable? = null
     private val CONFIG_BROADCAST_DELAY = 500L // 500ms延迟，避免频繁重新加载LUT
+    
+    // 请求去重机制
+    private var currentProcessingKey: String? = null
+    private val processingLock = Any()
 
 
     // Activity Result Launchers
@@ -159,7 +163,8 @@ class HomeFragment : Fragment() {
         binding.switchWatermark.setOnCheckedChangeListener { _, isChecked ->
             preferencesManager.folderMonitorWatermarkEnabled = isChecked
             binding.buttonWatermarkSettings.isEnabled = isChecked
-            updatePreview()
+            // 修复：使用防抖机制，避免重复处理
+            schedulePreviewUpdate()
             Log.d("HomeFragment", "文件夹监控水印开关状态改变: $isChecked")
         }
 
@@ -382,15 +387,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadSavedSettings() {
-        // 加载强度设置
-        binding.sliderStrength.value = preferencesManager.homeStrength
-
-        // 加载第二个LUT强度设置
-        binding.sliderLut2Strength.value = preferencesManager.homeLut2Strength
-
-        // 加载质量设置
-        binding.sliderQuality.value = preferencesManager.homeQuality
-
+        // 注意：滑块的值在 setupSliders() 中设置，避免重复触发
+        
         // 加载抖动类型设置
         val ditherType = getDitherType()
         val buttonId = when (ditherType) {
@@ -439,40 +437,50 @@ class HomeFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun setupSliders() {
-        binding.sliderStrength.addOnChangeListener { _, value, _ ->
-            Log.d("HomeFragment", "滑块1变化: $value -> 保存前: ${preferencesManager.homeStrength}")
-            preferencesManager.homeStrength = value
-            Log.d("HomeFragment", "滑块1变化: $value -> 保存后: ${preferencesManager.homeStrength}")
-            binding.textStrengthValue.text = "${value.toInt()}%"
-
-            // 发送LUT配置变化广播
-            sendLutConfigChangesBroadcast()
+        // 先设置初始值，避免触发监听器
+        binding.sliderStrength.value = preferencesManager.homeStrength
+        binding.sliderLut2Strength.value = preferencesManager.homeLut2Strength
+        binding.sliderQuality.value = preferencesManager.homeQuality
+        
+        // 更新显示文本
+        binding.textStrengthValue.text = "${preferencesManager.homeStrength.toInt()}%"
+        binding.textLut2StrengthValue.text = "${preferencesManager.homeLut2Strength.toInt()}%"
+        binding.textQualityValue.text = "${preferencesManager.homeQuality.toInt()}"
+        
+        // 然后才添加监听器，只响应用户操作
+        binding.sliderStrength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) { // 只响应用户操作，忽略程序设置
+                Log.d("HomeFragment", "滑块1用户变化: $value")
+                preferencesManager.homeStrength = value
+                binding.textStrengthValue.text = "${value.toInt()}%"
+                
+                // 发送LUT配置变化广播
+                sendLutConfigChangesBroadcast()
+            }
         }
 
         // 第二个LUT强度滑块
-        binding.sliderLut2Strength.addOnChangeListener { _, value, _ ->
-            Log.d(
-                "HomeFragment",
-                "滑块2变化: $value -> 保存前: ${preferencesManager.homeLut2Strength}"
-            )
-            preferencesManager.homeLut2Strength = value
-            Log.d(
-                "HomeFragment",
-                "滑块2变化: $value -> 保存后: ${preferencesManager.homeLut2Strength}"
-            )
-            binding.textLut2StrengthValue.text = "${value.toInt()}%"
-
-            // 发送LUT配置变化广播
-            sendLutConfigChangesBroadcast()
+        binding.sliderLut2Strength.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) { // 只响应用户操作
+                Log.d("HomeFragment", "滑块2用户变化: $value")
+                preferencesManager.homeLut2Strength = value
+                binding.textLut2StrengthValue.text = "${value.toInt()}%"
+                
+                // 发送LUT配置变化广播
+                sendLutConfigChangesBroadcast()
+            }
         }
 
         // 质量滑块
-        binding.sliderQuality.addOnChangeListener { _, value, _ ->
-            preferencesManager.homeQuality = value
-            binding.textQualityValue.text = "${value.toInt()}"
-            
-            // 发送LUT配置变化广播
-            sendLutConfigChangesBroadcast()
+        binding.sliderQuality.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) { // 只响应用户操作
+                Log.d("HomeFragment", "质量滑块用户变化: $value")
+                preferencesManager.homeQuality = value
+                binding.textQualityValue.text = "${value.toInt()}"
+                
+                // 发送LUT配置变化广播
+                sendLutConfigChangesBroadcast()
+            }
         }
     }
 
@@ -660,6 +668,17 @@ class HomeFragment : Fragment() {
      * 使用防抖机制调度预览更新，避免频繁刷新
      */
     private fun schedulePreviewUpdate() {
+        // 生成请求键（不包含时间戳）
+        val requestKey = generatePreviewRequestKey()
+        
+        // 修复：如果正在处理相同的请求，直接返回
+        synchronized(processingLock) {
+            if (currentProcessingKey == requestKey) {
+                Log.d("HomeFragment", "相同请求正在处理中，跳过调度: $requestKey")
+                return
+            }
+        }
+        
         Log.d(
             "HomeFragment",
             "调度预览更新 - 当前强度1: ${preferencesManager.homeStrength}, 强度2: ${preferencesManager.homeLut2Strength}"
@@ -673,13 +692,45 @@ class HomeFragment : Fragment() {
 
         // 创建新的更新任务
         previewUpdateRunnable = Runnable {
-            Log.d("HomeFragment", "执行预览更新任务")
-            updatePreview()
+            // 在执行前再次检查是否正在处理相同的请求
+            synchronized(processingLock) {
+                if (currentProcessingKey == requestKey) {
+                    Log.d("HomeFragment", "相同请求正在处理中，跳过执行: $requestKey")
+                    return@Runnable
+                }
+                currentProcessingKey = requestKey
+            }
+            
+            try {
+                Log.d("HomeFragment", "执行预览更新任务: $requestKey")
+                updatePreview()
+            } finally {
+                synchronized(processingLock) {
+                    if (currentProcessingKey == requestKey) {
+                        currentProcessingKey = null
+                        Log.d("HomeFragment", "预览更新完成，清除处理标记: $requestKey")
+                    }
+                }
+            }
         }
 
         // 延迟执行更新
         previewUpdateHandler.postDelayed(previewUpdateRunnable!!, PREVIEW_UPDATE_DELAY)
-        Log.d("HomeFragment", "预览更新任务已调度，延迟: ${PREVIEW_UPDATE_DELAY}ms")
+        Log.d("HomeFragment", "预览更新任务已调度，延迟: ${PREVIEW_UPDATE_DELAY}ms, 请求键: $requestKey")
+    }
+    
+    /**
+     * 生成预览请求键（用于去重，不包含时间戳）
+     */
+    private fun generatePreviewRequestKey(): String {
+        val inputFolder = preferencesManager.homeInputFolder
+        val lut1 = selectedLutItem?.name ?: "none"
+        val lut2 = selectedLut2Item?.name ?: "none"
+        val strength1 = preferencesManager.homeStrength
+        val strength2 = preferencesManager.homeLut2Strength
+        val watermark = binding.switchWatermark.isChecked
+        
+        return "${inputFolder}_${lut1}_${lut2}_${strength1}_${strength2}_${watermark}"
     }
 
     private fun setupPreviewCard() {
@@ -821,9 +872,9 @@ class HomeFragment : Fragment() {
                 val currentStrength2 = preferencesManager.homeLut2Strength
                 val currentWatermarkEnabled = binding.switchWatermark.isChecked
 
-                // 使用真正影响图像的参数作为缓存键
+                // 使用真正影响图像的参数作为缓存键（移除时间戳以启用缓存）
                 val cacheKey =
-                    "${latestImage.uri}_${selectedLutItem?.name}_${selectedLut2Item?.name}_${currentStrength1}_${currentStrength2}_${currentWatermarkEnabled}_${System.currentTimeMillis()}"
+                    "${latestImage.uri}_${selectedLutItem?.name}_${selectedLut2Item?.name}_${currentStrength1}_${currentStrength2}_${currentWatermarkEnabled}"
 
                 Log.d("HomeFragment", "生成缓存键: $cacheKey")
                 Log.d(
@@ -834,10 +885,10 @@ class HomeFragment : Fragment() {
                 Glide.with(this)
                     .asBitmap()
                     .load(latestImage.uri)
-                    .signature(ObjectKey(cacheKey)) // 使用包含时间戳的缓存键
-                    .skipMemoryCache(true) // 跳过内存缓存
-                    .diskCacheStrategy(DiskCacheStrategy.NONE) // 跳过磁盘缓存
-                    .override(800, 600) // 限制预览图片大小以提高性能
+                    .signature(ObjectKey(cacheKey)) // 使用不含时间戳的缓存键，启用缓存
+                    .skipMemoryCache(false) // 启用内存缓存
+                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC) // 启用磁盘缓存
+                    .override(900, 600) // 限制预览图片大小以提高性能
                     .dontTransform() // 禁用所有变换
                     .format(DecodeFormat.PREFER_ARGB_8888) // 强制使用ARGB_8888格式
                     .into(object : CustomTarget<Bitmap>() {

@@ -36,8 +36,9 @@ class WatermarkPreviewView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     companion object {
-        private const val PREVIEW_MAX_SIZE = 800 // 预览图最大尺寸（像素）- 提升分辨率
+        private const val PREVIEW_MAX_SIZE = 800 // 预览图最大尺寸（像素）- 优化性能
         private const val UPDATE_DELAY = 300L // 防抖延迟时间（毫秒）
+        private const val CONFIG_CHECK_INTERVAL = 600L // 配置检查间隔（毫秒）- 从500ms增加到1000ms
     }
 
     private val binding: ComponentWatermarkPreviewBinding
@@ -58,6 +59,10 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
     // 上次的配置，用于检测变化
     private var lastConfig: WatermarkConfig? = null
+    
+    // 预览图缓存
+    private var cachedPreviewBitmap: Bitmap? = null
+    private var cachedConfigHash: Int = 0
 
     init {
         binding = ComponentWatermarkPreviewBinding.inflate(LayoutInflater.from(context), this, true)
@@ -250,8 +255,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
                     lastConfig = currentConfig
                     updatePreview(currentConfig)
                 }
-                // 每500ms检查一次配置变化
-                handler.postDelayed(this, 500)
+                // 每1000ms检查一次配置变化（优化性能）
+                handler.postDelayed(this, CONFIG_CHECK_INTERVAL)
             }
         }
         handler.post(configCheckRunnable)
@@ -311,6 +316,14 @@ class WatermarkPreviewView @JvmOverloads constructor(
         previewUpdateRunnable?.let { handler.removeCallbacks(it) }
         updateJob?.cancel()
 
+        // 检查缓存
+        val configHash = calculateConfigHash(config, lut1Name, lut2Name, lut1Strength, lut2Strength)
+        if (configHash == cachedConfigHash && cachedPreviewBitmap != null && !cachedPreviewBitmap!!.isRecycled) {
+            // 使用缓存的预览图
+            binding.imagePreview.setImageBitmap(cachedPreviewBitmap)
+            return
+        }
+
         // 使用防抖机制，避免频繁更新
         previewUpdateRunnable = Runnable {
             updateJob = CoroutineScope(Dispatchers.Main).launch {
@@ -322,11 +335,27 @@ class WatermarkPreviewView @JvmOverloads constructor(
                         lut1Strength,
                         lut2Strength
                     )
-                    binding.imagePreview.setImageBitmap(previewBitmap)
+                    
+                    // 检查 View 是否还存在
+                    if (isAttachedToWindow) {
+                        binding.imagePreview.setImageBitmap(previewBitmap)
+                        
+                        // 更新缓存
+                        cachedPreviewBitmap?.let {
+                            if (!it.isRecycled && it != previewBitmap) {
+                                it.recycle()
+                            }
+                        }
+                        cachedPreviewBitmap = previewBitmap
+                        cachedConfigHash = configHash
+                    } else {
+                        // View 已销毁，回收 bitmap
+                        previewBitmap?.recycle()
+                    }
                 } catch (e: Exception) {
                     // 显示错误时保持当前图片，避免闪烁
                     // 只有在当前没有任何图片时才显示示例图片
-                    if (binding.imagePreview.drawable == null) {
+                    if (isAttachedToWindow && binding.imagePreview.drawable == null) {
                         val fallbackBitmap = backgroundBitmap ?: sampleBitmap
                         binding.imagePreview.setImageBitmap(fallbackBitmap)
                     }
@@ -335,6 +364,25 @@ class WatermarkPreviewView @JvmOverloads constructor(
         }
 
         handler.postDelayed(previewUpdateRunnable!!, UPDATE_DELAY)
+    }
+    
+    /**
+     * 计算配置的哈希值，用于缓存判断
+     */
+    private fun calculateConfigHash(
+        config: WatermarkConfig,
+        lut1Name: String?,
+        lut2Name: String?,
+        lut1Strength: Float?,
+        lut2Strength: Float?
+    ): Int {
+        var result = config.hashCode()
+        result = 31 * result + (lut1Name?.hashCode() ?: 0)
+        result = 31 * result + (lut2Name?.hashCode() ?: 0)
+        result = 31 * result + (lut1Strength?.hashCode() ?: 0)
+        result = 31 * result + (lut2Strength?.hashCode() ?: 0)
+        result = 31 * result + (backgroundBitmap?.hashCode() ?: 0)
+        return result
     }
 
     /**
@@ -353,7 +401,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
     }
 
     /**
-     * 生成预览图片
+     * 生成预览图片（完全在后台线程执行）
      */
     private suspend fun generatePreviewBitmap(
         config: WatermarkConfig,
@@ -362,7 +410,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
         lut1Strength: Float? = null,
         lut2Strength: Float? = null
     ): Bitmap =
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.IO) {
             val baseBitmap = backgroundBitmap ?: sampleBitmap ?: createBasicBitmap()
 
             // 创建更高分辨率的预览图片，保持宽高比
@@ -686,8 +734,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
         
-        // 减少迭代次数从30到15，在预览中精度要求不需要那么高
-        for (i in 0 until 15) {
+        // 减少迭代次数到10次，在预览中精度要求不需要那么高
+        for (i in 0 until 10) {
             val testSize = (minSize + maxSize) / 2f
             paint.textSize = testSize
             paint.letterSpacing = 0f
@@ -868,12 +916,12 @@ class WatermarkPreviewView @JvmOverloads constructor(
         // 目标宽度：图片宽度的百分比
         val targetWidth = bitmap.width * config.textSize / 100f
         
-        // 二分查找合适的字体大小
+        // 二分查找合适的字体大小（优化迭代次数）
         var minSize = 1f
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
         
-        for (i in 0 until 30) {
+        for (i in 0 until 10) {
             val testSize = (minSize + maxSize) / 2f
             tempPaint.textSize = testSize
             tempPaint.letterSpacing = 0f
@@ -975,6 +1023,14 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
         // 停止配置变化检测
         handler.removeCallbacksAndMessages(null)
+
+        // 回收缓存的预览图
+        cachedPreviewBitmap?.let {
+            if (!it.isRecycled) {
+                it.recycle()
+            }
+        }
+        cachedPreviewBitmap = null
 
         // 回收示例图片
         sampleBitmap?.let {

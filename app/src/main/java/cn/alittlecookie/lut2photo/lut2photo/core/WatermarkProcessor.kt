@@ -621,7 +621,7 @@ class WatermarkProcessor(private val context: Context) {
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
         
-        for (i in 0 until 15) { // 优化迭代次数，平衡精度和性能
+        for (i in 0 until 10) { // 优化迭代次数到10次，提升性能
             val testSize = (minSize + maxSize) / 2f
             tempPaint.textSize = testSize
             tempPaint.letterSpacing = 0f // 测量时不考虑字间距
@@ -850,7 +850,7 @@ class WatermarkProcessor(private val context: Context) {
         var finalTextSize = minSize
         
         // 迭代查找最佳字体大小
-        for (i in 0 until 15) { // 优化迭代次数，平衡精度和性能
+        for (i in 0 until 10) { // 优化迭代次数到10次，提升性能
             val testSize = (minSize + maxSize) / 2f
             paint.textSize = testSize
             paint.letterSpacing = 0f // 先不考虑字间距
