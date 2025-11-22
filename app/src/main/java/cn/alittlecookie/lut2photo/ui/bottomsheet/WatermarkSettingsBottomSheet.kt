@@ -224,20 +224,41 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
                 // 设置拖拽回调，更精确地控制拖拽行为
                 behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+                    private var lastSlideOffset = 1.0f
+                    private var isDraggingDown = false
+                    
                     override fun onStateChanged(bottomSheet: View, newState: Int) {
                         // 只允许展开状态，不允许其他状态
                         if (newState == BottomSheetBehavior.STATE_COLLAPSED ||
                             newState == BottomSheetBehavior.STATE_HIDDEN
                         ) {
                             dismiss()
+                        } else if (newState == BottomSheetBehavior.STATE_DRAGGING) {
+                            // 开始拖拽时重置状态
+                            isDraggingDown = false
+                        } else if (newState == BottomSheetBehavior.STATE_SETTLING) {
+                            // 停止拖拽时重置状态
+                            isDraggingDown = false
                         }
                     }
 
                     override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                        // 当滑动偏移小于0.5时关闭对话框
-                        if (slideOffset < 0.5f) {
+                        // 修复：只有在持续向下拖拽且偏移量小于阈值时才关闭
+                        // 检测是否在向下拖拽
+                        if (slideOffset < lastSlideOffset) {
+                            isDraggingDown = true
+                        } else if (slideOffset > lastSlideOffset) {
+                            // 如果开始向上拖拽，重置标志
+                            isDraggingDown = false
+                        }
+                        
+                        // 只有在持续向下拖拽且偏移量小于0.3时才关闭
+                        // 0.3是一个更保守的阈值，避免误触
+                        if (isDraggingDown && slideOffset < 0.3f) {
                             dismiss()
                         }
+                        
+                        lastSlideOffset = slideOffset
                     }
                 })
             }
@@ -592,6 +613,108 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 设置预览视图的监听器
         setupPreviewView()
+        
+        // 为所有交互控件设置触摸事件处理，防止意外关闭BottomSheet
+        setupTouchEventHandling()
+    }
+    
+    /**
+     * 为所有交互控件设置触摸事件处理，防止在操作时意外关闭BottomSheet
+     */
+    private fun setupTouchEventHandling() {
+        // 为所有按钮设置触摸事件处理
+        val buttons = listOf(
+            binding.buttonTextWatermark,
+            binding.buttonImageWatermark,
+            binding.buttonTextAlignLeft,
+            binding.buttonTextAlignCenter,
+            binding.buttonTextAlignRight,
+            binding.buttonFollowTop,
+            binding.buttonFollowBottom,
+            binding.buttonFollowLeft,
+            binding.buttonFollowRight,
+            binding.buttonManualColor,
+            binding.buttonAutoColor,
+            binding.buttonMaterialColor,
+            binding.buttonSelectFont,
+            binding.buttonResetFont,
+            binding.buttonSelectImage,
+            binding.buttonTextColor,
+            binding.buttonBorderColor,
+            binding.buttonExportConfig,
+            binding.buttonImportConfig,
+            binding.buttonCancel,
+            binding.buttonConfirm
+        )
+        
+        buttons.forEach { button ->
+            button.setOnTouchListener { view, event ->
+                // 阻止触摸事件传递给BottomSheet
+                view.parent.requestDisallowInterceptTouchEvent(true)
+                false // 不消耗事件，让按钮正常处理点击
+            }
+        }
+        
+        // 为所有toggle group设置触摸事件处理
+        val toggleGroups = listOf(
+            binding.toggleGroupWatermarkType,
+            binding.toggleGroupTextAlignment,
+            binding.toggleGroupTextFollowDirection,
+            binding.toggleBorderColorMode
+        )
+        
+        toggleGroups.forEach { toggleGroup ->
+            toggleGroup.setOnTouchListener { view, event ->
+                view.parent.requestDisallowInterceptTouchEvent(true)
+                false
+            }
+        }
+        
+        // 为开关设置触摸事件处理
+        binding.switchTextFollowMode.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+        
+        // 为输入框设置触摸事件处理
+        binding.editTextContent.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+        
+        // 为水印预览区域设置触摸事件处理，防止下滑时意外关闭BottomSheet
+        binding.watermarkPreview.setOnTouchListener { view, event ->
+            // 阻止触摸事件传递给BottomSheet
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false // 不消耗事件，让预览区域正常处理点击和其他交互
+        }
+        
+        // 为水印预览区域的所有子视图递归设置触摸事件处理
+        // 使用post确保在视图树构建完成后再设置
+        binding.watermarkPreview.post {
+            setupTouchEventForViewGroup(binding.watermarkPreview)
+        }
+    }
+    
+    /**
+     * 递归为ViewGroup及其所有子视图设置触摸事件处理
+     */
+    private fun setupTouchEventForViewGroup(viewGroup: ViewGroup) {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            
+            // 为子视图设置触摸事件处理
+            child.setOnTouchListener { view, event ->
+                // 阻止触摸事件传递给BottomSheet
+                view.parent.requestDisallowInterceptTouchEvent(true)
+                false // 不消耗事件，让子视图正常处理交互
+            }
+            
+            // 如果子视图也是ViewGroup，递归处理
+            if (child is ViewGroup) {
+                setupTouchEventForViewGroup(child)
+            }
+        }
     }
 
     private fun loadSavedSettings() {
