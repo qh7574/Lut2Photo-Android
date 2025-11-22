@@ -503,7 +503,10 @@ class WatermarkProcessor(private val context: Context) {
                 image.height,
                 config.textFollowDirection,
                 config.textImageSpacing,
-                config.textAlignment
+                config.textAlignment,
+                config.textSize,
+                processedText,
+                config.fontPath
             )
 
             // 绘制文字水印
@@ -580,6 +583,89 @@ class WatermarkProcessor(private val context: Context) {
     }
 
     /**
+     * 计算单个文字的尺寸
+     * @param bitmap 图片
+     * @param textSizePercent 文字大小百分比
+     * @param text 要测量的文本
+     * @param fontPath 字体路径
+     * @return Pair(单个文字的宽度, 单个文字的高度)（像素）
+     */
+    private fun calculateSingleCharSize(
+        bitmap: Bitmap,
+        textSizePercent: Float,
+        text: String,
+        fontPath: String
+    ): Pair<Float, Float> {
+        val lines = text.split("\n")
+        if (lines.isEmpty()) return Pair(0f, 0f)
+        
+        val tempPaint = Paint().apply {
+            isAntiAlias = true
+            if (fontPath.isNotEmpty()) {
+                try {
+                    val fontFile = File(fontPath)
+                    if (fontFile.exists()) {
+                        typeface = Typeface.createFromFile(fontFile)
+                    }
+                } catch (_: Exception) {
+                    // 使用默认字体
+                }
+            }
+        }
+        
+        // 目标宽度：图片宽度的百分比
+        val targetWidth = bitmap.width * textSizePercent / 100f
+        
+        // 二分查找合适的字体大小
+        var minSize = 1f
+        var maxSize = bitmap.width.toFloat()
+        var finalTextSize = minSize
+        
+        for (i in 0 until 30) { // 增加迭代次数以提高精度
+            val testSize = (minSize + maxSize) / 2f
+            tempPaint.textSize = testSize
+            tempPaint.letterSpacing = 0f // 测量时不考虑字间距
+            
+            // 找到实际渲染宽度最宽的行
+            val maxLineWidth = lines.maxOfOrNull { line -> 
+                if (line.isEmpty()) 0f else tempPaint.measureText(line)
+            } ?: 0f
+            
+            if (kotlin.math.abs(maxLineWidth - targetWidth) < 1f) {
+                finalTextSize = testSize
+                break
+            } else if (maxLineWidth < targetWidth) {
+                // 测量宽度小于目标，需要增大字体
+                minSize = testSize
+            } else {
+                // 测量宽度大于目标，需要减小字体
+                maxSize = testSize
+            }
+            
+            // 使用当前范围的中点作为最终结果
+            finalTextSize = (minSize + maxSize) / 2f
+        }
+        
+        tempPaint.textSize = finalTextSize
+        tempPaint.letterSpacing = 0f
+        
+        // 找到实际渲染宽度最宽的行（用于日志）
+        val longestLine = lines.maxByOrNull { line -> 
+            if (line.isEmpty()) 0f else tempPaint.measureText(line)
+        } ?: "字"
+        val maxLineWidth = if (longestLine.isEmpty()) 0f else tempPaint.measureText(longestLine)
+        
+        val charWidth = tempPaint.measureText("字")
+        val charHeight = finalTextSize // 文字高度约等于字体大小
+        
+        android.util.Log.d(TAG, "calculateSingleCharSize - 图片宽度: ${bitmap.width}px, 目标百分比: $textSizePercent%, 目标宽度: ${targetWidth}px")
+        android.util.Log.d(TAG, "calculateSingleCharSize - 最宽行: \"$longestLine\", 实际宽度: ${maxLineWidth}px")
+        android.util.Log.d(TAG, "calculateSingleCharSize - 最终字体大小: ${finalTextSize}px, 单字宽度: ${charWidth}px, 单字高度: ${charHeight}px")
+        
+        return Pair(charWidth, charHeight)
+    }
+
+    /**
      * 计算文字跟随模式下的文字位置
      */
     private fun calculateTextFollowPosition(
@@ -589,20 +675,16 @@ class WatermarkProcessor(private val context: Context) {
         imageHeight: Int,
         followDirection: TextFollowDirection,
         spacingPercent: Float,
-        textAlignment: cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
+        textAlignment: cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment,
+        textSizePercent: Float,
+        text: String,
+        fontPath: String
     ): PointF {
-        // 计算间距（根据方向使用不同的参考尺寸）
-        val spacing = when (followDirection) {
-            TextFollowDirection.TOP, TextFollowDirection.BOTTOM -> {
-                // 上下方向使用图片高度百分比
-                imageHeight * spacingPercent / 100f
-            }
-
-            TextFollowDirection.LEFT, TextFollowDirection.RIGHT -> {
-                // 左右方向使用图片宽度百分比
-                imageWidth * spacingPercent / 100f
-            }
-        }
+        // 计算单个文字的尺寸
+        val (singleCharWidth, singleCharHeight) = calculateSingleCharSize(bitmap, textSizePercent, text, fontPath)
+        
+        // 计算间距（基于单个文字高度的百分比）
+        val spacing = singleCharHeight * spacingPercent / 100f
 
         // 计算文字位置
         val textX: Float
@@ -726,20 +808,10 @@ class WatermarkProcessor(private val context: Context) {
         // 处理多行文本
         val lines = text.split("\n")
         if (lines.isEmpty()) return
-
-        // 根据背景图宽度计算文字大小
-        val baseTextSizePx = bitmap.width * textSizePercent / 100f
-
-        // 确保基础文字大小有效
-        if (baseTextSizePx <= 0) return
-
-        // 找到最长的行来计算合适的字体大小
-        val longestLine = lines.maxByOrNull { it.length } ?: ""
-        if (longestLine.isEmpty()) return
         
         val paint = Paint().apply {
             color = config.getTextColorInt()
-            alpha = (config.textOpacity * 255 / 100).toInt() // 使用新的文字透明度
+            alpha = (config.textOpacity * 255 / 100).toInt()
             isAntiAlias = true
 
             // 设置文本对齐方式
@@ -762,37 +834,82 @@ class WatermarkProcessor(private val context: Context) {
             }
         }
 
-        // 计算最大允许宽度（图片宽度的80%）
-        val maxAllowedWidth = bitmap.width * 0.8f
-
-        // 先设置基础文字大小
-        paint.textSize = baseTextSizePx
-
-        // 测量文字宽度（不考虑字间距）
-        val measuredWidth = paint.measureText(longestLine)
-
-        // 如果文字宽度超过最大允许宽度，按比例缩小
-        val finalTextSize = if (measuredWidth > maxAllowedWidth && measuredWidth > 0) {
-            baseTextSizePx * (maxAllowedWidth / measuredWidth)
-        } else {
-            baseTextSizePx
+        // 目标宽度：图片宽度的百分比
+        val targetWidth = bitmap.width * textSizePercent / 100f
+        
+        android.util.Log.d(TAG, "========== 开始文字大小计算 ==========")
+        android.util.Log.d(TAG, "图片宽度: ${bitmap.width}px, 目标百分比: $textSizePercent%, 目标宽度: ${targetWidth}px")
+        android.util.Log.d(TAG, "文本行数: ${lines.size}")
+        lines.forEachIndexed { index, line ->
+            android.util.Log.d(TAG, "第${index + 1}行: \"$line\" (${line.length}个字符)")
+        }
+        
+        // 二分查找合适的字体大小，使最宽行的实际渲染宽度等于目标宽度
+        var minSize = 1f
+        var maxSize = bitmap.width.toFloat()
+        var finalTextSize = minSize
+        
+        // 迭代查找最佳字体大小
+        for (i in 0 until 30) { // 增加迭代次数以提高精度
+            val testSize = (minSize + maxSize) / 2f
+            paint.textSize = testSize
+            paint.letterSpacing = 0f // 先不考虑字间距
+            
+            // 找到实际渲染宽度最宽的行
+            val maxLineWidth = lines.maxOfOrNull { line -> 
+                if (line.isEmpty()) 0f else paint.measureText(line)
+            } ?: 0f
+            
+            android.util.Log.d(TAG, "迭代 $i - 字体: ${testSize}px, 最宽行宽: ${maxLineWidth}px, 目标: ${targetWidth}px, 差值: ${maxLineWidth - targetWidth}px, minSize: ${minSize}px, maxSize: ${maxSize}px")
+            
+            if (kotlin.math.abs(maxLineWidth - targetWidth) < 1f) {
+                // 足够接近目标宽度
+                finalTextSize = testSize
+                android.util.Log.d(TAG, "✓ 找到合适的字体大小: ${finalTextSize}px (迭代${i}次)")
+                break
+            } else if (maxLineWidth < targetWidth) {
+                // 测量宽度小于目标，需要增大字体
+                minSize = testSize
+            } else {
+                // 测量宽度大于目标，需要减小字体
+                maxSize = testSize
+            }
+            
+            // 使用当前范围的中点作为最终结果
+            finalTextSize = (minSize + maxSize) / 2f
         }
 
         // 设置最终的字体大小
         paint.textSize = finalTextSize
+        
+        // 找到实际渲染宽度最宽的行（用于日志）
+        val longestLine = lines.maxByOrNull { line -> 
+            if (line.isEmpty()) 0f else paint.measureText(line)
+        } ?: ""
+        val maxLineWidth = if (longestLine.isEmpty()) 0f else paint.measureText(longestLine)
+        
+        android.util.Log.d(TAG, "最终字体大小: ${finalTextSize}px")
+        android.util.Log.d(TAG, "最宽行: \"$longestLine\", 实际宽度: ${maxLineWidth}px")
+        android.util.Log.d(TAG, "目标宽度: ${targetWidth}px, 误差: ${maxLineWidth - targetWidth}px (${((maxLineWidth - targetWidth) / targetWidth * 100)}%)")
+        android.util.Log.d(TAG, "========== 文字大小计算完成 ==========\n")
 
-        // 设置字间距（使用背景图宽度百分比）
-        if (config.letterSpacing > 0 && finalTextSize > 0) {
-            val letterSpacingPx = bitmap.width * config.letterSpacing / 100f
+        // 测量单个文字的宽度（使用一个标准字符，如"字"）
+        paint.letterSpacing = 0f // 确保测量时没有字间距
+        val singleCharWidth = paint.measureText("字")
+        
+        // 设置字间距（基于单个文字宽度的百分比）
+        if (config.letterSpacing != 0f && finalTextSize > 0 && singleCharWidth > 0) {
+            val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
             paint.letterSpacing = letterSpacingPx / finalTextSize
         } else {
             paint.letterSpacing = 0f
         }
 
-        // 计算行间距
-        val baseLineHeight = finalTextSize * 1.2f
-        val additionalLineSpacing = if (config.lineSpacing > 0) {
-            bitmap.height * config.lineSpacing / 100
+        // 计算行间距（基于单个文字高度的百分比）
+        val singleCharHeight = finalTextSize  // 文字高度约等于字体大小
+        val baseLineHeight = singleCharHeight * 1.2f  // 基础行高为字符高度的1.2倍
+        val additionalLineSpacing = if (config.lineSpacing != 0f) {
+            singleCharHeight * config.lineSpacing / 100f
         } else {
             0f
         }

@@ -8,7 +8,7 @@ import android.graphics.Color
 data class WatermarkConfig(
     // 基础设置
     val isEnabled: Boolean = false,
-    val enableTextWatermark: Boolean = false,
+    val enableTextWatermark: Boolean = true,
     val enableImageWatermark: Boolean = false,
 
     // 文字水印位置设置 (百分比形式，0-100)
@@ -20,7 +20,7 @@ data class WatermarkConfig(
     val imagePositionY: Float = 10f, // 图片水印Y位置百分比
 
     // 大小设置 (百分比形式，0-100)
-    val textSize: Float = 10f, // 文字水印大小百分比
+    val textSize: Float = 8f, // 文字水印大小百分比
     val imageSize: Float = 10f, // 图片水印大小百分比
 
     // 透明度设置 (百分比形式，0-100)
@@ -31,7 +31,7 @@ data class WatermarkConfig(
     val textContent: String = "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}", // 支持变量替换
     val textColor: String = "#FFFFFF", // 16进制颜色
     val fontPath: String = "", // 字体文件路径
-    val textAlignment: TextAlignment = TextAlignment.LEFT, // 文本对齐方式
+    val textAlignment: TextAlignment = TextAlignment.CENTER, // 文本对齐方式
 
     // 图片水印设置
     val imagePath: String = "", // 水印图片路径
@@ -40,8 +40,8 @@ data class WatermarkConfig(
     val enableTextFollowMode: Boolean = false, // 是否启用文字跟随模式
     val textFollowDirection: TextFollowDirection = TextFollowDirection.BOTTOM, // 文字跟随方向
 
-    // 文字和图片水印间距设置 (跟随模式下使用水印图片尺寸的百分比，0-500%，5%步进)
-    val textImageSpacing: Float = 0f, // 文字水印与图片水印的距离百分比
+    // 文字和图片水印间距设置 (跟随模式下使用单个文字宽度的百分比，-500%-500%，50%步进)
+    val textImageSpacing: Float = 100f, // 文字水印与图片水印的距离百分比
 
     // 边框设置 - 四个方向独立控制
     val borderTopWidth: Float = 0f, // 上边框宽度百分比，0%-150%
@@ -52,8 +52,8 @@ data class WatermarkConfig(
     val borderColorMode: BorderColorMode = BorderColorMode.MANUAL, // 边框颜色模式
 
     // 文字间距设置
-    val letterSpacing: Float = 0f, // 字间距，使用背景图宽度的百分比（0.1%-100%）
-    val lineSpacing: Float = 0f, // 行间距，使用图片高度的百分比
+    val letterSpacing: Float = 0f, // 字间距，使用单个文字宽度的百分比（-100%-400%，10%步进）
+    val lineSpacing: Float = 0f, // 行间距，使用单个文字高度的百分比（-100%-400%，10%步进）
 
     // 向后兼容性字段（已弃用）
     @Deprecated("使用 textPositionX 和 imagePositionX")

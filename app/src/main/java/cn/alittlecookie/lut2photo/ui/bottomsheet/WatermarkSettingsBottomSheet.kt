@@ -422,7 +422,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 新增字间距和行间距滑块监听器
         binding.sliderLetterSpacing.addOnChangeListener { _, value, _ ->
-            binding.textLetterSpacingValue.text = "${String.format("%.1f", value)}%"
+            binding.textLetterSpacingValue.text = "${value.toInt()}%"
         }
 
         binding.sliderLetterSpacing.setOnTouchListener { view, event ->
@@ -598,8 +598,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         updateBorderColorButton(config.borderColor)
 
         // 加载新增的字间距和行间距设置
-        binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
-        binding.sliderLineSpacing.value = config.lineSpacing
+        binding.sliderLetterSpacing.value = config.letterSpacing.coerceIn(-100f, 400f)
+        binding.sliderLineSpacing.value = config.lineSpacing.coerceIn(-100f, 400f)
 
         // 加载文字跟随模式设置
         binding.switchTextFollowMode.isChecked = config.enableTextFollowMode
@@ -614,7 +614,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
 
         // 设置图片文字间距
-        binding.sliderTextImageSpacing.value = config.textImageSpacing
+        binding.sliderTextImageSpacing.value = config.textImageSpacing.coerceIn(-500f, 500f)
 
         // 更新UI显示状态
         updateTextFollowModeVisibility(config.enableTextFollowMode)
@@ -1007,8 +1007,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         updateBorderColorButton(config.borderColor)
 
         // 应用新增的字间距和行间距设置
-        binding.sliderLetterSpacing.value = config.letterSpacing.coerceAtLeast(0.1f)
-        binding.sliderLineSpacing.value = config.lineSpacing
+        binding.sliderLetterSpacing.value = config.letterSpacing.coerceIn(-100f, 400f)
+        binding.sliderLineSpacing.value = config.lineSpacing.coerceIn(-100f, 400f)
 
         // 应用文字跟随模式设置
         binding.switchTextFollowMode.isChecked = config.enableTextFollowMode
@@ -1023,7 +1023,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
 
         // 设置图片文字间距
-        binding.sliderTextImageSpacing.value = config.textImageSpacing
+        binding.sliderTextImageSpacing.value = config.textImageSpacing.coerceIn(-500f, 500f)
 
         // 更新UI显示状态
         updateTextFollowModeVisibility(config.enableTextFollowMode)

@@ -187,11 +187,11 @@ class WatermarkConfigManager(private val context: Context) {
         val json = JSONObject(jsonString)
 
         // 读取文本对齐方式
-        val textAlignmentName = json.optString("textAlignment", "LEFT")
+        val textAlignmentName = json.optString("textAlignment", "CENTER")
         val textAlignment = try {
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.valueOf(textAlignmentName)
         } catch (e: IllegalArgumentException) {
-            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT
+            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER
         }
 
         // 读取文字跟随模式配置
@@ -216,7 +216,7 @@ class WatermarkConfigManager(private val context: Context) {
 
         return WatermarkConfig(
             isEnabled = json.optBoolean("isEnabled", false),
-            enableTextWatermark = json.optBoolean("enableTextWatermark", false),
+            enableTextWatermark = json.optBoolean("enableTextWatermark", true),
             enableImageWatermark = json.optBoolean("enableImageWatermark", false),
 
             // 新的分离位置参数，如果不存在则使用旧参数作为默认值
@@ -234,7 +234,7 @@ class WatermarkConfigManager(private val context: Context) {
             imageOpacity = json.optDouble("imageOpacity", json.optDouble("opacity", 80.0))
                 .toFloat(),
 
-            textSize = json.optDouble("textSize", 10.0).toFloat(),
+            textSize = json.optDouble("textSize", 8.0).toFloat(),
             imageSize = json.optDouble("imageSize", 10.0).toFloat(),
             textContent = json.optString(
                 "textContent",
@@ -246,7 +246,7 @@ class WatermarkConfigManager(private val context: Context) {
             imagePath = "", // 将在导入过程中设置
             enableTextFollowMode = json.optBoolean("enableTextFollowMode", false),
             textFollowDirection = textFollowDirection,
-            textImageSpacing = json.optDouble("textImageSpacing", 0.0).toFloat(),
+            textImageSpacing = json.optDouble("textImageSpacing", 100.0).toFloat(),
             borderTopWidth = json.optDouble("borderTopWidth", 0.0).toFloat(),
             borderBottomWidth = json.optDouble("borderBottomWidth", 0.0).toFloat(),
             borderLeftWidth = json.optDouble("borderLeftWidth", 0.0).toFloat(),
