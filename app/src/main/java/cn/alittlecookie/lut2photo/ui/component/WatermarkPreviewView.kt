@@ -681,43 +681,39 @@ class WatermarkPreviewView @JvmOverloads constructor(
         // 目标宽度：图片宽度的百分比
         val targetWidth = bitmap.width * config.textSize / 100f
         
-        // 二分查找合适的字体大小，使最宽行的实际渲染宽度等于目标宽度
+        // 优化的二分查找：减少迭代次数，提高性能
         var minSize = 1f
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
         
-        // 迭代查找最佳字体大小
-        for (i in 0 until 30) {
+        // 减少迭代次数从30到15，在预览中精度要求不需要那么高
+        for (i in 0 until 15) {
             val testSize = (minSize + maxSize) / 2f
             paint.textSize = testSize
-            paint.letterSpacing = 0f // 先不考虑字间距
+            paint.letterSpacing = 0f
             
             // 找到实际渲染宽度最宽的行
             val maxLineWidth = lines.maxOfOrNull { line -> 
                 if (line.isEmpty()) 0f else paint.measureText(line)
             } ?: 0f
             
-            if (kotlin.math.abs(maxLineWidth - targetWidth) < 1f) {
-                // 足够接近目标宽度
+            if (kotlin.math.abs(maxLineWidth - targetWidth) < 2f) { // 放宽精度要求
                 finalTextSize = testSize
                 break
             } else if (maxLineWidth < targetWidth) {
-                // 测量宽度小于目标，需要增大字体
                 minSize = testSize
             } else {
-                // 测量宽度大于目标，需要减小字体
                 maxSize = testSize
             }
             
-            // 使用当前范围的中点作为最终结果
             finalTextSize = (minSize + maxSize) / 2f
         }
 
         // 设置最终的字体大小
         paint.textSize = finalTextSize
 
-        // 测量单个文字的宽度（使用一个标准字符，如"字"）
-        paint.letterSpacing = 0f // 确保测量时没有字间距
+        // 测量单个文字的宽度
+        paint.letterSpacing = 0f
         val singleCharWidth = paint.measureText("字")
         
         // 设置字间距（基于单个文字宽度的百分比）
@@ -729,8 +725,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
         }
 
         // 计算行间距（基于单个文字高度的百分比）
-        val singleCharHeight = finalTextSize  // 文字高度约等于字体大小
-        val baseLineHeight = singleCharHeight * 1.2f  // 基础行高为字符高度的1.2倍
+        val singleCharHeight = finalTextSize
+        val baseLineHeight = singleCharHeight * 1.2f
         val additionalLineSpacing = if (config.lineSpacing != 0f) {
             singleCharHeight * config.lineSpacing / 100f
         } else {
@@ -744,17 +740,12 @@ class WatermarkPreviewView @JvmOverloads constructor(
         // 根据对齐方式计算X坐标
         val drawX = when (config.textAlignment) {
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> {
-                // 左对齐：从图片左边缘开始，留出一些边距
                 bitmap.width * 0.05f
             }
-
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> {
-                // 居中对齐：使用传入的x
                 x
             }
-
             cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> {
-                // 右对齐：从图片右边缘开始，留出一些边距
                 bitmap.width * 0.95f
             }
         }
@@ -763,10 +754,9 @@ class WatermarkPreviewView @JvmOverloads constructor(
         lines.forEachIndexed { index, line ->
             if (line.isNotEmpty()) {
                 val lineY = startY + index * lineHeight
-                // 确保文字在可见区域内
                 val adjustedY = when {
-                    lineY < finalTextSize -> finalTextSize // 防止文字超出上边界
-                    lineY > bitmap.height - 10 -> bitmap.height - 10f // 防止文字超出下边界
+                    lineY < finalTextSize -> finalTextSize
+                    lineY > bitmap.height - 10 -> bitmap.height - 10f
                     else -> lineY
                 }
                 canvas.drawText(line, drawX, adjustedY, paint)

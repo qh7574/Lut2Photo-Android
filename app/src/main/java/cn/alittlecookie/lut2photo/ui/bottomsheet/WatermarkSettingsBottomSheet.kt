@@ -61,6 +61,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private var lut2Name: String? = null
     private var lut1Strength: Float? = null
     private var lut2Strength: Float? = null
+    
+    // 预览图片URI
+    private var previewImageUri: Uri? = null
 
     companion object {
         fun newInstance(
@@ -69,7 +72,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             lut1Name: String? = null,
             lut2Name: String? = null,
             lut1Strength: Float? = null,
-            lut2Strength: Float? = null
+            lut2Strength: Float? = null,
+            previewImageUri: Uri? = null  // 新增参数，预览图片URI
         ): WatermarkSettingsBottomSheet {
             return WatermarkSettingsBottomSheet().apply {
                 this.onConfigSaved = onConfigSaved
@@ -78,6 +82,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                 this.lut2Name = lut2Name
                 this.lut1Strength = lut1Strength
                 this.lut2Strength = lut2Strength
+                this.previewImageUri = previewImageUri
             }
         }
     }
@@ -246,6 +251,68 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         setupViews()
         loadSavedSettings()
+        loadPreviewImage()
+    }
+    
+    /**
+     * 加载预览图片
+     * 根据来源自动加载合适的预览图片
+     */
+    private fun loadPreviewImage() {
+        lifecycleScope.launch {
+            try {
+                val uri = when {
+                    // 如果传入了预览图片URI，直接使用
+                    previewImageUri != null -> previewImageUri
+                    
+                    // 如果是从文件夹监控进入，读取输入文件夹中的第一张图片
+                    forFolderMonitor -> {
+                        val inputFolder = preferencesManager.homeInputFolder
+                        if (inputFolder.isNotEmpty()) {
+                            getFirstImageFromFolder(inputFolder)
+                        } else null
+                    }
+                    
+                    // 否则不加载（显示占位图）
+                    else -> null
+                }
+                
+                // 如果有URI，加载图片
+                uri?.let { imageUri ->
+                    val memoryOptimizer = cn.alittlecookie.lut2photo.lut2photo.utils.MemoryOptimizer(requireContext())
+                    val bitmap = memoryOptimizer.loadOptimizedBitmap(imageUri)
+                    
+                    if (bitmap != null) {
+                        binding.watermarkPreview.setBackgroundImage(bitmap)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("WatermarkSettings", "加载预览图片失败", e)
+                // 失败时不显示错误，保持占位图
+            }
+        }
+    }
+    
+    /**
+     * 从文件夹中获取第一张图片的URI
+     */
+    private suspend fun getFirstImageFromFolder(folderPath: String): Uri? = withContext(Dispatchers.IO) {
+        try {
+            val folder = File(folderPath)
+            if (!folder.exists() || !folder.isDirectory) return@withContext null
+            
+            val imageExtensions = listOf("jpg", "jpeg", "png", "webp", "heic", "heif")
+            val firstImage = folder.listFiles()?.firstOrNull { file ->
+                file.isFile && imageExtensions.any { ext ->
+                    file.name.lowercase().endsWith(".$ext")
+                }
+            }
+            
+            firstImage?.let { Uri.fromFile(it) }
+        } catch (e: Exception) {
+            Log.e("WatermarkSettings", "读取文件夹图片失败", e)
+            null
+        }
     }
 
     private fun setupViews() {
@@ -697,19 +764,19 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun selectImageFile() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        // 使用系统相册选择器（ACTION_PICK）
+        val intent = Intent(Intent.ACTION_PICK).apply {
             type = "image/*"
-            addCategory(Intent.CATEGORY_OPENABLE)
         }
-        imagePickerLauncher.launch(Intent.createChooser(intent, "选择水印图片"))
+        imagePickerLauncher.launch(intent)
     }
 
     private fun selectBackgroundImageFile() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        // 使用系统相册选择器（ACTION_PICK）
+        val intent = Intent(Intent.ACTION_PICK).apply {
             type = "image/*"
-            addCategory(Intent.CATEGORY_OPENABLE)
         }
-        backgroundImagePickerLauncher.launch(Intent.createChooser(intent, "选择预览背景图片"))
+        backgroundImagePickerLauncher.launch(intent)
     }
 
     private fun exportWatermarkConfig() {
