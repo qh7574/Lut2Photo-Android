@@ -7,6 +7,10 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-1.8.0-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
 
+## ⏬ 网盘下载链接
+
+- [百度网盘分享链接](https://pan.baidu.com/s/1Sm5DseB9slDDCD11s4KlTw?pwd=760l)
+- [夸克网盘分享链接](https://pan.quark.cn/s/ee5abe7b2081)
 
 ------------
 
