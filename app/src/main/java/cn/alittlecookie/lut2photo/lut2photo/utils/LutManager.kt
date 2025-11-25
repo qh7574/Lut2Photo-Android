@@ -43,7 +43,10 @@ class LutManager(private val context: Context) {
     
     suspend fun getAllLuts(): List<LutItem> = withContext(Dispatchers.IO) {
         lutDirectory.listFiles { file ->
-            file.isFile && file.name.endsWith(".cube", ignoreCase = true)
+            file.isFile && (
+                file.name.endsWith(".cube", ignoreCase = true) ||
+                file.name.endsWith(".vlt", ignoreCase = true)
+            )
         }?.map { file ->
             LutItem(
                 id = file.name,
@@ -57,27 +60,105 @@ class LutManager(private val context: Context) {
     
     suspend fun importLut(uri: Uri): Boolean = withContext(Dispatchers.IO) {
         try {
-            val fileName = getFileName(uri) ?: "imported_${System.currentTimeMillis()}.cube"
-            val targetFile = File(lutDirectory, fileName)
+            val originalFileName = getFileName(uri) ?: "imported_${System.currentTimeMillis()}.cube"
+            android.util.Log.d("LutManager", "开始导入LUT文件: $originalFileName")
             
-            // 如果文件已存在，添加时间戳
-            val finalFile = if (targetFile.exists()) {
-                val nameWithoutExt = targetFile.nameWithoutExtension
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                File(lutDirectory, "${nameWithoutExt}_${timestamp}.cube")
-            } else {
-                targetFile
+            // 第一步：检测LUT信息
+            val lutInfo = context.contentResolver.openInputStream(uri)?.use { input ->
+                LutConverter.detectLutInfo(input, originalFileName)
             }
             
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                FileOutputStream(finalFile).use { output ->
-                    input.copyTo(output)
+            if (lutInfo == null) {
+                android.util.Log.e("LutManager", "无法检测LUT文件信息")
+                return@withContext false
+            }
+            
+            android.util.Log.d("LutManager", "检测到LUT: 尺寸=${lutInfo.size}, 格式=${lutInfo.format}")
+            
+            // 第二步：根据尺寸决定是否需要转换
+            val needConversion = lutInfo.size != 33
+            
+            if (needConversion) {
+                android.util.Log.d("LutManager", "需要转换LUT从 ${lutInfo.size}位 到 33位")
+                
+                // 解析源LUT数据
+                val (sourceLut, sourceSize) = context.contentResolver.openInputStream(uri)?.use { input ->
+                    LutConverter.parseLutData(input)
+                } ?: run {
+                    android.util.Log.e("LutManager", "无法解析LUT数据")
+                    return@withContext false
                 }
+                
+                // 转换为33位Cube格式
+                val convertedContent = LutConverter.convertTo33Cube(
+                    sourceLut, 
+                    sourceSize, 
+                    lutInfo.title ?: originalFileName.substringBeforeLast(".")
+                )
+                
+                // 生成目标文件名（统一为.cube格式）
+                // 如果是.vlt格式，添加-vlt标识
+                val baseFileName = originalFileName.substringBeforeLast(".")
+                val isVltFormat = lutInfo.format == LutConverter.LutFormat.VLT
+                val targetFileName = if (isVltFormat) {
+                    "${baseFileName}-vlt.cube"
+                } else {
+                    "${baseFileName}.cube"
+                }
+                val targetFile = File(lutDirectory, targetFileName)
+                
+                // 如果文件已存在，添加时间戳
+                val finalFile = if (targetFile.exists()) {
+                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    if (isVltFormat) {
+                        File(lutDirectory, "${baseFileName}-vlt-${timestamp}.cube")
+                    } else {
+                        File(lutDirectory, "${baseFileName}-${timestamp}.cube")
+                    }
+                } else {
+                    targetFile
+                }
+                
+                // 写入转换后的文件
+                val success = LutConverter.writeCubeFile(convertedContent, finalFile)
+                
+                if (success) {
+                    android.util.Log.d("LutManager", "LUT转换并导入成功: ${finalFile.name}")
+                    validateLutFile(finalFile)
+                } else {
+                    android.util.Log.e("LutManager", "LUT转换失败")
+                    false
+                }
+                
+            } else {
+                // 33位LUT，直接复制
+                android.util.Log.d("LutManager", "33位LUT，直接导入")
+                
+                val targetFile = File(lutDirectory, originalFileName)
+                
+                // 如果文件已存在，添加时间戳
+                val finalFile = if (targetFile.exists()) {
+                    val nameWithoutExt = targetFile.nameWithoutExtension
+                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val extension = targetFile.extension
+                    File(lutDirectory, "${nameWithoutExt}_${timestamp}.${extension}")
+                } else {
+                    targetFile
+                }
+                
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(finalFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                android.util.Log.d("LutManager", "LUT直接导入成功: ${finalFile.name}")
+                
+                // 验证LUT文件格式
+                validateLutFile(finalFile)
             }
-            
-            // 验证LUT文件格式
-            validateLutFile(finalFile)
         } catch (e: Exception) {
+            android.util.Log.e("LutManager", "导入LUT失败", e)
             e.printStackTrace()
             false
         }
@@ -133,10 +214,13 @@ class LutManager(private val context: Context) {
     
     private fun validateLutFile(file: File): Boolean {
         return try {
-            file.readLines().any { line ->
+            val isValid = file.readLines().any { line ->
                 line.trim().startsWith("LUT_3D_SIZE")
             }
-        } catch (_: Exception) {
+            android.util.Log.d("LutManager", "LUT文件验证: ${file.name}, 结果: $isValid")
+            isValid
+        } catch (e: Exception) {
+            android.util.Log.e("LutManager", "LUT文件验证失败: ${file.name}", e)
             false
         }
     }

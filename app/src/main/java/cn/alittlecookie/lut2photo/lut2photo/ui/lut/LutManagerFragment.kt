@@ -90,7 +90,9 @@ class LutManagerFragment : Fragment() {
                         "text/plain", 
                         "application/octet-stream",
                         "text/cube",
-                        "application/cube"
+                        "application/cube",
+                        "application/vlt",
+                        "text/vlt"
                     ))
                     putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                 }
@@ -166,7 +168,7 @@ class LutManagerFragment : Fragment() {
 
                 // 显示结果
                 val message = when {
-                    failCount == 0 -> "成功导入 $successCount 个LUT文件"
+                    failCount == 0 -> "成功导入 $successCount 个LUT文件（已自动转换为33位）"
                     successCount == 0 -> "导入失败，请检查文件格式"
                     else -> "成功导入 $successCount 个，失败 $failCount 个LUT文件"
                 }
@@ -183,7 +185,7 @@ class LutManagerFragment : Fragment() {
                 e.printStackTrace()
             } finally {
                 binding.buttonImportLut.isEnabled = true
-                binding.buttonImportLut.text = "导入LUT"
+                binding.buttonImportLut.text = "导入"
             }
         }
     }
@@ -200,7 +202,7 @@ class LutManagerFragment : Fragment() {
                 }
                 
                 if (success) {
-                    Toast.makeText(requireContext(), "LUT文件导入成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "LUT文件导入成功（已自动转换为33位）", Toast.LENGTH_SHORT).show()
                     // 强制刷新列表
                     loadLutFiles()
                 } else {
@@ -211,7 +213,7 @@ class LutManagerFragment : Fragment() {
                 e.printStackTrace()
             } finally {
                 binding.buttonImportLut.isEnabled = true
-                binding.buttonImportLut.text = "导入LUT"
+                binding.buttonImportLut.text = "导入"
             }
         }
     }

@@ -22,7 +22,7 @@
     <string name="export">导出</string>
     <string name="delete_selected">删除选中</string>
     <string name="importing">导入中…</string>
-    <string name="import_lut">导入LUT</string>
+    <string name="import_lut">导入</string>
     <string name="version_format">版本: %s</string>
     <string name="file_name">文件名</string>
     <string name="status">状态</string>
