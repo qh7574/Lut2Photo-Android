@@ -10,6 +10,7 @@ data class CameraEvent(
     val data: String
 ) {
     companion object {
+        const val EVENT_ERROR = -1  // 错误事件（如 USB 断开）
         const val EVENT_UNKNOWN = 0
         const val EVENT_TIMEOUT = 1
         const val EVENT_FILE_ADDED = 2

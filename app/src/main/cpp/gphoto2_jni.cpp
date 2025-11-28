@@ -627,8 +627,10 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeWaitForEvent
     jmethodID constructor = env->GetMethodID(eventClass, "<init>", "(ILjava/lang/String;)V");
     
     if (ret < GP_OK) {
-        LOGE("等待事件失败: %s", gp_result_as_string(ret));
-        return env->NewObject(eventClass, constructor, 0, createJavaString(env, ""));
+        const char* errorStr = gp_result_as_string(ret);
+        LOGE("等待事件失败: %s", errorStr);
+        // 返回错误事件（type=-1），并将错误信息作为 data 传递
+        return env->NewObject(eventClass, constructor, -1, createJavaString(env, errorStr));
     }
     
     int javaEventType = 0;

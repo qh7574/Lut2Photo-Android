@@ -291,9 +291,22 @@ class TetheredShootingService : Service() {
             
             while (isActive && isMonitoring) {
                 try {
+                    // 先检查相机是否仍然连接
+                    if (!gphoto2Manager.isCameraConnected()) {
+                        Log.e(TAG, "检测到相机已断开连接")
+                        handleConnectionLost()
+                        break
+                    }
+                    
                     val event = gphoto2Manager.waitForEvent(1000)
                     
                     when (event.type) {
+                        CameraEvent.EVENT_ERROR -> {
+                            // JNI 层返回的错误事件，通常是 USB 断开
+                            Log.e(TAG, "收到错误事件: ${event.data}")
+                            handleConnectionLost()
+                            break
+                        }
                         CameraEvent.EVENT_FILE_ADDED -> {
                             consecutiveErrors = 0 // 重置错误计数
                             Log.i(TAG, "检测到新照片: ${event.data}")
@@ -320,8 +333,7 @@ class TetheredShootingService : Service() {
                             consecutiveErrors = 0 // 超时是正常的，重置错误计数
                         }
                         CameraEvent.EVENT_UNKNOWN -> {
-                            // GP_EVENT_UNKNOWN 是正常的事件类型，表示相机内部状态更新
-                            // 不应该当作错误处理，重置错误计数
+                            // GP_EVENT_UNKNOWN 表示相机内部状态更新，是正常的
                             consecutiveErrors = 0
                             Log.d(TAG, "其他事件: ${event.type}")
                         }
@@ -330,6 +342,17 @@ class TetheredShootingService : Service() {
                         }
                     }
                 } catch (e: Exception) {
+                    val errorMessage = e.message ?: ""
+                    
+                    // 检查是否是 USB 设备断开错误
+                    if (errorMessage.contains("Could not find the requested device", ignoreCase = true) ||
+                        errorMessage.contains("USB device", ignoreCase = true) ||
+                        errorMessage.contains("I/O error", ignoreCase = true)) {
+                        Log.e(TAG, "检测到 USB 设备断开: $errorMessage")
+                        handleConnectionLost()
+                        break
+                    }
+                    
                     consecutiveErrors++
                     Log.e(TAG, "事件监听异常 (连续错误: $consecutiveErrors)", e)
                     
