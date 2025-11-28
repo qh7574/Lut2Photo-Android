@@ -61,10 +61,17 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             when (intent?.action) {
                 TetheredShootingService.ACTION_PHOTO_ADDED -> {
                     // 照片添加，刷新列表
+                    Log.d(TAG, "收到 ACTION_PHOTO_ADDED 广播，刷新照片列表")
+                    loadPhotos()
+                }
+                TetheredShootingService.ACTION_CAMERA_CONNECTED -> {
+                    // 相机连接/存储卡挂载，刷新列表
+                    Log.d(TAG, "收到 ACTION_CAMERA_CONNECTED 广播，刷新照片列表")
                     loadPhotos()
                 }
                 TetheredShootingService.ACTION_CAMERA_DISCONNECTED -> {
                     // 相机断开，清除缓存
+                    Log.d(TAG, "收到 ACTION_CAMERA_DISCONNECTED 广播，清除缓存")
                     photoAdapter.clearThumbnailCache()
                     updateConnectionStatus(false)
                 }
@@ -598,6 +605,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private fun registerBroadcastReceiver() {
         val filter = IntentFilter().apply {
             addAction(TetheredShootingService.ACTION_PHOTO_ADDED)
+            addAction(TetheredShootingService.ACTION_CAMERA_CONNECTED)
             addAction(TetheredShootingService.ACTION_CAMERA_DISCONNECTED)
         }
         requireContext().registerReceiver(broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
