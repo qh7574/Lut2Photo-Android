@@ -64,7 +64,8 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     loadPhotos()
                 }
                 TetheredShootingService.ACTION_CAMERA_DISCONNECTED -> {
-                    // 相机断开
+                    // 相机断开，清除缓存
+                    photoAdapter.clearThumbnailCache()
                     updateConnectionStatus(false)
                 }
             }
@@ -209,7 +210,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         }
 
         // 设置照片适配器
-        photoAdapter = CameraPhotoAdapter(gphoto2Manager) { selectedCount ->
+        photoAdapter = CameraPhotoAdapter(gphoto2Manager, viewLifecycleOwner.lifecycleScope) { selectedCount ->
             updateImportButton(selectedCount)
         }
 
