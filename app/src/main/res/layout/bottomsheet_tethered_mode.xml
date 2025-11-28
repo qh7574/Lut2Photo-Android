@@ -13,12 +13,13 @@
 
         <!-- 标题栏 (10%) -->
         <LinearLayout
+            android:id="@+id/layout_title_bar"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="16dp"
+            android:padding="0dp"
             android:elevation="4dp"
             android:background="?attr/colorSurfaceContainer">
 
@@ -26,8 +27,8 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_back"
                 style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 app:icon="@drawable/ic_arrow_back_24"
                 android:contentDescription="返回" />
 
@@ -48,7 +49,8 @@
                 style="@style/Widget.Material3.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginRight="2dp"
+                android:layout_marginLeft="8dp"
                 android:text="导入"
                 android:enabled="false" />
 
@@ -65,6 +67,7 @@
 
         <!-- 图片预览区 (60%) -->
         <FrameLayout
+            android:id="@+id/layout_photo_area"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="6">
@@ -135,11 +138,13 @@
 
         <!-- 相机设置区 (30%) -->
         <LinearLayout
+            android:id="@+id/layout_settings_area"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="3"
             android:orientation="vertical"
-            android:padding="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="0dp"
             android:background="?attr/colorSurfaceContainerLow"
             android:elevation="8dp">
 
@@ -149,26 +154,31 @@
                 android:text="相机设置"
                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginLeft="16dp"
+                android:layout_marginBottom="4dp" />
 
-            <!-- 相机参数 Chips -->
-            <HorizontalScrollView
+            <!-- 相机参数 Chips（多行自适应，每行居中） -->
+            <ScrollView
+                android:id="@+id/scroll_view_settings"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scrollbars="none">
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:scrollbars="vertical">
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_settings"
-                    android:layout_width="wrap_content"
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/flexbox_settings"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:singleLine="true"
-                    app:chipSpacing="8dp">
+                    app:flexWrap="wrap"
+                    app:justifyContent="center"
+                    app:alignItems="center"
+                    app:alignContent="flex_start">
 
                     <!-- 动态添加 Chip -->
 
-                </com.google.android.material.chip.ChipGroup>
+                </com.google.android.flexbox.FlexboxLayout>
 
-            </HorizontalScrollView>
+            </ScrollView>
 
             <!-- 空状态提示 -->
             <com.google.android.material.textview.MaterialTextView

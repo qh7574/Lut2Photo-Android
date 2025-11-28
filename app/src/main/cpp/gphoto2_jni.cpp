@@ -699,8 +699,9 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeListConfig(
             nullptr);
     }
     
-    // 遍历配置项（简化版本，仅获取第一层）
+    // 遍历配置项（需要递归遍历所有层级）
     int childCount = gp_widget_count_children(rootConfig);
+    LOGI("根配置节点有 %d 个子节点", childCount);
     
     std::vector<jobject> configItems;
     jclass configItemClass = env->FindClass("cn/alittlecookie/lut2photo/lut2photo/model/ConfigItem");
@@ -712,16 +713,158 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeListConfig(
         ret = gp_widget_get_child(rootConfig, i, &child);
         if (ret < GP_OK) continue;
         
-        const char *name, *label;
+        const char *name = nullptr;
+        const char *label = nullptr;
         CameraWidgetType type;
         
         gp_widget_get_name(child, &name);
         gp_widget_get_label(child, &label);
         gp_widget_get_type(child, &type);
         
-        // 获取当前值
-        char *value = nullptr;
-        gp_widget_get_value(child, &value);
+        // 确保 name 和 label 不为空
+        if (name == nullptr) name = "";
+        if (label == nullptr) label = "";
+        
+        LOGI("配置项 %d: name=%s, label=%s, type=%d", i, name, label, type);
+        
+        // 如果是 SECTION 或 WINDOW 类型，需要递归遍历子节点
+        if (type == GP_WIDGET_SECTION || type == GP_WIDGET_WINDOW) {
+            int subChildCount = gp_widget_count_children(child);
+            LOGI("  这是一个容器，有 %d 个子节点", subChildCount);
+            
+            // 递归遍历子节点
+            for (int j = 0; j < subChildCount; j++) {
+                CameraWidget *subChild;
+                ret = gp_widget_get_child(child, j, &subChild);
+                if (ret < GP_OK) continue;
+                
+                const char *subName = nullptr;
+                const char *subLabel = nullptr;
+                CameraWidgetType subType;
+                
+                gp_widget_get_name(subChild, &subName);
+                gp_widget_get_label(subChild, &subLabel);
+                gp_widget_get_type(subChild, &subType);
+                
+                // 确保 name 和 label 不为空
+                if (subName == nullptr) subName = "";
+                if (subLabel == nullptr) subLabel = "";
+                
+                // 复制字符串，避免指针失效
+                std::string subNameStr(subName);
+                std::string subLabelStr(subLabel);
+                
+                LOGI("  子配置项 %d: name=%s, label=%s, type=%d", j, subNameStr.c_str(), subLabelStr.c_str(), subType);
+                
+                // 检查 subChild 是否有效
+                if (subChild == nullptr) {
+                    LOGE("  subChild 为空，跳过");
+                    continue;
+                }
+                
+                // 跳过容器类型
+                if (subType == GP_WIDGET_SECTION || subType == GP_WIDGET_WINDOW) {
+                    LOGI("  跳过容器类型");
+                    continue;
+                }
+                
+                // 转换类型
+                int javaSubType = 0;
+                switch (subType) {
+                    case GP_WIDGET_TEXT: javaSubType = 0; break;
+                    case GP_WIDGET_RANGE: javaSubType = 1; break;
+                    case GP_WIDGET_TOGGLE: javaSubType = 2; break;
+                    case GP_WIDGET_RADIO: javaSubType = 3; break;
+                    case GP_WIDGET_MENU: javaSubType = 4; break;
+                    case GP_WIDGET_BUTTON: javaSubType = 5; break;
+                    case GP_WIDGET_DATE: javaSubType = 6; break;
+                    default: continue;
+                }
+                
+                // 获取当前值（根据类型使用不同的方式）
+                std::string subValueStr = "";
+                if (subType == GP_WIDGET_TEXT || subType == GP_WIDGET_RADIO || subType == GP_WIDGET_MENU) {
+                    const char *textValue = nullptr;
+                    int valueRet = gp_widget_get_value(subChild, &textValue);
+                    if (valueRet >= GP_OK && textValue != nullptr) {
+                        subValueStr = textValue;
+                    }
+                } else if (subType == GP_WIDGET_TOGGLE) {
+                    int toggleValue = 0;
+                    int valueRet = gp_widget_get_value(subChild, &toggleValue);
+                    if (valueRet >= GP_OK) {
+                        subValueStr = std::to_string(toggleValue);
+                    }
+                } else if (subType == GP_WIDGET_RANGE) {
+                    float rangeValue = 0.0f;
+                    int valueRet = gp_widget_get_value(subChild, &rangeValue);
+                    if (valueRet >= GP_OK) {
+                        subValueStr = std::to_string(rangeValue);
+                    }
+                } else if (subType == GP_WIDGET_DATE) {
+                    int dateValue = 0;
+                    int valueRet = gp_widget_get_value(subChild, &dateValue);
+                    if (valueRet >= GP_OK) {
+                        subValueStr = std::to_string(dateValue);
+                    }
+                }
+                LOGI("    值: %s", subValueStr.c_str());
+                
+                // 获取选项列表（对于 RADIO 和 MENU 类型）
+                jobjectArray choices = nullptr;
+                if (subType == GP_WIDGET_RADIO || subType == GP_WIDGET_MENU) {
+                    LOGI("    准备获取 %s 的选项列表", subNameStr.c_str());
+                    int choiceCount = gp_widget_count_choices(subChild);
+                    LOGI("    配置项 %s 有 %d 个选项", subNameStr.c_str(), choiceCount);
+                    if (choiceCount > 0) {
+                        jclass stringClass = env->FindClass("java/lang/String");
+                        if (stringClass == nullptr) {
+                            LOGE("    无法找到 String 类");
+                            continue;
+                        }
+                        choices = env->NewObjectArray(choiceCount, stringClass, nullptr);
+                        if (choices == nullptr) {
+                            LOGE("    无法创建数组");
+                            continue;
+                        }
+                        for (int k = 0; k < choiceCount; k++) {
+                            const char *choice = nullptr;
+                            int choiceRet = gp_widget_get_choice(subChild, k, &choice);
+                            if (choiceRet >= GP_OK && choice != nullptr) {
+                                jstring jchoice = createJavaString(env, choice);
+                                if (jchoice != nullptr) {
+                                    env->SetObjectArrayElement(choices, k, jchoice);
+                                    env->DeleteLocalRef(jchoice);
+                                }
+                            } else {
+                                LOGW("    选项 %d 获取失败或为空", k);
+                                jstring jempty = createJavaString(env, "");
+                                if (jempty != nullptr) {
+                                    env->SetObjectArrayElement(choices, k, jempty);
+                                    env->DeleteLocalRef(jempty);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 创建 ConfigItem 对象
+                jstring jsubName = createJavaString(env, subNameStr.c_str());
+                jstring jsubLabel = createJavaString(env, subLabelStr.c_str());
+                jstring jsubValue = createJavaString(env, subValueStr.c_str());
+                
+                jobject configItem = env->NewObject(configItemClass, constructor,
+                    jsubName, jsubLabel, javaSubType, jsubValue, choices, 0.0f, 0.0f, 0.0f);
+                
+                configItems.push_back(configItem);
+                
+                env->DeleteLocalRef(jsubName);
+                env->DeleteLocalRef(jsubLabel);
+                env->DeleteLocalRef(jsubValue);
+                if (choices) env->DeleteLocalRef(choices);
+            }
+            continue;
+        }
         
         // 转换类型
         int javaType = 0;
@@ -736,19 +879,67 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeListConfig(
             default: continue;
         }
         
+        // 获取当前值（根据类型使用不同的方式）
+        std::string valueStr = "";
+        if (type == GP_WIDGET_TEXT || type == GP_WIDGET_RADIO || type == GP_WIDGET_MENU) {
+            const char *textValue = nullptr;
+            int valueRet = gp_widget_get_value(child, &textValue);
+            if (valueRet >= GP_OK && textValue != nullptr) {
+                valueStr = textValue;
+            }
+        } else if (type == GP_WIDGET_TOGGLE) {
+            int toggleValue = 0;
+            int valueRet = gp_widget_get_value(child, &toggleValue);
+            if (valueRet >= GP_OK) {
+                valueStr = std::to_string(toggleValue);
+            }
+        } else if (type == GP_WIDGET_RANGE) {
+            float rangeValue = 0.0f;
+            int valueRet = gp_widget_get_value(child, &rangeValue);
+            if (valueRet >= GP_OK) {
+                valueStr = std::to_string(rangeValue);
+            }
+        } else if (type == GP_WIDGET_DATE) {
+            int dateValue = 0;
+            int valueRet = gp_widget_get_value(child, &dateValue);
+            if (valueRet >= GP_OK) {
+                valueStr = std::to_string(dateValue);
+            }
+        }
+        
+        // 获取选项列表（对于 RADIO 和 MENU 类型）
+        jobjectArray choices = nullptr;
+        if (type == GP_WIDGET_RADIO || type == GP_WIDGET_MENU) {
+            int choiceCount = gp_widget_count_choices(child);
+            if (choiceCount > 0) {
+                jclass stringClass = env->FindClass("java/lang/String");
+                choices = env->NewObjectArray(choiceCount, stringClass, nullptr);
+                for (int k = 0; k < choiceCount; k++) {
+                    const char *choice = nullptr;
+                    int ret = gp_widget_get_choice(child, k, &choice);
+                    if (ret >= GP_OK && choice != nullptr) {
+                        env->SetObjectArrayElement(choices, k, createJavaString(env, choice));
+                    } else {
+                        env->SetObjectArrayElement(choices, k, createJavaString(env, ""));
+                    }
+                }
+            }
+        }
+        
         // 创建 ConfigItem 对象
         jstring jname = createJavaString(env, name);
         jstring jlabel = createJavaString(env, label);
-        jstring jvalue = createJavaString(env, value ? value : "");
+        jstring jvalue = createJavaString(env, valueStr.c_str());
         
         jobject configItem = env->NewObject(configItemClass, constructor,
-            jname, jlabel, javaType, jvalue, nullptr, 0.0f, 0.0f, 0.0f);
+            jname, jlabel, javaType, jvalue, choices, 0.0f, 0.0f, 0.0f);
         
         configItems.push_back(configItem);
         
         env->DeleteLocalRef(jname);
         env->DeleteLocalRef(jlabel);
         env->DeleteLocalRef(jvalue);
+        if (choices) env->DeleteLocalRef(choices);
     }
     
     gp_widget_free(rootConfig);

@@ -6,10 +6,12 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.adapter.CameraPhotoAdapter
@@ -20,9 +22,8 @@ import cn.alittlecookie.lut2photo.lut2photo.service.TetheredShootingService
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
-import androidx.lifecycle.lifecycleScope
+import com.google.android.flexbox.FlexboxLayout
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -95,11 +96,13 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 behavior.skipCollapsed = true
                 
                 // 设置全屏高度
-                sheet.layoutParams?.height = android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                sheet.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
                 sheet.requestLayout()
             }
         }
     }
+    
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -136,10 +139,14 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     
     /**
      * 尝试初始加载照片和配置
-     * 成功则刷新 UI，失败则显示等待状态
+     * 先加载配置项，再加载照片
      */
     private fun tryInitialLoad() {
         viewLifecycleOwner.lifecycleScope.launch {
+            // 先加载配置项（优先级高）
+            loadCameraSettings()
+            
+            // 再加载照片列表
             try {
                 Log.d(TAG, "尝试获取照片列表...")
                 val allPhotos = withContext(Dispatchers.IO) {
@@ -159,9 +166,6 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     binding.recyclerViewPhotos.visibility = View.VISIBLE
                     photoAdapter.submitList(jpegPhotos)
                     binding.textConnectionStatus.text = "相机已连接 (${jpegPhotos.size} 张照片)"
-                    
-                    // 同时加载配置
-                    loadCameraSettings()
                 } else {
                     // 没有照片，显示等待状态
                     showWaitingState()
@@ -189,9 +193,6 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         binding.textEmptyHint.visibility = View.VISIBLE
         binding.textEmptyHint.text = "请拍摄一张照片或点击右上角刷新按钮"
         binding.textConnectionStatus.text = "相机已连接，等待文件系统就绪..."
-        
-        // 尝试加载配置（可能也会失败）
-        loadCameraSettings()
     }
 
     override fun onDestroyView() {
@@ -228,6 +229,65 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
 
         // 更新连接状态
         updateConnectionStatus(gphoto2Manager.isCameraConnected())
+        
+        // 设置触摸拦截，禁止非标题栏区域拖拽关闭
+        setupDragBehavior()
+    }
+    
+    /**
+     * 设置拖拽行为：只允许标题栏拖拽关闭
+     */
+    private fun setupDragBehavior() {
+        dialog?.let { dialog ->
+            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let { sheet ->
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(sheet)
+                
+                // 禁止照片区域的拖拽
+                binding.layoutPhotoArea.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            behavior.isDraggable = false
+                        }
+                    }
+                    false // 不消费事件，让子视图正常处理
+                }
+                
+                // 禁止设置区域的拖拽（包括ScrollView）
+                binding.layoutSettingsArea.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            behavior.isDraggable = false
+                        }
+                    }
+                    false // 不消费事件，让子视图正常处理
+                }
+                
+                // 特别处理ScrollView，防止滑动时触发bottomsheet关闭
+                binding.scrollViewSettings.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        android.view.MotionEvent.ACTION_DOWN,
+                        android.view.MotionEvent.ACTION_MOVE,
+                        android.view.MotionEvent.ACTION_UP -> {
+                            // 在滑动过程中始终禁用 BottomSheet 拖拽
+                            behavior.isDraggable = false
+                        }
+                    }
+                    false // 不消费事件，让ScrollView正常滚动
+                }
+                
+                // 标题栏允许拖拽
+                binding.layoutTitleBar.setOnTouchListener { _, event ->
+                    when (event.action) {
+                        android.view.MotionEvent.ACTION_DOWN -> {
+                            // 启用 BottomSheet 拖拽
+                            behavior.isDraggable = true
+                        }
+                    }
+                    false // 不消费事件，让子视图正常处理
+                }
+            }
+        }
     }
 
     private fun loadPhotos() {
@@ -330,11 +390,45 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private fun displayCameraSettings(settings: List<ConfigItem>) {
         if (!isBindingAvailable) return
         
-        binding.chipGroupSettings.removeAllViews()
+        // 获取 FlexboxLayout（如果 ViewBinding 还没生成，手动查找）
+        val flexboxLayout = try {
+            binding.flexboxSettings
+        } catch (e: Exception) {
+            binding.root.findViewById<FlexboxLayout>(R.id.flexbox_settings)
+        }
+        
+        flexboxLayout.removeAllViews()
 
         val ctx = context ?: return
-        settings.forEach { config ->
+        
+        // 过滤可设置的配置项
+        val editableSettings = settings.filter { config ->
+            when (config.type) {
+                ConfigItem.TYPE_BUTTON -> false  // 按钮类型不显示
+                ConfigItem.TYPE_TEXT -> false    // 文本类型不显示
+                ConfigItem.TYPE_RADIO, ConfigItem.TYPE_MENU -> {
+                    // RADIO/MENU 类型需要有选项才显示
+                    !config.choices.isNullOrEmpty()
+                }
+                ConfigItem.TYPE_TOGGLE, ConfigItem.TYPE_RANGE -> true
+                else -> false
+            }
+        }
+        
+        // 排序：常用参数置顶，其他按字母顺序
+        val sortedSettings = sortConfigItems(editableSettings)
+        
+        Log.d(TAG, "显示 ${sortedSettings.size}/${settings.size} 个可编辑配置项")
+        
+        // 将 dp 转换为 px
+        val marginPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 2f, resources.displayMetrics
+        ).toInt()
+        
+        sortedSettings.forEach { config ->
             val chip = Chip(ctx).apply {
+                setEnsureMinTouchTargetSize(false)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 text = "${config.label}: ${config.currentValue}"
                 isClickable = true
                 isCheckable = false
@@ -343,9 +437,62 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     showConfigDialog(config)
                 }
             }
+            
+            // 设置 FlexboxLayout 的 LayoutParams
+            val lp = FlexboxLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(marginPx, marginPx, marginPx, marginPx)
+            }
+            chip.layoutParams = lp
 
-            binding.chipGroupSettings.addView(chip)
+            flexboxLayout.addView(chip)
         }
+    }
+    
+    /**
+     * 排序配置项：常用参数置顶，其他按字母顺序
+     */
+    private fun sortConfigItems(items: List<ConfigItem>): List<ConfigItem> {
+        // 定义常用参数的优先级（数字越小优先级越高）
+        val priorityMap = mapOf(
+            "aperture" to 1,
+            "f-number" to 1,
+            "fnumber" to 1,
+            "shutterspeed" to 2,
+            "shutter" to 2,
+            "shutterspeed2" to 2,
+            "iso" to 3,
+            "exposurecompensation" to 4,
+            "whitebalance" to 5
+        )
+        
+        return items.sortedWith(compareBy(
+            // 第一排序：优先级（常用参数）
+            { config ->
+                val nameLower = config.name.lowercase()
+                val labelLower = config.label.lowercase()
+                // 检查 name 或 label 是否包含关键词
+                priorityMap.entries.find { (key, _) ->
+                    nameLower.contains(key) || labelLower.contains(key)
+                }?.value ?: Int.MAX_VALUE
+            },
+            // 第二排序：按 label 的字母顺序
+            { config ->
+                val label = config.label
+                when {
+                    // 英文字母开头
+                    label.firstOrNull()?.isLetter() == true && label.first().code < 128 -> {
+                        label.lowercase()
+                    }
+                    // 非英文字母，按字符编码排序
+                    else -> {
+                        "\uFFFF${label}" // 添加最大Unicode字符前缀，确保排在英文后面
+                    }
+                }
+            }
+        ))
     }
 
     private fun showConfigDialog(config: ConfigItem) {
@@ -412,27 +559,41 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private fun setConfig(name: String, value: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
+                Log.d(TAG, "开始设置配置: $name = $value")
+                val startTime = System.currentTimeMillis()
+                
                 val result = withContext(Dispatchers.IO) {
                     gphoto2Manager.setConfig(name, value)
                 }
+                
+                val elapsed = System.currentTimeMillis() - startTime
+                Log.d(TAG, "配置设置完成，耗时: ${elapsed}ms")
 
-                context?.let { ctx ->
-                    if (result == GPhoto2Manager.GP_OK) {
-                        Toast.makeText(ctx, "设置成功", Toast.LENGTH_SHORT).show()
-                        // 刷新设置显示
-                        loadCameraSettings()
-                    } else {
-                        Toast.makeText(
-                            ctx,
-                            "设置失败: ${gphoto2Manager.getErrorString(result)}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                if (!isBindingAvailable) return@launch
+                
+                if (result == GPhoto2Manager.GP_OK) {
+                    // 更新本地配置项的值
+                    configItems = configItems.map { config ->
+                        if (config.name == name) {
+                            config.copy(currentValue = value)
+                        } else {
+                            config
+                        }
                     }
+                    // 重新显示配置项（不需要重新从相机获取）
+                    displayCameraSettings(configItems)
+                    Toast.makeText(requireContext(), "设置成功", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "设置失败: ${gphoto2Manager.getErrorString(result)}",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "设置配置失败", e)
-                context?.let { ctx ->
-                    Toast.makeText(ctx, "设置失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                if (isBindingAvailable) {
+                    Toast.makeText(requireContext(), "设置失败: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

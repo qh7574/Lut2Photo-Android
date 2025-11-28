@@ -125,6 +125,9 @@ dependencies {
     // Android Palette库用于从图片提取颜色
     implementation("androidx.palette:palette-ktx:1.0.0")
     
+    // FlexboxLayout 用于灵活的布局排列
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

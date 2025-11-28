@@ -21,3 +21,4 @@ local.properties
 /.kiro/
 /logcat.txt
 /build_native
+/.kotlin/errors/
