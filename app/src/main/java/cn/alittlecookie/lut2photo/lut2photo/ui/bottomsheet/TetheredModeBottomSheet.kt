@@ -563,11 +563,17 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 val startTime = System.currentTimeMillis()
                 
                 val result = withContext(Dispatchers.IO) {
-                    gphoto2Manager.setConfig(name, value)
+                    try {
+                        gphoto2Manager.setConfig(name, value)
+                    } catch (e: Exception) {
+                        // 捕获 JNI 层的崩溃或异常
+                        Log.e(TAG, "JNI 层设置配置异常: $name = $value", e)
+                        -1 // 返回错误码
+                    }
                 }
                 
                 val elapsed = System.currentTimeMillis() - startTime
-                Log.d(TAG, "配置设置完成，耗时: ${elapsed}ms")
+                Log.d(TAG, "配置设置完成，耗时: ${elapsed}ms, 结果: $result")
 
                 if (!isBindingAvailable) return@launch
                 
@@ -583,6 +589,9 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     // 重新显示配置项（不需要重新从相机获取）
                     displayCameraSettings(configItems)
                     Toast.makeText(requireContext(), "设置成功", Toast.LENGTH_SHORT).show()
+                } else if (result == -1) {
+                    // JNI 层异常
+                    Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(
                         requireContext(),
@@ -593,7 +602,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             } catch (e: Exception) {
                 Log.e(TAG, "设置配置失败", e)
                 if (isBindingAvailable) {
-                    Toast.makeText(requireContext(), "设置失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
                 }
             }
         }

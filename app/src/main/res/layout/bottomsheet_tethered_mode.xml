@@ -70,7 +70,7 @@
             android:id="@+id/layout_photo_area"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="6">
+            android:layout_weight="7">
 
             <!-- 照片网格 -->
             <androidx.recyclerview.widget.RecyclerView
@@ -141,7 +141,7 @@
             android:id="@+id/layout_settings_area"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="3"
+            android:layout_weight="4"
             android:orientation="vertical"
             android:paddingTop="8dp"
             android:paddingBottom="0dp"

@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstdint>
 #include <mutex>
+#include <algorithm>
 #include <gphoto2/gphoto2.h>
 #include <gphoto2/gphoto2-port-info-list.h>
 
@@ -1030,7 +1031,24 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeSetConfig(
         return GP_ERROR;
     }
     
-    CameraWidget *widget;
+    // 黑名单：某些 Panasonic 相机参数会导致崩溃
+    static const std::vector<std::string> blacklist = {
+        "capturetarget",
+        "capture-target",
+        "d1a8"  // Panasonic Capture Target 的 PTP 属性 ID
+    };
+    
+    std::string nameLower = name;
+    std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), ::tolower);
+    
+    for (const auto& blocked : blacklist) {
+        if (nameLower.find(blocked) != std::string::npos) {
+            LOGW("参数 %s 在黑名单中，跳过设置", name.c_str());
+            return GP_ERROR_NOT_SUPPORTED;
+        }
+    }
+    
+    CameraWidget *widget = nullptr;
     int ret = gp_camera_get_single_config(camera, name.c_str(), &widget, context);
     
     if (ret < GP_OK) {
@@ -1043,7 +1061,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeSetConfig(
     
     if (ret < GP_OK) {
         LOGE("设置配置值失败: %s", gp_result_as_string(ret));
-        gp_widget_free(widget);
+        if (widget) gp_widget_free(widget);
         return ret;
     }
     
@@ -1052,11 +1070,11 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeSetConfig(
     
     if (ret < GP_OK) {
         LOGE("应用配置失败: %s", gp_result_as_string(ret));
-        gp_widget_free(widget);
+        if (widget) gp_widget_free(widget);
         return ret;
     }
     
-    gp_widget_free(widget);
+    if (widget) gp_widget_free(widget);
     
     LOGI("配置设置成功");
     
