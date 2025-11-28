@@ -120,11 +120,14 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_release(
     // 使用互斥锁保护 camera 访问
     std::lock_guard<std::mutex> lock(camera_mutex);
     
-    // 注意：camera 对象不在这里释放
-    // gp_camera_exit 已经在 disconnectCamera 中调用，关闭了端口
-    // 如果再调用 gp_camera_free 或 gp_camera_unref，会尝试释放已关闭的端口，导致崩溃
-    // 正确的做法是只将指针置空，让 libgphoto2 的内部引用计数管理内存
+    // 正确释放 camera 对象
     if (camera != nullptr) {
+        // 先调用 gp_camera_free 释放 camera 对象
+        // 这会正确清理所有内部状态，包括端口
+        int ret = gp_camera_free(camera);
+        if (ret < GP_OK) {
+            LOGW("gp_camera_free 返回错误: %s", gp_result_as_string(ret));
+        }
         camera = nullptr;
         LOGI("相机指针已清空");
     }

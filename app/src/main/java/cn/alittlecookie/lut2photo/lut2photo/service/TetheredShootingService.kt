@@ -313,7 +313,10 @@ class TetheredShootingService : Service() {
                         break
                     }
                     
-                    val event = gphoto2Manager.waitForEvent(1000)
+                    // 使用较短的超时时间（200ms），让锁更快释放
+                    // 这样配置设置请求可以更快获得锁，提升响应速度
+                    // 200ms 足够短，不会漏过事件，因为循环会持续轮询
+                    val event = gphoto2Manager.waitForEvent(200)
                     
                     when (event.type) {
                         CameraEvent.EVENT_ERROR -> {

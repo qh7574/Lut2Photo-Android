@@ -83,6 +83,38 @@ class GPhoto2Manager private constructor() {
     // I/O 操作锁，确保所有相机操作互斥执行
     // 使用 ReentrantLock 支持 tryLock，避免 waitForEvent 长时间阻塞其他操作
     private val ioLock = java.util.concurrent.locks.ReentrantLock()
+    
+    // 配置设置队列
+    private data class ConfigRequest(
+        val name: String,
+        val value: String,
+        val callback: (Int) -> Unit
+    )
+    
+    private val configQueue = java.util.concurrent.LinkedBlockingQueue<ConfigRequest>()
+    private val configQueueExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    
+    init {
+        // 启动配置队列处理线程
+        configQueueExecutor.execute {
+            while (true) {
+                try {
+                    val request = configQueue.take() // 阻塞等待队列中的请求
+                    Log.d(TAG, "从队列中取出配置请求: ${request.name} = ${request.value}")
+                    
+                    val result = setConfigSync(request.name, request.value)
+                    
+                    // 回调结果
+                    request.callback(result)
+                } catch (e: InterruptedException) {
+                    Log.w(TAG, "配置队列线程被中断")
+                    break
+                } catch (e: Exception) {
+                    Log.e(TAG, "处理配置请求异常", e)
+                }
+            }
+        }
+    }
 
     // ==================== 初始化和释放 ====================
 
@@ -385,18 +417,40 @@ class GPhoto2Manager private constructor() {
     }
 
     /**
-     * 设置配置项（线程安全）
+     * 设置配置项（同步版本，线程安全）
      * @param name 配置项名称
      * @param value 配置值
      * @return 错误码，0 表示成功
      */
-    fun setConfig(name: String, value: String): Int {
+    private fun setConfigSync(name: String, value: String): Int {
         ioLock.lock()
         try {
             return nativeSetConfig(name, value)
         } finally {
             ioLock.unlock()
         }
+    }
+    
+    /**
+     * 设置配置项（异步队列版本）
+     * 将请求放入队列，避免多个请求同时竞争锁
+     * @param name 配置项名称
+     * @param value 配置值
+     * @param callback 完成回调，参数为错误码
+     */
+    fun setConfigAsync(name: String, value: String, callback: (Int) -> Unit) {
+        Log.d(TAG, "将配置请求加入队列: $name = $value")
+        configQueue.offer(ConfigRequest(name, value, callback))
+    }
+    
+    /**
+     * 设置配置项（兼容旧版本的同步接口）
+     * @param name 配置项名称
+     * @param value 配置值
+     * @return 错误码，0 表示成功
+     */
+    fun setConfig(name: String, value: String): Int {
+        return setConfigSync(name, value)
     }
 
     // ==================== 工具方法 ====================

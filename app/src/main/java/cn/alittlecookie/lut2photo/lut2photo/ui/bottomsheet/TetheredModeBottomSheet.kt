@@ -615,51 +615,43 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun setConfig(name: String, value: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                Log.d(TAG, "开始设置配置: $name = $value")
-                val startTime = System.currentTimeMillis()
-                
-                val result = withContext(Dispatchers.IO) {
-                    try {
-                        gphoto2Manager.setConfig(name, value)
-                    } catch (e: Exception) {
-                        // 捕获 JNI 层的崩溃或异常
-                        Log.e(TAG, "JNI 层设置配置异常: $name = $value", e)
-                        -1 // 返回错误码
-                    }
-                }
-                
-                val elapsed = System.currentTimeMillis() - startTime
-                Log.d(TAG, "配置设置完成，耗时: ${elapsed}ms, 结果: $result")
-
+        Log.d(TAG, "开始设置配置: $name = $value")
+        val startTime = System.currentTimeMillis()
+        
+        // 使用异步队列设置配置
+        gphoto2Manager.setConfigAsync(name, value) { result ->
+            val elapsed = System.currentTimeMillis() - startTime
+            Log.d(TAG, "配置设置完成，耗时: ${elapsed}ms, 结果: $result")
+            
+            // 在主线程更新 UI
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
                 if (!isBindingAvailable) return@launch
                 
-                if (result == GPhoto2Manager.GP_OK) {
-                    // 更新本地配置项的值
-                    configItems = configItems.map { config ->
-                        if (config.name == name) {
-                            config.copy(currentValue = value)
-                        } else {
-                            config
+                try {
+                    if (result == GPhoto2Manager.GP_OK) {
+                        // 更新本地配置项的值
+                        configItems = configItems.map { config ->
+                            if (config.name == name) {
+                                config.copy(currentValue = value)
+                            } else {
+                                config
+                            }
                         }
+                        // 重新显示配置项（不需要重新从相机获取）
+                        displayCameraSettings(configItems)
+                        Toast.makeText(requireContext(), "设置成功", Toast.LENGTH_SHORT).show()
+                    } else if (result == -1) {
+                        // JNI 层异常
+                        Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "设置失败: ${gphoto2Manager.getErrorString(result)}",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                    // 重新显示配置项（不需要重新从相机获取）
-                    displayCameraSettings(configItems)
-                    Toast.makeText(requireContext(), "设置成功", Toast.LENGTH_SHORT).show()
-                } else if (result == -1) {
-                    // JNI 层异常
-                    Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "设置失败: ${gphoto2Manager.getErrorString(result)}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "设置配置失败", e)
-                if (isBindingAvailable) {
+                } catch (e: Exception) {
+                    Log.e(TAG, "更新UI失败", e)
                     Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
                 }
             }
