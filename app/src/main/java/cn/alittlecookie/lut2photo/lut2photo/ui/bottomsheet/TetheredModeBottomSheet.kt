@@ -20,7 +20,6 @@ import cn.alittlecookie.lut2photo.lut2photo.service.TetheredShootingService
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -178,8 +177,10 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         binding.progressLoading.visibility = View.GONE
         binding.recyclerViewPhotos.visibility = View.GONE
         binding.layoutEmptyState.visibility = View.VISIBLE
+        binding.textEmptyMessage.text = "相机文件系统正在初始化"
         binding.textEmptyHint.visibility = View.VISIBLE
-        binding.textConnectionStatus.text = "等待相机就绪..."
+        binding.textEmptyHint.text = "请拍摄一张照片或点击右上角刷新按钮"
+        binding.textConnectionStatus.text = "相机已连接，等待文件系统就绪..."
         
         // 尝试加载配置（可能也会失败）
         loadCameraSettings()
@@ -362,7 +363,8 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private fun showRadioConfigDialog(config: ConfigItem) {
         val choices = config.choices ?: return
 
-        MaterialAlertDialogBuilder(requireContext())
+        // 使用 Android 原生 AlertDialog.Builder 避免主题问题
+        android.app.AlertDialog.Builder(requireActivity())
             .setTitle(config.label)
             .setItems(choices) { _, which ->
                 val selectedValue = choices[which]
@@ -373,11 +375,13 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun showTextConfigDialog(config: ConfigItem) {
-        val input = android.widget.EditText(requireContext()).apply {
+        val ctx = requireActivity()
+        val input = android.widget.EditText(ctx).apply {
             setText(config.currentValue)
         }
 
-        MaterialAlertDialogBuilder(requireContext())
+        // 使用 Android 原生 AlertDialog.Builder 避免主题问题
+        android.app.AlertDialog.Builder(ctx)
             .setTitle(config.label)
             .setView(input)
             .setPositiveButton("确定") { _, _ ->
@@ -527,21 +531,46 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun showMoreOptionsMenu() {
-        val items = arrayOf("...", "全选", "取消选择", "刷新")
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("更多选项")
-            .setItems(items) { _, which ->
-                when (which) {
-                    1 -> photoAdapter.selectAll()
-                    2 -> photoAdapter.clearSelection()
-                    3 -> {
-                        loadPhotos()
-                        loadCameraSettings()
-                    }
+        val popupMenu = androidx.appcompat.widget.PopupMenu(requireContext(), binding.buttonMore)
+        popupMenu.menu.add(0, 1, 0, "刷新")
+        popupMenu.menu.add(0, 2, 1, "全选")
+        popupMenu.menu.add(0, 3, 2, "取消选择")
+        
+        popupMenu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    refreshAll()
+                    true
                 }
+                2 -> {
+                    photoAdapter.selectAll()
+                    true
+                }
+                3 -> {
+                    photoAdapter.clearSelection()
+                    true
+                }
+                else -> false
             }
-            .show()
+        }
+        popupMenu.show()
+    }
+    
+    /**
+     * 刷新照片列表和相机配置
+     */
+    private fun refreshAll() {
+        if (!isBindingAvailable) return
+        
+        Log.d(TAG, "手动刷新照片列表和配置")
+        
+        // 显示加载状态
+        binding.progressLoading.visibility = View.VISIBLE
+        binding.textConnectionStatus.text = "正在刷新..."
+        
+        // 重新加载照片和配置
+        loadPhotos()
+        loadCameraSettings()
     }
 
     private fun updateConnectionStatus(isConnected: Boolean) {

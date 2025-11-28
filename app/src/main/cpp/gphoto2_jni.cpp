@@ -307,6 +307,10 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_connectCameraWithF
         LOGI("相机连接成功: %s", abilities.model);
     }
     
+    // 注意：不在这里主动初始化文件系统，因为可能会阻塞很长时间
+    // Panasonic 相机的文件系统需要通过拍照事件或手动刷新来激活
+    // 这是已知的相机行为，在 BottomSheet 中已经提供了友好提示和刷新功能
+    
     return GP_OK;
 }
 

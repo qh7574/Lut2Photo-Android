@@ -100,8 +100,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:layout_marginStart="32dp"
+                    android:layout_marginEnd="32dp"
                     android:text="相机中没有照片"
                     android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    android:textAlignment="center"
                     android:alpha="0.6" />
                 
                 <com.google.android.material.textview.MaterialTextView
@@ -109,8 +112,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
+                    android:layout_marginStart="32dp"
+                    android:layout_marginEnd="32dp"
                     android:text="拍摄一张照片后列表将自动刷新"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textAlignment="center"
                     android:alpha="0.4"
                     android:visibility="gone" />
 
