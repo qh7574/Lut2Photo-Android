@@ -191,7 +191,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         binding.layoutEmptyState.visibility = View.VISIBLE
         binding.textEmptyMessage.text = "相机文件系统正在初始化"
         binding.textEmptyHint.visibility = View.VISIBLE
-        binding.textEmptyHint.text = "请拍摄一张照片或点击右上角刷新按钮"
+        binding.textEmptyHint.text = "请拍摄一张照片并点击右上角刷新按钮"
         binding.textConnectionStatus.text = "相机已连接，等待文件系统就绪..."
     }
 
@@ -403,7 +403,8 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         
         // 过滤可设置的配置项
         val editableSettings = settings.filter { config ->
-            when (config.type) {
+            // 先检查类型
+            val typeValid = when (config.type) {
                 ConfigItem.TYPE_BUTTON -> false  // 按钮类型不显示
                 ConfigItem.TYPE_TEXT -> false    // 文本类型不显示
                 ConfigItem.TYPE_RADIO, ConfigItem.TYPE_MENU -> {
@@ -413,6 +414,11 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 ConfigItem.TYPE_TOGGLE, ConfigItem.TYPE_RANGE -> true
                 else -> false
             }
+            
+            if (!typeValid) return@filter false
+            
+            // 再检查是否在黑名单中
+            !isConfigBlacklisted(config)
         }
         
         // 排序：常用参数置顶，其他按字母顺序
@@ -448,6 +454,58 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             chip.layoutParams = lp
 
             flexboxLayout.addView(chip)
+        }
+    }
+    
+    /**
+     * 获取参数被过滤的原因
+     */
+    private fun getFilterReason(config: ConfigItem): String {
+        // 先检查类型过滤
+        when (config.type) {
+            ConfigItem.TYPE_BUTTON -> return "按钮类型"
+            ConfigItem.TYPE_TEXT -> return "文本类型"
+            ConfigItem.TYPE_RADIO, ConfigItem.TYPE_MENU -> {
+                if (config.choices.isNullOrEmpty()) {
+                    return "无可选项"
+                }
+            }
+        }
+        
+        // 再检查黑名单
+        if (isConfigBlacklisted(config)) {
+            val nameLower = config.name.lowercase()
+            val labelLower = config.label.lowercase()
+            
+            return when {
+                nameLower.contains("battery") || labelLower.contains("battery") -> "电池相关参数"
+                nameLower.contains("capturetarget") || labelLower.contains("capturetarget") ||
+                nameLower.contains("capture-target") || labelLower.contains("capture-target") ||
+                nameLower.contains("capture target") || labelLower.contains("capture target") -> "不支持修改"
+                else -> "黑名单"
+            }
+        }
+        
+        return "未知原因"
+    }
+    
+    /**
+     * 检查配置项是否在黑名单中
+     */
+    private fun isConfigBlacklisted(config: ConfigItem): Boolean {
+        val nameLower = config.name.lowercase()
+        val labelLower = config.label.lowercase()
+        
+        // 黑名单关键词
+        val blacklistKeywords = listOf(
+            "battery",           // 电池相关
+            "capturetarget",     // capture target（无空格）
+            "capture-target",    // capture-target（带连字符）
+            "capture target"     // capture target（带空格）
+        )
+        
+        return blacklistKeywords.any { keyword ->
+            nameLower.contains(keyword) || labelLower.contains(keyword)
         }
     }
     
@@ -713,6 +771,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         popupMenu.menu.add(0, 1, 0, "刷新")
         popupMenu.menu.add(0, 2, 1, "全选")
         popupMenu.menu.add(0, 3, 2, "取消选择")
+        popupMenu.menu.add(0, 4, 3, "其他参数")
         
         popupMenu.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -728,10 +787,109 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     photoAdapter.clearSelection()
                     true
                 }
+                4 -> {
+                    showOtherParametersDialog()
+                    true
+                }
                 else -> false
             }
         }
         popupMenu.show()
+    }
+    
+    /**
+     * 显示其他参数对话框（被过滤的参数）
+     */
+    private fun showOtherParametersDialog() {
+        val ctx = requireActivity()
+        
+        // 创建对话框
+        val dialog = android.app.AlertDialog.Builder(ctx)
+            .setTitle("其他参数")
+            .setMessage("加载中...")
+            .setNegativeButton("关闭", null)
+            .create()
+        
+        dialog.show()
+        
+        // 异步加载被过滤的参数
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // 获取所有配置项
+                val allSettings = withContext(Dispatchers.IO) {
+                    configItems.ifEmpty {
+                        gphoto2Manager.listConfig().toList()
+                    }
+                }
+                
+                // 过滤出所有被过滤的参数（包括类型过滤和黑名单过滤）
+                val filteredSettings = allSettings.filter { config ->
+                    // 被类型过滤的
+                    val filteredByType = when (config.type) {
+                        ConfigItem.TYPE_BUTTON -> true  // 按钮类型被过滤
+                        ConfigItem.TYPE_TEXT -> true    // 文本类型被过滤
+                        ConfigItem.TYPE_RADIO, ConfigItem.TYPE_MENU -> {
+                            // RADIO/MENU 类型没有选项的被过滤
+                            config.choices.isNullOrEmpty()
+                        }
+                        ConfigItem.TYPE_TOGGLE, ConfigItem.TYPE_RANGE -> false  // 这些类型不被过滤
+                        else -> true  // 未知类型被过滤
+                    }
+                    
+                    // 被黑名单过滤的
+                    val filteredByBlacklist = !filteredByType && isConfigBlacklisted(config)
+                    
+                    // 只要满足任一过滤条件就显示
+                    filteredByType || filteredByBlacklist
+                }.sortedBy { config ->
+                    // 按 label 的 A-Z 顺序排序
+                    val label = config.label
+                    when {
+                        // 英文字母开头
+                        label.firstOrNull()?.isLetter() == true && label.first().code < 128 -> {
+                            label.lowercase()
+                        }
+                        // 非英文字母，按字符编码排序
+                        else -> {
+                            "\uFFFF${label}" // 添加最大Unicode字符前缀，确保排在英文后面
+                        }
+                    }
+                }
+                
+                withContext(Dispatchers.Main) {
+                    if (dialog.isShowing) {
+                        if (filteredSettings.isEmpty()) {
+                            dialog.setMessage("没有被过滤的参数")
+                        } else {
+                            // 构建参数列表文本
+                            val message = buildString {
+                                append("以下参数已被过滤（共 ${filteredSettings.size} 个）：\n\n")
+                                filteredSettings.forEachIndexed { index, config ->
+                                    append("${index + 1}. ${config.label}\n")
+                                    append("   值: ${config.currentValue}\n")
+                                    
+                                    // 显示过滤原因
+                                    val reason = getFilterReason(config)
+                                    append("   原因: $reason\n")
+                                    
+                                    if (index < filteredSettings.size - 1) {
+                                        append("\n")
+                                    }
+                                }
+                            }
+                            dialog.setMessage(message)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "加载其他参数失败", e)
+                withContext(Dispatchers.Main) {
+                    if (dialog.isShowing) {
+                        dialog.setMessage("加载失败: ${e.message}")
+                    }
+                }
+            }
+        }
     }
     
     /**
