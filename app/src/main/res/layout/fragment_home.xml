@@ -132,7 +132,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- 连接状态提示 -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_tethered_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/camera_disconnected"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                 <!-- 联机模式开关行 -->
                 <LinearLayout
@@ -151,7 +164,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:layout_marginEnd="8dp"
+                            android:layout_marginEnd="0dp"
                             android:contentDescription="相机图标"
                             android:src="@drawable/ic_camera_24" />
 
@@ -180,16 +193,6 @@
                         android:layout_height="wrap_content" />
 
                 </LinearLayout>
-
-                <!-- 连接状态提示 -->
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_tethered_status"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/camera_disconnected"
-                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
 
             </LinearLayout>
 
