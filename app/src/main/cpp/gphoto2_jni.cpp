@@ -7,6 +7,7 @@
 #include <utility>
 #include <cstdlib>
 #include <cstdint>
+#include <mutex>
 #include <gphoto2/gphoto2.h>
 #include <gphoto2/gphoto2-port-info-list.h>
 
@@ -20,6 +21,7 @@
 static Camera *camera = nullptr;
 static GPContext *context = nullptr;
 static int g_usb_fd = -1;  // Android USB 文件描述符
+static std::mutex camera_mutex;  // 保护 camera 和 context 的互斥锁
 
 // ==================== 辅助函数 ====================
 
@@ -114,30 +116,30 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_release(
         JNIEnv *env, jobject thiz) {
     LOGI("释放 libgphoto2 资源...");
     
-    // 注意：不要在这里调用 gp_camera_unref，因为可能导致崩溃
-    // 相机资源应该在 disconnectCamera 中通过 gp_camera_exit 释放
-    // gp_camera_unref 会尝试释放底层端口，但端口可能已经被关闭
+    // 使用互斥锁保护 camera 访问
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    
+    // 注意：camera 对象不在这里释放
+    // gp_camera_exit 已经在 disconnectCamera 中调用，关闭了端口
+    // 如果再调用 gp_camera_free 或 gp_camera_unref，会尝试释放已关闭的端口，导致崩溃
+    // 正确的做法是只将指针置空，让 libgphoto2 的内部引用计数管理内存
+    if (camera != nullptr) {
+        camera = nullptr;
+        LOGI("相机指针已清空");
+    }
+    
+    // 释放上下文
+    if (context != nullptr) {
+        gp_context_unref(context);
+        context = nullptr;
+        LOGI("上下文已释放");
+    }
     
     // 重置 USB 系统设备文件描述符
     if (g_usb_fd >= 0) {
         gp_port_usb_set_sys_device(-1);
         g_usb_fd = -1;
         LOGI("已重置 USB 系统设备");
-    }
-    
-    // 释放相机对象 - 使用 gp_camera_free 而不是 gp_camera_unref
-    // gp_camera_free 不会尝试关闭端口，更安全
-    if (camera != nullptr) {
-        // 不调用 gp_camera_unref，因为它会尝试释放已关闭的端口
-        // 直接将指针置空，让系统回收内存
-        camera = nullptr;
-        LOGI("相机对象已清理");
-    }
-    
-    if (context != nullptr) {
-        gp_context_unref(context);
-        context = nullptr;
-        LOGI("上下文已释放");
     }
     
     LOGI("libgphoto2 资源已释放");
@@ -318,6 +320,9 @@ extern "C" JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_disconnectCamera(
         JNIEnv *env, jobject thiz) {
     LOGI("断开相机连接...");
+    
+    // 使用互斥锁保护 camera 访问
+    std::lock_guard<std::mutex> lock(camera_mutex);
     
     if (camera != nullptr && context != nullptr) {
         // gp_camera_exit 会关闭与相机的连接并释放端口资源
@@ -610,11 +615,15 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeWaitForEvent(
         JNIEnv *env, jobject thiz, jint timeout) {
     
+    jclass eventClass = env->FindClass("cn/alittlecookie/lut2photo/lut2photo/model/CameraEvent");
+    jmethodID constructor = env->GetMethodID(eventClass, "<init>", "(ILjava/lang/String;)V");
+    
+    // 使用互斥锁保护 camera 访问
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    
     if (camera == nullptr || context == nullptr) {
         LOGE("相机未连接");
         // 返回超时事件
-        jclass eventClass = env->FindClass("cn/alittlecookie/lut2photo/lut2photo/model/CameraEvent");
-        jmethodID constructor = env->GetMethodID(eventClass, "<init>", "(ILjava/lang/String;)V");
         return env->NewObject(eventClass, constructor, 1, createJavaString(env, ""));
     }
     
@@ -622,9 +631,6 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeWaitForEvent
     void *eventData = nullptr;
     
     int ret = gp_camera_wait_for_event(camera, timeout, &eventType, &eventData, context);
-    
-    jclass eventClass = env->FindClass("cn/alittlecookie/lut2photo/lut2photo/model/CameraEvent");
-    jmethodID constructor = env->GetMethodID(eventClass, "<init>", "(ILjava/lang/String;)V");
     
     if (ret < GP_OK) {
         const char* errorStr = gp_result_as_string(ret);

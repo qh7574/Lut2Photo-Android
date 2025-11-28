@@ -195,6 +195,21 @@ class TetheredShootingService : Service() {
         // 先停止事件监听
         stopEventMonitoring()
         
+        // 等待事件监听协程完全停止
+        try {
+            eventMonitorJob?.let { job ->
+                if (job.isActive) {
+                    Log.i(TAG, "等待事件监听协程停止...")
+                    kotlinx.coroutines.runBlocking {
+                        job.join()
+                    }
+                    Log.i(TAG, "事件监听协程已停止")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "等待协程停止时发生异常", e)
+        }
+        
         // 安全地断开连接和释放资源
         try {
             if (gphoto2Manager.isCameraConnected()) {
