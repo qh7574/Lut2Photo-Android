@@ -15,6 +15,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    
+    <!-- USB 权限 -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-permission android:name="android.permission.USB_PERMISSION" />
 
     <application
         android:name=".MyApplication"
@@ -78,6 +82,14 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
+        <!-- 联机拍摄服务 -->
+        <service
+            android:name=".service.TetheredShootingService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
         <!-- 启动接收器 -->
         <receiver
             android:name=".receiver.BootReceiver"
@@ -99,6 +111,19 @@
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
+
+        <!-- USB 设备附加接收器 -->
+        <receiver
+            android:name=".receiver.UsbDeviceReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+        </receiver>
             
     </application>
 

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 联机拍摄相关字符串 -->
+    <string name="tethered_mode">联机模式</string>
+    <string name="tethered_mode_settings">联机模式设置</string>
+    <string name="camera_connected">相机已连接</string>
+    <string name="camera_disconnected">相机未连接</string>
+    <string name="camera_connecting">正在连接相机…</string>
+    <string name="camera_connection_failed">相机连接失败</string>
+    <string name="camera_connection_error">连接错误: %s</string>
+    
+    <!-- 照片操作 -->
+    <string name="import_photos">导入照片</string>
+    <string name="import_selected">导入选中</string>
+    <string name="importing_photos">正在导入照片…</string>
+    <string name="import_progress">导入中 %1$d/%2$d</string>
+    <string name="import_success">成功导入 %d 张照片</string>
+    <string name="import_failed">导入失败: %s</string>
+    <string name="no_photos_selected">请选择要导入的照片</string>
+    <string name="no_photos_in_camera">相机中没有照片</string>
+    <string name="loading_photos">正在加载照片…</string>
+    
+    <!-- 相机设置 -->
+    <string name="camera_settings">相机设置</string>
+    <string name="no_settings_available">无可用设置</string>
+    <string name="setting_updated">设置已更新</string>
+    <string name="setting_update_failed">设置更新失败: %s</string>
+    <string name="unsupported_setting_type">不支持的设置类型</string>
+    
+    <!-- 对话框 -->
+    <string name="connection_error">连接错误</string>
+    <string name="connection_error_title">连接错误</string>
+    <string name="connection_error_message">无法连接到相机，请检查：\n1. 相机是否已开机\n2. USB 连接是否正常\n3. 相机是否支持 PTP/MTP 模式</string>
+    <string name="retry">重试</string>
+    <string name="cancel">取消</string>
+    
+    <!-- 通知 -->
+    <string name="tethered_notification_title">联机拍摄</string>
+    <string name="tethered_notification_connecting">正在连接相机…</string>
+    <string name="tethered_notification_connected">相机已连接: %s</string>
+    <string name="tethered_notification_downloading">正在下载照片…</string>
+    <string name="tethered_notification_downloaded">已下载 %d 张照片</string>
+    
+    <!-- 更多选项 -->
+    <string name="more_options">更多选项</string>
+    <string name="select_all">全选</string>
+    <string name="deselect_all">取消选择</string>
+    <string name="refresh">刷新</string>
+    <string name="placeholder_option">…</string>
+</resources>

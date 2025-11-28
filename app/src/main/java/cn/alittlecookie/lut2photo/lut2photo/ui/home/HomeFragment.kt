@@ -1,7 +1,10 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.home
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.os.Bundle
@@ -27,6 +30,8 @@ import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentHomeBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
+import cn.alittlecookie.lut2photo.lut2photo.service.TetheredShootingService
+import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.TetheredModeBottomSheet
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutUtils
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
@@ -38,6 +43,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.signature.ObjectKey
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -68,6 +74,41 @@ class HomeFragment : Fragment() {
     private var currentProcessingKey: String? = null
     private val processingLock = Any()
 
+    // 联机模式广播接收器
+    private val tetheredReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d("HomeFragment", "收到广播: ${intent?.action}")
+            when (intent?.action) {
+                TetheredShootingService.ACTION_CAMERA_CONNECTED -> {
+                    Log.i("HomeFragment", "相机已连接，更新 UI")
+                    updateTetheredStatus(true)
+                }
+                TetheredShootingService.ACTION_CAMERA_DISCONNECTED -> {
+                    Log.i("HomeFragment", "相机已断开")
+                    updateTetheredStatus(false)
+                    binding.switchTetheredMode.isChecked = false
+                }
+                TetheredShootingService.ACTION_CONNECTION_ERROR -> {
+                    val errorMessage = intent.getStringExtra(
+                        TetheredShootingService.EXTRA_ERROR_MESSAGE
+                    ) ?: getString(R.string.unknown)
+                    Log.e("HomeFragment", "连接错误: $errorMessage")
+                    showConnectionErrorDialog(errorMessage)
+                    binding.switchTetheredMode.isChecked = false
+                }
+                TetheredShootingService.ACTION_PHOTO_DOWNLOADED -> {
+                    val photoPath = intent.getStringExtra(
+                        TetheredShootingService.EXTRA_PHOTO_PATH
+                    )
+                    if (photoPath != null) {
+                        showToast(getString(R.string.photo_downloaded, photoPath.substringAfterLast('/')))
+                        // 刷新预览
+                        schedulePreviewUpdate()
+                    }
+                }
+            }
+        }
+    }
 
     // Activity Result Launchers
     private val selectInputFolderLauncher = registerForActivityResult(
@@ -125,10 +166,12 @@ class HomeFragment : Fragment() {
         lutManager = LutManager(requireContext())
         
         setupViews()
+        setupTetheredMode()
         setupLutSpinner()
         setupPreviewCard()
         loadSavedSettings()
         restoreUIState()
+        registerTetheredReceiver()
 
         // 修复：延迟观察ViewModel，确保LUT加载完成
         lifecycleScope.launch {
@@ -1126,6 +1169,7 @@ class HomeFragment : Fragment() {
         // 清理防抖任务
         previewUpdateRunnable?.let { previewUpdateHandler.removeCallbacks(it) }
         configBroadcastRunnable?.let { configBroadcastHandler.removeCallbacks(it) }
+        unregisterTetheredReceiver()
         _binding = null
     }
 
@@ -1143,5 +1187,102 @@ class HomeFragment : Fragment() {
             lut2Strength = preferencesManager.homeLut2Strength
         )
         bottomSheet.show(parentFragmentManager, "WatermarkSettingsBottomSheet")
+    }
+
+    // ==================== 联机模式功能 ====================
+
+    private fun setupTetheredMode() {
+        // 联机模式开关
+        binding.switchTetheredMode.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                startTetheredMode()
+            } else {
+                stopTetheredMode()
+            }
+        }
+
+        // 设置按钮 - 打开联机模式 BottomSheet
+        binding.buttonTetheredSettings.setOnClickListener {
+            if (binding.switchTetheredMode.isChecked) {
+                showTetheredBottomSheet()
+            } else {
+                showToast(getString(R.string.enable_tethered_mode_first))
+            }
+        }
+
+        // 初始状态
+        updateTetheredStatus(false)
+    }
+
+    private fun startTetheredMode() {
+        Log.i("HomeFragment", "启动联机模式")
+        
+        // 检查输入文件夹是否已设置
+        if (preferencesManager.homeInputFolder.isEmpty()) {
+            showToast(getString(R.string.no_input_folder_selected))
+            binding.switchTetheredMode.isChecked = false
+            return
+        }
+
+        // 启动联机拍摄服务
+        val intent = Intent(requireContext(), TetheredShootingService::class.java)
+        requireContext().startService(intent)
+        
+        updateTetheredStatus(false, getString(R.string.camera_connecting))
+    }
+
+    private fun stopTetheredMode() {
+        Log.i("HomeFragment", "停止联机模式")
+        
+        // 停止联机拍摄服务
+        val intent = Intent(requireContext(), TetheredShootingService::class.java)
+        requireContext().stopService(intent)
+        
+        updateTetheredStatus(false)
+    }
+
+    private fun showTetheredBottomSheet() {
+        val bottomSheet = TetheredModeBottomSheet.newInstance()
+        bottomSheet.show(parentFragmentManager, "TetheredModeBottomSheet")
+    }
+
+    private fun showConnectionErrorDialog(errorMessage: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.connection_error))
+            .setMessage(getString(R.string.connection_error_message, errorMessage))
+            .setPositiveButton(getString(R.string.retry)) { _, _ ->
+                binding.switchTetheredMode.isChecked = true
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun updateTetheredStatus(isConnected: Boolean, customMessage: String? = null) {
+        binding.textTetheredStatus.text = customMessage ?: if (isConnected) {
+            getString(R.string.camera_connected)
+        } else {
+            getString(R.string.camera_disconnected)
+        }
+        
+        // 只有在连接时才启用设置按钮
+        binding.buttonTetheredSettings.isEnabled = isConnected
+    }
+
+    private fun registerTetheredReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(TetheredShootingService.ACTION_CAMERA_CONNECTED)
+            addAction(TetheredShootingService.ACTION_CAMERA_DISCONNECTED)
+            addAction(TetheredShootingService.ACTION_CONNECTION_ERROR)
+            addAction(TetheredShootingService.ACTION_PHOTO_DOWNLOADED)
+        }
+        requireContext().registerReceiver(tetheredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    private fun unregisterTetheredReceiver() {
+        try {
+            requireContext().unregisterReceiver(tetheredReceiver)
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "注销广播接收器失败", e)
+        }
     }
 }

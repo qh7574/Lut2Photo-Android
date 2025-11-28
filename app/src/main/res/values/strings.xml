@@ -3,7 +3,7 @@
     <string name="app_name">Lut2Photo</string>
 
     <!-- 导航标题 -->
-    <string name="title_home">文件夹监控</string>
+    <string name="title_home">实时处理</string>
     <string name="title_dashboard">手动处理</string>
     <string name="title_notifications">设置</string>
     <string name="title_processing_history">处理历史</string>
@@ -43,6 +43,7 @@
 
     <!-- 文件夹监控 -->
     <string name="folder_monitoring">文件夹监控</string>
+    <string name="realtime_monitoring">实时处理</string>
     <string name="input_folder">输入文件夹</string>
     <string name="output_folder">输出文件夹</string>
     <string name="start_monitoring">开始监控</string>
@@ -235,4 +236,11 @@
     <!-- 水印设置相关 -->
     <string name="enable_watermark">启用水印</string>
     <string name="watermark_settings">水印设置</string>
+
+    <!-- 联机模式相关 - 其他字符串在 strings_tethered.xml 中定义 -->
+    <string name="tethered_mode_description">通过USB连接相机，自动传输拍摄的照片</string>
+    <string name="enable_tethered_mode_first">请先启用联机模式</string>
+    <string name="photo_downloaded">照片已下载: %s</string>
+    <string name="camera_photos">相机照片</string>
+    <string name="selected_count">已选择 %d 张</string>
 </resources>

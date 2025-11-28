@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 全屏 BottomSheet 样式 -->
+    <style name="FullScreenBottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/FullScreenBottomSheet</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+    <style name="FullScreenBottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="behavior_peekHeight">auto</item>
+        <item name="behavior_hideable">true</item>
+        <item name="behavior_skipCollapsed">true</item>
+        <item name="behavior_fitToContents">false</item>
+        <item name="behavior_expandedOffset">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+    </style>
+</resources>

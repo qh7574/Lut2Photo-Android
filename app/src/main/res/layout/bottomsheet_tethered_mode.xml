@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="?attr/colorSurface">
+
+        <!-- 标题栏 (10%) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp"
+            android:elevation="4dp"
+            android:background="?attr/colorSurfaceContainer">
+
+            <!-- 返回按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_back"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_arrow_back_24"
+                android:contentDescription="返回" />
+
+            <!-- 连接状态 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_connection_status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="相机未连接"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold" />
+
+            <!-- 导入按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_import"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="导入"
+                android:enabled="false" />
+
+            <!-- 更多选项按钮 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_more"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_more_vert_24"
+                android:contentDescription="更多选项" />
+
+        </LinearLayout>
+
+        <!-- 图片预览区 (60%) -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="6">
+
+            <!-- 照片网格 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_photos"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_camera_photo" />
+
+            <!-- 空状态提示 -->
+            <LinearLayout
+                android:id="@+id/layout_empty_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/outline_photo_camera_24"
+                    android:alpha="0.3"
+                    android:contentDescription="无照片" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_empty_message"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="相机中没有照片"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    android:alpha="0.6" />
+                
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_empty_hint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="拍摄一张照片后列表将自动刷新"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:alpha="0.4"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <!-- 加载指示器 -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/progress_loading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <!-- 相机设置区 (30%) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="3"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="?attr/colorSurfaceContainerLow"
+            android:elevation="8dp">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="相机设置"
+                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <!-- 相机参数 Chips -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_settings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleLine="true"
+                    app:chipSpacing="8dp">
+
+                    <!-- 动态添加 Chip -->
+
+                </com.google.android.material.chip.ChipGroup>
+
+            </HorizontalScrollView>
+
+            <!-- 空状态提示 -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/text_settings_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="无可用设置"
+                android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                android:alpha="0.6"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

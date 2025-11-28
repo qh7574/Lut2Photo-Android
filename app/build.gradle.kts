@@ -72,6 +72,17 @@ android {
         jniLibs {
             pickFirsts.add("**/libc++_shared.so")
             pickFirsts.add("**/libjsc.so")
+            // 保留 libgphoto2 的所有库文件
+            keepDebugSymbols.add("**/libgphoto2*.so")
+            keepDebugSymbols.add("**/libusb*.so")
+            keepDebugSymbols.add("**/libltdl.so")
+        }
+    }
+    
+    // 配置 jniLibs 源目录，包含子目录中的驱动模块
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
         }
     }
     ndkVersion = "29.0.13846066 rc3"

@@ -4,7 +4,7 @@
     <item
         android:id="@+id/navigation_home"
         android:icon="@drawable/ic_home_black_24dp"
-        android:title="文件夹监控" />
+        android:title="@string/realtime_monitoring" />
 
     <item
         android:id="@+id/navigation_dashboard"

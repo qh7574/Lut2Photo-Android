@@ -52,7 +52,7 @@ class ProcessingHistoryAdapter(
                 // 修改状态显示逻辑
                 val displayStatus = when {
                     record.status.contains("成功") -> "手动处理"
-                    record.status.contains("处理完成") -> "文件夹监控"
+                    record.status.contains("处理完成") -> "@string/realtime_monitoring"
                     record.status.contains("失败") -> record.status // 保持原有的失败状态显示
                     else -> record.status
                 }

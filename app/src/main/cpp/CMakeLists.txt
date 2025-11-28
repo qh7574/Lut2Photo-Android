@@ -21,6 +21,7 @@ endif ()
 # 包含目录
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/gphoto2
         ${CMAKE_CURRENT_SOURCE_DIR}/core
         ${CMAKE_CURRENT_SOURCE_DIR}/utils
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -141,4 +142,58 @@ set_target_properties(
         native_lut_processor
         PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+)
+
+# ==================== libgphoto2 JNI 库 ====================
+
+# 添加 gphoto2_jni 库
+add_library(
+        gphoto2_jni
+        SHARED
+        gphoto2_jni.cpp
+)
+
+# 设置 libgphoto2 库路径（使用 CMAKE_CURRENT_SOURCE_DIR 的上级目录）
+# CMAKE_CURRENT_SOURCE_DIR = app/src/main/cpp
+# jniLibs 位于 app/src/main/jniLibs
+set(GPHOTO2_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI})
+
+# 打印路径用于调试
+message(STATUS "GPHOTO2_LIB_DIR: ${GPHOTO2_LIB_DIR}")
+message(STATUS "ANDROID_ABI: ${ANDROID_ABI}")
+
+# 导入预编译的 libgphoto2 库
+add_library(gphoto2 SHARED IMPORTED)
+set_target_properties(gphoto2 PROPERTIES IMPORTED_LOCATION
+        ${GPHOTO2_LIB_DIR}/libgphoto2.so)
+
+add_library(gphoto2_port SHARED IMPORTED)
+set_target_properties(gphoto2_port PROPERTIES IMPORTED_LOCATION
+        ${GPHOTO2_LIB_DIR}/libgphoto2_port.so)
+
+add_library(usb-1.0 SHARED IMPORTED)
+set_target_properties(usb-1.0 PROPERTIES IMPORTED_LOCATION
+        ${GPHOTO2_LIB_DIR}/libusb-1.0.so)
+
+add_library(ltdl SHARED IMPORTED)
+set_target_properties(ltdl PROPERTIES IMPORTED_LOCATION
+        ${GPHOTO2_LIB_DIR}/libltdl.so)
+
+# 链接 gphoto2_jni 库
+target_link_libraries(
+        gphoto2_jni
+        gphoto2
+        gphoto2_port
+        usb-1.0
+        ltdl
+        ${log-lib}
+        ${android-lib}
+)
+
+# 编译定义
+target_compile_definitions(
+        gphoto2_jni
+        PRIVATE
+        ANDROID_NDK
+        LOG_TAG="GPhoto2JNI"
 )

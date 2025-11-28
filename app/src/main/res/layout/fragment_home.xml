@@ -18,7 +18,7 @@
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/folder_monitoring"
+            android:text="@string/realtime_monitoring"
             android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
             android:layout_marginBottom="24dp" />
 
@@ -77,7 +77,7 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="文件夹监控"
+                            android:text="@string/folder_monitoring"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
                     </LinearLayout>
 
@@ -120,7 +120,82 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 2. 图片预览 -->
+        <!-- 2. 联机模式 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.Material3.CardView.Outlined"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- 联机模式开关行 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="8dp"
+                            android:contentDescription="相机图标"
+                            android:src="@drawable/ic_camera_24" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/tethered_mode"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                    </LinearLayout>
+
+                    <!-- 设置按钮 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/button_tethered_settings"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="8dp"
+                        android:enabled="false"
+                        app:icon="@drawable/ic_settings_24"
+                        android:contentDescription="@string/tethered_mode_settings" />
+
+                    <!-- 开关 -->
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_tethered_mode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <!-- 连接状态提示 -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/text_tethered_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/camera_disconnected"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3. 图片预览 -->
         <include
             android:id="@+id/preview_card_home"
             layout="@layout/component_image_preview_card"
@@ -128,7 +203,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp" />
 
-        <!-- 3. 文件设置（可折叠） -->
+        <!-- 4. 文件设置（可折叠） -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -270,7 +345,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 4. 参数设置（可折叠） -->
+        <!-- 5. 参数设置（可折叠） -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

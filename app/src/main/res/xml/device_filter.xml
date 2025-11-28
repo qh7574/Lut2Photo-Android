@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- PTP 协议相机 (USB Class 6, Subclass 1, Protocol 1) -->
+    <usb-device class="6" subclass="1" protocol="1" />
+    
+    <!-- MTP 协议设备 (USB Class 6, Subclass 1, Protocol 0) -->
+    <usb-device class="6" subclass="1" protocol="0" />
+</resources>
