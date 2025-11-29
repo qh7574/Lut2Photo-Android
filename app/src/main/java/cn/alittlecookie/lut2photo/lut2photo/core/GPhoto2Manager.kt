@@ -80,9 +80,16 @@ class GPhoto2Manager private constructor() {
     @Volatile
     private var isConnected = false
     
+    // 是否正在初始化或清理中（防止并发操作）
+    @Volatile
+    private var isOperationInProgress = false
+    
     // I/O 操作锁，确保所有相机操作互斥执行
     // 使用 ReentrantLock 支持 tryLock，避免 waitForEvent 长时间阻塞其他操作
     private val ioLock = java.util.concurrent.locks.ReentrantLock()
+    
+    // 初始化/清理操作锁
+    private val lifecycleLock = Any()
     
     // 配置设置队列
     private data class ConfigRequest(
@@ -143,43 +150,57 @@ class GPhoto2Manager private constructor() {
      * @param forceReinit 是否强制重新初始化（用于重新连接场景）
      */
     fun init(context: Context? = null, forceReinit: Boolean = false): Boolean {
-        if (isInitialized && !forceReinit) {
-            Log.w(TAG, "GPhoto2Manager 已经初始化，跳过")
-            return true
-        }
-        
-        // 如果强制重新初始化，先清理旧状态
-        if (forceReinit && isInitialized) {
-            Log.i(TAG, "强制重新初始化，先清理旧状态")
-            isInitialized = false
-            isConnected = false
-        }
-
-        val result = if (context != null) {
-            // 从 assets 复制驱动文件到私有目录
-            val camlibsPath = copyAssetsToPrivateDir(context, "gphoto2/camlibs", "camlibs")
-            val iolibsPath = copyAssetsToPrivateDir(context, "gphoto2/iolibs", "iolibs")
-            
-            Log.i(TAG, "Camlibs path: $camlibsPath")
-            Log.i(TAG, "Iolibs path: $iolibsPath")
-            
-            if (camlibsPath != null && iolibsPath != null) {
-                initializeWithPaths(camlibsPath, iolibsPath)
-            } else {
-                Log.e(TAG, "复制驱动文件失败")
-                GP_ERROR
+        synchronized(lifecycleLock) {
+            // 如果正在进行其他操作，等待完成
+            if (isOperationInProgress) {
+                Log.w(TAG, "有其他操作正在进行，等待...")
+                return false
             }
-        } else {
-            initialize()
-        }
-        
-        if (result == GP_OK) {
-            isInitialized = true
-            Log.i(TAG, "GPhoto2Manager 初始化成功")
-            return true
-        } else {
-            Log.e(TAG, "GPhoto2Manager 初始化失败: ${getErrorString(result)}")
-            return false
+            
+            if (isInitialized && !forceReinit) {
+                Log.w(TAG, "GPhoto2Manager 已经初始化，跳过")
+                return true
+            }
+            
+            isOperationInProgress = true
+            
+            try {
+                // 如果强制重新初始化，先清理旧状态
+                if (forceReinit && isInitialized) {
+                    Log.i(TAG, "强制重新初始化，先清理旧状态")
+                    isInitialized = false
+                    isConnected = false
+                }
+
+                val result = if (context != null) {
+                    // 从 assets 复制驱动文件到私有目录
+                    val camlibsPath = copyAssetsToPrivateDir(context, "gphoto2/camlibs", "camlibs")
+                    val iolibsPath = copyAssetsToPrivateDir(context, "gphoto2/iolibs", "iolibs")
+                    
+                    Log.i(TAG, "Camlibs path: $camlibsPath")
+                    Log.i(TAG, "Iolibs path: $iolibsPath")
+                    
+                    if (camlibsPath != null && iolibsPath != null) {
+                        initializeWithPaths(camlibsPath, iolibsPath)
+                    } else {
+                        Log.e(TAG, "复制驱动文件失败")
+                        GP_ERROR
+                    }
+                } else {
+                    initialize()
+                }
+                
+                if (result == GP_OK) {
+                    isInitialized = true
+                    Log.i(TAG, "GPhoto2Manager 初始化成功")
+                    return true
+                } else {
+                    Log.e(TAG, "GPhoto2Manager 初始化失败: ${getErrorString(result)}")
+                    return false
+                }
+            } finally {
+                isOperationInProgress = false
+            }
         }
     }
 
@@ -187,25 +208,46 @@ class GPhoto2Manager private constructor() {
      * 释放资源（带状态管理）
      */
     fun cleanup() {
-        if (!isInitialized) {
-            Log.d(TAG, "GPhoto2Manager 未初始化，跳过 cleanup")
-            return
-        }
+        synchronized(lifecycleLock) {
+            if (!isInitialized && !isOperationInProgress) {
+                Log.d(TAG, "GPhoto2Manager 未初始化，跳过 cleanup")
+                return
+            }
+            
+            // 如果正在进行初始化操作，标记为需要清理
+            if (isOperationInProgress) {
+                Log.w(TAG, "有操作正在进行，标记状态为未初始化")
+                isInitialized = false
+                isConnected = false
+                return
+            }
+            
+            isOperationInProgress = true
 
-        Log.i(TAG, "开始清理 GPhoto2Manager 资源...")
-        
-        // disconnectCamera 现在会释放所有资源（camera、context、usb fd）
-        // 所以不需要再调用 release()
-        if (isConnected) {
-            disconnectCamera()
-        } else {
-            // 如果没有连接，仍然需要调用 release 来清理可能存在的资源
-            release()
-        }
+            Log.i(TAG, "开始清理 GPhoto2Manager 资源...")
+            
+            try {
+                // 使用 try-catch 保护，防止释放失败导致崩溃
+                try {
+                    // disconnectCamera 现在会释放所有资源（camera、context、usb fd）
+                    // 所以不需要再调用 release()
+                    if (isConnected) {
+                        disconnectCamera()
+                    } else {
+                        // 如果没有连接，仍然需要调用 release 来清理可能存在的资源
+                        release()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "清理资源时发生异常", e)
+                }
 
-        isInitialized = false
-        isConnected = false
-        Log.i(TAG, "GPhoto2Manager 已释放")
+                isInitialized = false
+                isConnected = false
+                Log.i(TAG, "GPhoto2Manager 已释放")
+            } finally {
+                isOperationInProgress = false
+            }
+        }
     }
 
     // ==================== 相机连接 ====================
@@ -238,24 +280,34 @@ class GPhoto2Manager private constructor() {
      * 连接相机（带状态管理）
      */
     fun connect(): Boolean {
-        if (!isInitialized) {
-            Log.e(TAG, "GPhoto2Manager 未初始化")
-            return false
-        }
+        synchronized(lifecycleLock) {
+            if (!isInitialized) {
+                Log.e(TAG, "GPhoto2Manager 未初始化")
+                return false
+            }
+            
+            if (isOperationInProgress) {
+                Log.w(TAG, "有其他操作正在进行，无法连接")
+                return false
+            }
 
-        if (isConnected) {
-            Log.w(TAG, "相机已经连接")
-            return true
-        }
+            if (isConnected) {
+                Log.w(TAG, "相机已经连接")
+                return true
+            }
 
-        val result = connectCamera()
-        if (result == GP_OK) {
-            isConnected = true
-            Log.i(TAG, "相机连接成功")
-            return true
-        } else {
-            Log.e(TAG, "相机连接失败: ${getErrorString(result)}")
-            return false
+            val result = connectCamera()
+            if (result == GP_OK) {
+                isConnected = true
+                Log.i(TAG, "相机连接成功")
+                return true
+            } else {
+                Log.e(TAG, "相机连接失败: ${getErrorString(result)}")
+                // 连接失败时，标记为未初始化，避免后续 cleanup 时崩溃
+                // 因为 camera 对象可能处于不一致状态
+                isInitialized = false
+                return false
+            }
         }
     }
 
@@ -263,25 +315,35 @@ class GPhoto2Manager private constructor() {
      * 使用 USB 文件描述符连接相机（带状态管理）
      */
     fun connectWithFd(fd: Int): Boolean {
-        if (!isInitialized) {
-            Log.e(TAG, "GPhoto2Manager 未初始化")
-            return false
-        }
+        synchronized(lifecycleLock) {
+            if (!isInitialized) {
+                Log.e(TAG, "GPhoto2Manager 未初始化")
+                return false
+            }
+            
+            if (isOperationInProgress) {
+                Log.w(TAG, "有其他操作正在进行，无法连接")
+                return false
+            }
 
-        if (isConnected) {
-            Log.w(TAG, "相机已经连接")
-            return true
-        }
+            if (isConnected) {
+                Log.w(TAG, "相机已经连接")
+                return true
+            }
 
-        Log.i(TAG, "使用 USB fd=$fd 连接相机")
-        val result = connectCameraWithFd(fd)
-        if (result == GP_OK) {
-            isConnected = true
-            Log.i(TAG, "相机连接成功 (fd=$fd)")
-            return true
-        } else {
-            Log.e(TAG, "相机连接失败: ${getErrorString(result)}")
-            return false
+            Log.i(TAG, "使用 USB fd=$fd 连接相机")
+            val result = connectCameraWithFd(fd)
+            if (result == GP_OK) {
+                isConnected = true
+                Log.i(TAG, "相机连接成功 (fd=$fd)")
+                return true
+            } else {
+                Log.e(TAG, "相机连接失败: ${getErrorString(result)}")
+                // 连接失败时，标记为未初始化，避免后续 cleanup 时崩溃
+                // 因为 camera 对象可能处于不一致状态
+                isInitialized = false
+                return false
+            }
         }
     }
 
@@ -291,16 +353,29 @@ class GPhoto2Manager private constructor() {
      * 因此断开后需要重新调用 init() 才能再次连接
      */
     fun disconnect() {
-        if (!isConnected) {
-            Log.d(TAG, "相机未连接，跳过 disconnect")
-            return
-        }
+        synchronized(lifecycleLock) {
+            if (!isConnected) {
+                Log.d(TAG, "相机未连接，跳过 disconnect")
+                return
+            }
+            
+            if (isOperationInProgress) {
+                Log.w(TAG, "有其他操作正在进行，标记状态为未连接")
+                isConnected = false
+                isInitialized = false
+                return
+            }
 
-        Log.i(TAG, "断开相机连接...")
-        disconnectCamera()
-        isConnected = false
-        isInitialized = false  // disconnectCamera 会释放所有资源，需要重新初始化
-        Log.i(TAG, "相机已断开，需要重新初始化才能再次连接")
+            Log.i(TAG, "断开相机连接...")
+            try {
+                disconnectCamera()
+            } catch (e: Exception) {
+                Log.e(TAG, "断开连接时发生异常", e)
+            }
+            isConnected = false
+            isInitialized = false  // disconnectCamera 会释放所有资源，需要重新初始化
+            Log.i(TAG, "相机已断开，需要重新初始化才能再次连接")
+        }
     }
 
     /**

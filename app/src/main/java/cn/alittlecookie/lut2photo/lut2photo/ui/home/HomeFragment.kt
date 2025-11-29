@@ -84,9 +84,10 @@ class HomeFragment : Fragment() {
                     updateTetheredStatus(true)
                 }
                 TetheredShootingService.ACTION_CAMERA_DISCONNECTED -> {
-                    Log.i("HomeFragment", "相机已断开")
+                    Log.i("HomeFragment", "相机已断开，但保持 Service 运行")
                     updateTetheredStatus(false)
-                    binding.switchTetheredMode.isChecked = false
+                    // 不关闭开关，让 Service 继续运行
+                    // 用户可以手动关闭开关来停止 Service
                 }
                 TetheredShootingService.ACTION_CONNECTION_ERROR -> {
                     val errorMessage = intent.getStringExtra(
@@ -617,6 +618,12 @@ class HomeFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // 同步联机模式状态，避免触发重新连接
+        syncTetheredModeState()
+    }
+    
     override fun onPause() {
         super.onPause()
         saveCurrentSettings()
@@ -1210,8 +1217,50 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // 初始状态
-        updateTetheredStatus(false)
+        // 检查 Service 是否正在运行，同步开关状态
+        syncTetheredModeState()
+    }
+    
+    /**
+     * 同步联机模式状态（不触发启动/停止操作）
+     */
+    private fun syncTetheredModeState() {
+        val isServiceRunning = isTetheredServiceRunning()
+        Log.d("HomeFragment", "同步联机模式状态: Service 运行中=$isServiceRunning")
+        
+        // 临时移除监听器，避免触发启动/停止
+        binding.switchTetheredMode.setOnCheckedChangeListener(null)
+        binding.switchTetheredMode.isChecked = isServiceRunning
+        
+        // 恢复监听器
+        binding.switchTetheredMode.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                startTetheredMode()
+            } else {
+                stopTetheredMode()
+            }
+        }
+        
+        // 更新状态显示
+        if (isServiceRunning) {
+            updateTetheredStatus(true)
+        } else {
+            updateTetheredStatus(false)
+        }
+    }
+    
+    /**
+     * 检查联机拍摄服务是否正在运行
+     */
+    private fun isTetheredServiceRunning(): Boolean {
+        val manager = requireContext().getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        @Suppress("DEPRECATION")
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (TetheredShootingService::class.java.name == service.service.className) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun startTetheredMode() {

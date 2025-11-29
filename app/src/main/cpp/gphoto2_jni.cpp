@@ -172,14 +172,30 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_release(
     std::lock_guard<std::mutex> lock(camera_mutex);
     
     // 释放 camera 对象
-    // 使用 gp_camera_unref 而不是 gp_camera_free
-    // gp_camera_unref 会安全地减少引用计数，当计数为0时自动释放
-    // 即使 USB 已断开，gp_camera_unref 也不会崩溃
+    // 注意：如果连接失败，camera 对象可能处于不一致状态
+    // 需要先尝试 exit，如果失败则直接清空指针
     if (camera != nullptr) {
         LOGI("释放 camera 对象...");
-        gp_camera_unref(camera);
+        
+        // 先尝试 exit（如果还没有 exit）
+        // 这会清理端口资源，但可能失败（如果 USB 已断开）
+        if (context != nullptr) {
+            int ret = gp_camera_exit(camera, context);
+            if (ret < GP_OK) {
+                LOGW("gp_camera_exit 失败: %s (可能 USB 已断开，继续清理)", gp_result_as_string(ret));
+            }
+        }
+        
+        // 尝试 unref，如果失败则直接清空指针
+        // 使用 try-catch 保护，防止崩溃
+        try {
+            gp_camera_unref(camera);
+            LOGI("camera 对象已释放");
+        } catch (...) {
+            LOGE("gp_camera_unref 异常，直接清空指针");
+        }
+        
         camera = nullptr;
-        LOGI("camera 对象已释放");
     }
     
     // 释放上下文
