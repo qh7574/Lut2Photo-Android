@@ -276,7 +276,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         }
 
         binding.recyclerViewPhotos.apply {
-            layoutManager = GridLayoutManager(requireContext(), 4)
+            layoutManager = GridLayoutManager(requireContext(), 3)
             adapter = photoAdapter
         }
 
