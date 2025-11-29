@@ -29,6 +29,7 @@
                 style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
+                android:layout_marginLeft="4dp"
                 app:icon="@drawable/ic_arrow_back_24"
                 android:contentDescription="返回" />
 
@@ -66,17 +67,60 @@
         </LinearLayout>
 
         <!-- 图片预览区 (60%) -->
-        <FrameLayout
+        <LinearLayout
             android:id="@+id/layout_photo_area"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="7">
+            android:layout_weight="7"
+            android:orientation="vertical">
+
+            <!-- 文件类型过滤器 -->
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggle_file_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="0dp"
+                app:selectionRequired="false"
+                app:singleSelection="false">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_filter_jpg"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    app:icon="@drawable/outline_photo_24"
+                    android:text="JPG"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_filter_raw"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    app:icon="@drawable/raw_on_24"
+                    app:iconSize="32dp"
+                    android:text="RAW"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_filter_video"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    app:icon="@drawable/hangout_video_24"
+                    android:text="VIDEO"
+                    android:textSize="12sp" />
+
+            </com.google.android.material.button.MaterialButtonToggleGroup>
 
             <!-- 照片网格 -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recycler_view_photos"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
                 android:padding="8dp"
                 android:clipToPadding="false"
                 tools:listitem="@layout/item_camera_photo" />
@@ -84,43 +128,43 @@
             <!-- 空状态提示 -->
             <LinearLayout
                 android:id="@+id/layout_empty_state"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center|center_horizontal|center_vertical"
                 android:gravity="center"
+                android:orientation="vertical"
                 android:visibility="gone">
 
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
-                    android:src="@drawable/outline_photo_camera_24"
                     android:alpha="0.3"
-                    android:contentDescription="无照片" />
+                    android:contentDescription="无照片"
+                    android:src="@drawable/outline_photo_camera_24" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/text_empty_message"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
                     android:layout_marginStart="32dp"
+                    android:layout_marginTop="16dp"
                     android:layout_marginEnd="32dp"
+                    android:alpha="0.6"
                     android:text="相机中没有照片"
-                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                     android:textAlignment="center"
-                    android:alpha="0.6" />
-                
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/text_empty_hint"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:layout_marginStart="32dp"
+                    android:layout_marginTop="8dp"
                     android:layout_marginEnd="32dp"
-                    android:text="拍摄一张照片后列表将自动刷新"
-                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                    android:textAlignment="center"
                     android:alpha="0.4"
+                    android:text="拍摄一张照片后列表将自动刷新"
+                    android:textAlignment="center"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                     android:visibility="gone" />
 
             </LinearLayout>
@@ -134,7 +178,7 @@
                 android:indeterminate="true"
                 android:visibility="gone" />
 
-        </FrameLayout>
+        </LinearLayout>
 
         <!-- 相机设置区 (30%) -->
         <LinearLayout
@@ -148,14 +192,32 @@
             android:background="?attr/colorSurfaceContainerLow"
             android:elevation="8dp">
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="相机设置"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                android:textStyle="bold"
-                android:layout_marginLeft="16dp"
-                android:layout_marginBottom="4dp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingLeft="16dp"
+                android:paddingTop="2dp"
+                android:paddingRight="16dp"
+                android:paddingBottom="2dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center|center_horizontal|center_vertical"
+                    android:layout_marginTop="0dp"
+                    android:layout_marginRight="4dp"
+                    app:srcCompat="@drawable/ic_camera_24" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="相机设置"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
 
             <!-- 相机参数 Chips（多行自适应，每行居中） -->
             <ScrollView

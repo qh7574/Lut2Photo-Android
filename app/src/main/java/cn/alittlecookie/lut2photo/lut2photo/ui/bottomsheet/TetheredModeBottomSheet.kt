@@ -18,6 +18,7 @@ import cn.alittlecookie.lut2photo.lut2photo.adapter.CameraPhotoAdapter
 import cn.alittlecookie.lut2photo.lut2photo.core.GPhoto2Manager
 import cn.alittlecookie.lut2photo.lut2photo.databinding.BottomsheetTetheredModeBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.ConfigItem
+import cn.alittlecookie.lut2photo.lut2photo.model.PhotoInfo
 import cn.alittlecookie.lut2photo.lut2photo.service.TetheredShootingService
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -55,6 +56,14 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private lateinit var photoAdapter: CameraPhotoAdapter
 
     private var configItems = listOf<ConfigItem>()
+    
+    // 文件类型过滤状态
+    private var showJpg = true
+    private var showRaw = false
+    private var showVideo = false
+    
+    // 所有照片列表（未过滤）
+    private var allPhotos = listOf<PhotoInfo>()
 
     // 广播接收器
     private val broadcastReceiver = object : BroadcastReceiver() {
@@ -149,23 +158,22 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             // 再加载照片列表
             try {
                 Log.d(TAG, "尝试获取照片列表...")
-                val allPhotos = withContext(Dispatchers.IO) {
+                val photos = withContext(Dispatchers.IO) {
                     gphoto2Manager.listPhotos()
                 }
                 
-                val jpegPhotos = allPhotos.filter { isJpegFile(it.name) }
-                Log.d(TAG, "初始加载: 获取到 ${jpegPhotos.size} 张 JPEG 照片")
+                Log.d(TAG, "初始加载: 获取到 ${photos.size} 个文件")
                 
                 // 检查 binding 是否仍然可用
                 if (!isBindingAvailable) return@launch
                 
-                if (jpegPhotos.isNotEmpty()) {
-                    // 成功获取到照片，刷新 UI
+                // 保存所有照片（转换为 List）
+                allPhotos = photos.toList()
+                
+                if (photos.isNotEmpty()) {
+                    // 成功获取到照片，应用过滤并显示
                     binding.progressLoading.visibility = View.GONE
-                    binding.layoutEmptyState.visibility = View.GONE
-                    binding.recyclerViewPhotos.visibility = View.VISIBLE
-                    photoAdapter.submitList(jpegPhotos)
-                    binding.textConnectionStatus.text = "相机已连接 (${jpegPhotos.size} 张照片)"
+                    filterAndDisplayPhotos()
                 } else {
                     // 没有照片，显示等待状态
                     showWaitingState()
@@ -230,8 +238,73 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         // 更新连接状态
         updateConnectionStatus(gphoto2Manager.isCameraConnected())
         
+        // 设置文件类型过滤按钮
+        setupFileTypeFilters()
+        
         // 设置触摸拦截，禁止非标题栏区域拖拽关闭
         setupDragBehavior()
+    }
+    
+    /**
+     * 设置文件类型过滤按钮
+     */
+    private fun setupFileTypeFilters() {
+        // 默认选中 JPG
+        binding.buttonFilterJpg.isChecked = true
+        
+        // JPG 按钮
+        binding.buttonFilterJpg.setOnClickListener {
+            showJpg = binding.buttonFilterJpg.isChecked
+            filterAndDisplayPhotos()
+        }
+        
+        // RAW 按钮
+        binding.buttonFilterRaw.setOnClickListener {
+            showRaw = binding.buttonFilterRaw.isChecked
+            filterAndDisplayPhotos()
+        }
+        
+        // 视频按钮
+        binding.buttonFilterVideo.setOnClickListener {
+            showVideo = binding.buttonFilterVideo.isChecked
+            filterAndDisplayPhotos()
+        }
+    }
+    
+    /**
+     * 根据过滤条件显示照片
+     */
+    private fun filterAndDisplayPhotos() {
+        if (!isBindingAvailable) return
+        
+        val filteredPhotos = allPhotos.filter { photo ->
+            val fileName = photo.name.lowercase()
+            when {
+                showJpg && (fileName.endsWith(".jpg", ignoreCase = false) || fileName.endsWith(".jpeg", ignoreCase = false)) -> true
+                showRaw && (fileName.endsWith(".raw", ignoreCase = false) || fileName.endsWith(".rw2", ignoreCase = false) || 
+                           fileName.endsWith(".arw", ignoreCase = false) || fileName.endsWith(".cr2", ignoreCase = false) || 
+                           fileName.endsWith(".nef", ignoreCase = false) || fileName.endsWith(".dng", ignoreCase = false)) -> true
+                showVideo && (fileName.endsWith(".mp4", ignoreCase = false) || fileName.endsWith(".mov", ignoreCase = false) || 
+                             fileName.endsWith(".avi", ignoreCase = false) || fileName.endsWith(".mts", ignoreCase = false)) -> true
+                else -> false
+            }
+        }
+        
+        Log.d(TAG, "过滤后 ${filteredPhotos.size}/${allPhotos.size} 个文件 (JPG:$showJpg, RAW:$showRaw, Video:$showVideo)")
+        
+        if (filteredPhotos.isEmpty()) {
+            binding.layoutEmptyState.visibility = View.VISIBLE
+            binding.recyclerViewPhotos.visibility = View.GONE
+            binding.textEmptyMessage.text = "没有符合条件的文件"
+            binding.textEmptyHint.visibility = View.GONE
+        } else {
+            binding.layoutEmptyState.visibility = View.GONE
+            binding.recyclerViewPhotos.visibility = View.VISIBLE
+            photoAdapter.submitList(filteredPhotos)
+        }
+        
+        // 更新连接状态文本
+        binding.textConnectionStatus.text = "相机已连接 (${filteredPhotos.size} 个文件)"
     }
     
     /**
@@ -300,39 +373,20 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 Log.d(TAG, "开始获取照片列表...")
-                val allPhotos = withContext(Dispatchers.IO) {
+                val photos = withContext(Dispatchers.IO) {
                     gphoto2Manager.listPhotos()
                 }
                 
-                Log.d(TAG, "获取到 ${allPhotos.size} 张照片")
+                Log.d(TAG, "获取到 ${photos.size} 个文件")
                 
                 // 检查 binding 是否仍然可用
                 if (!isBindingAvailable) return@launch
                 
-                // 只显示 JPG/JPEG 文件，过滤掉 RAW 文件
-                val jpegPhotos = allPhotos.filter { photo ->
-                    isJpegFile(photo.name)
-                }
-
-                Log.d(TAG, "过滤后 ${jpegPhotos.size} 张 JPEG 照片")
-
-                if (jpegPhotos.isEmpty()) {
-                    binding.layoutEmptyState.visibility = View.VISIBLE
-                    binding.recyclerViewPhotos.visibility = View.GONE
-                    // 显示提示信息
-                    binding.textEmptyHint.visibility = View.VISIBLE
-                } else {
-                    binding.layoutEmptyState.visibility = View.GONE
-                    binding.recyclerViewPhotos.visibility = View.VISIBLE
-                    photoAdapter.submitList(jpegPhotos)
-                }
+                // 保存所有照片（转换为 List）
+                allPhotos = photos.toList()
                 
-                // 更新连接状态文本
-                binding.textConnectionStatus.text = if (jpegPhotos.isEmpty()) {
-                    "相机已连接，请拍摄照片"
-                } else {
-                    "相机已连接 (${jpegPhotos.size} 张照片)"
-                }
+                // 应用过滤并显示
+                filterAndDisplayPhotos()
             } catch (e: Exception) {
                 Log.e(TAG, "加载照片失败", e)
                 if (!isBindingAvailable) return@launch

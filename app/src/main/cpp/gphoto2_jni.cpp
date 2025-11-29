@@ -56,6 +56,33 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_initializeWithPath
         JNIEnv *env, jobject thiz, jstring camlibsPath, jstring iolibsPath) {
     LOGI("初始化 libgphoto2（带路径）...");
     
+    // 使用互斥锁保护
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    
+    // 如果已有旧的对象，先彻底清理
+    if (camera != nullptr) {
+        LOGW("检测到旧的 camera 对象，先彻底清理");
+        // 尝试释放 camera 对象
+        // 注意：如果之前已经调用过 gp_camera_exit，这里可能会失败
+        // 但我们仍然需要调用 gp_camera_unref 来释放引用计数
+        gp_camera_unref(camera);
+        camera = nullptr;
+        LOGI("旧 camera 对象已释放");
+    }
+    if (context != nullptr) {
+        LOGW("检测到旧的 context 对象，先清理");
+        gp_context_unref(context);
+        context = nullptr;
+        LOGI("旧 context 对象已释放");
+    }
+    
+    // 重置 USB 文件描述符
+    if (g_usb_fd >= 0) {
+        LOGI("重置旧的 USB 文件描述符: %d", g_usb_fd);
+        gp_port_usb_set_sys_device(-1);
+        g_usb_fd = -1;
+    }
+    
     // 保存库路径
     g_camlibs_path = getStdString(env, camlibsPath);
     g_iolibs_path = getStdString(env, iolibsPath);
@@ -83,7 +110,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_initializeWithPath
         return ret;
     }
     
-    LOGI("libgphoto2 初始化成功");
+    LOGI("libgphoto2 初始化成功（全新实例）");
     return GP_OK;
 }
 
@@ -91,6 +118,30 @@ extern "C" JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_initialize(
         JNIEnv *env, jobject thiz) {
     LOGI("初始化 libgphoto2...");
+    
+    // 使用互斥锁保护
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    
+    // 如果已有旧的对象，先彻底清理
+    if (camera != nullptr) {
+        LOGW("检测到旧的 camera 对象，先彻底清理");
+        gp_camera_unref(camera);
+        camera = nullptr;
+        LOGI("旧 camera 对象已释放");
+    }
+    if (context != nullptr) {
+        LOGW("检测到旧的 context 对象，先清理");
+        gp_context_unref(context);
+        context = nullptr;
+        LOGI("旧 context 对象已释放");
+    }
+    
+    // 重置 USB 文件描述符
+    if (g_usb_fd >= 0) {
+        LOGI("重置旧的 USB 文件描述符: %d", g_usb_fd);
+        gp_port_usb_set_sys_device(-1);
+        g_usb_fd = -1;
+    }
     
     // 创建上下文
     context = gp_context_new();
@@ -108,7 +159,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_initialize(
         return ret;
     }
     
-    LOGI("libgphoto2 初始化成功");
+    LOGI("libgphoto2 初始化成功（全新实例）");
     return GP_OK;
 }
 
@@ -120,16 +171,15 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_release(
     // 使用互斥锁保护 camera 访问
     std::lock_guard<std::mutex> lock(camera_mutex);
     
-    // 正确释放 camera 对象
+    // 释放 camera 对象
+    // 使用 gp_camera_unref 而不是 gp_camera_free
+    // gp_camera_unref 会安全地减少引用计数，当计数为0时自动释放
+    // 即使 USB 已断开，gp_camera_unref 也不会崩溃
     if (camera != nullptr) {
-        // 先调用 gp_camera_free 释放 camera 对象
-        // 这会正确清理所有内部状态，包括端口
-        int ret = gp_camera_free(camera);
-        if (ret < GP_OK) {
-            LOGW("gp_camera_free 返回错误: %s", gp_result_as_string(ret));
-        }
+        LOGI("释放 camera 对象...");
+        gp_camera_unref(camera);
         camera = nullptr;
-        LOGI("相机指针已清空");
+        LOGI("camera 对象已释放");
     }
     
     // 释放上下文
@@ -146,7 +196,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_release(
         LOGI("已重置 USB 系统设备");
     }
     
-    LOGI("libgphoto2 资源已释放");
+    LOGI("libgphoto2 资源已彻底释放");
 }
 
 // ==================== 相机连接 ====================
@@ -330,11 +380,25 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_disconnectCamera(
     
     if (camera != nullptr && context != nullptr) {
         // gp_camera_exit 会关闭与相机的连接并释放端口资源
+        // 但不会释放 camera 对象本身
         int ret = gp_camera_exit(camera, context);
         if (ret < GP_OK) {
-            LOGW("gp_camera_exit 返回错误: %s", gp_result_as_string(ret));
+            LOGW("gp_camera_exit 返回错误: %s (可能 USB 已断开)", gp_result_as_string(ret));
         }
-        LOGI("相机已断开");
+        LOGI("相机连接已关闭");
+        
+        // 释放 camera 对象，为下次重新连接做准备
+        // 这样下次 init 时会创建全新的 camera 对象
+        gp_camera_unref(camera);
+        camera = nullptr;
+        LOGI("camera 对象已释放");
+    }
+    
+    // 释放 context，为下次重新连接做准备
+    if (context != nullptr) {
+        gp_context_unref(context);
+        context = nullptr;
+        LOGI("context 对象已释放");
     }
     
     // 重置 USB 文件描述符
@@ -343,6 +407,8 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_disconnectCamera(
         g_usb_fd = -1;
         LOGI("已重置 USB 系统设备");
     }
+    
+    LOGI("相机断开完成，资源已清理");
 }
 
 // ==================== 照片操作 ====================

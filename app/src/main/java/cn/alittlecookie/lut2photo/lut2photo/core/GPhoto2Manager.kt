@@ -140,11 +140,19 @@ class GPhoto2Manager private constructor() {
     /**
      * 初始化（带状态管理）
      * @param context Android Context，用于获取库路径
+     * @param forceReinit 是否强制重新初始化（用于重新连接场景）
      */
-    fun init(context: Context? = null): Boolean {
-        if (isInitialized) {
-            Log.w(TAG, "GPhoto2Manager 已经初始化")
+    fun init(context: Context? = null, forceReinit: Boolean = false): Boolean {
+        if (isInitialized && !forceReinit) {
+            Log.w(TAG, "GPhoto2Manager 已经初始化，跳过")
             return true
+        }
+        
+        // 如果强制重新初始化，先清理旧状态
+        if (forceReinit && isInitialized) {
+            Log.i(TAG, "强制重新初始化，先清理旧状态")
+            isInitialized = false
+            isConnected = false
         }
 
         val result = if (context != null) {
@@ -180,14 +188,21 @@ class GPhoto2Manager private constructor() {
      */
     fun cleanup() {
         if (!isInitialized) {
+            Log.d(TAG, "GPhoto2Manager 未初始化，跳过 cleanup")
             return
         }
 
+        Log.i(TAG, "开始清理 GPhoto2Manager 资源...")
+        
+        // disconnectCamera 现在会释放所有资源（camera、context、usb fd）
+        // 所以不需要再调用 release()
         if (isConnected) {
             disconnectCamera()
+        } else {
+            // 如果没有连接，仍然需要调用 release 来清理可能存在的资源
+            release()
         }
 
-        release()
         isInitialized = false
         isConnected = false
         Log.i(TAG, "GPhoto2Manager 已释放")
@@ -272,15 +287,20 @@ class GPhoto2Manager private constructor() {
 
     /**
      * 断开相机（带状态管理）
+     * 注意：disconnectCamera 会释放所有资源，包括 camera 和 context
+     * 因此断开后需要重新调用 init() 才能再次连接
      */
     fun disconnect() {
         if (!isConnected) {
+            Log.d(TAG, "相机未连接，跳过 disconnect")
             return
         }
 
+        Log.i(TAG, "断开相机连接...")
         disconnectCamera()
         isConnected = false
-        Log.i(TAG, "相机已断开")
+        isInitialized = false  // disconnectCamera 会释放所有资源，需要重新初始化
+        Log.i(TAG, "相机已断开，需要重新初始化才能再次连接")
     }
 
     /**

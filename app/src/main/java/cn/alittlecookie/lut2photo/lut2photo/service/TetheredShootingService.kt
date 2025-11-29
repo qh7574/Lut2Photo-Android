@@ -242,7 +242,8 @@ class TetheredShootingService : Service() {
         Log.i(TAG, "初始化 libgphoto2... (usbFd=$usbFd)")
         
         // 传递 Context 以便获取正确的库路径
-        if (!gphoto2Manager.init(this)) {
+        // 使用 forceReinit=true 确保每次都重新初始化，避免重连失败
+        if (!gphoto2Manager.init(this, forceReinit = true)) {
             Log.e(TAG, "libgphoto2 初始化失败")
             return false
         }
