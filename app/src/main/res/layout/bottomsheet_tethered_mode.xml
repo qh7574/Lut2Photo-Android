@@ -193,29 +193,42 @@
             android:elevation="8dp">
 
             <LinearLayout
+                android:id="@+id/layout_settings_touch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingLeft="16dp"
-                android:paddingTop="2dp"
+                android:paddingTop="8dp"
                 android:paddingRight="16dp"
-                android:paddingBottom="2dp">
+                android:paddingBottom="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:layout_gravity="center|center_horizontal|center_vertical"
-                    android:layout_marginTop="0dp"
+                    android:layout_gravity="center_vertical"
                     android:layout_marginRight="4dp"
                     app:srcCompat="@drawable/ic_camera_24" />
 
                 <com.google.android.material.textview.MaterialTextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="相机设置"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:textStyle="bold" />
+
+                <!-- 展开/收缩指示器 -->
+                <ImageView
+                    android:id="@+id/icon_settings_expand"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center_vertical"
+                    app:srcCompat="@drawable/ic_expand_more"
+                    android:contentDescription="展开/收缩" />
 
             </LinearLayout>
 

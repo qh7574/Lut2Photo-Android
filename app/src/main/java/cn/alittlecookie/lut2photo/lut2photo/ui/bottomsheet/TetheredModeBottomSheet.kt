@@ -62,6 +62,9 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     @Volatile
     private var isImporting = false
     
+    // 设置区域是否展开
+    private var isSettingsExpanded = true
+    
     // 文件类型过滤状态
     private var showJpg = true
     private var showRaw = false
@@ -283,6 +286,9 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         // 设置文件类型过滤按钮
         setupFileTypeFilters()
         
+        // 设置展开/收缩功能
+        setupSettingsExpandCollapse()
+        
         // 设置触摸拦截，禁止非标题栏区域拖拽关闭
         setupDragBehavior()
     }
@@ -311,6 +317,68 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             showVideo = binding.buttonFilterVideo.isChecked
             filterAndDisplayPhotos()
         }
+    }
+    
+    /**
+     * 设置展开/收缩功能
+     */
+    private fun setupSettingsExpandCollapse() {
+        binding.layoutSettingsTouch.setOnClickListener {
+            toggleSettingsExpanded()
+        }
+    }
+    
+    /**
+     * 切换设置区域的展开/收缩状态
+     */
+    private fun toggleSettingsExpanded() {
+        isSettingsExpanded = !isSettingsExpanded
+        animateSettingsArea()
+    }
+    
+    /**
+     * 动画展开/收缩设置区域
+     */
+    private fun animateSettingsArea() {
+        val settingsArea = binding.layoutSettingsArea
+        val photoArea = binding.layoutPhotoArea
+        val expandIcon = binding.iconSettingsExpand
+        
+        // 获取当前的 LayoutParams
+        val settingsParams = settingsArea.layoutParams as android.widget.LinearLayout.LayoutParams
+        val photoParams = photoArea.layoutParams as android.widget.LinearLayout.LayoutParams
+        
+        if (isSettingsExpanded) {
+            // 展开：设置区域占 5 份，照片区域占 6 份
+            settingsParams.weight = 5f
+            photoParams.weight = 6f
+            
+            // 显示内容
+            binding.scrollViewSettings.visibility = View.VISIBLE
+            binding.textSettingsEmpty.visibility = if (configItems.isEmpty()) View.VISIBLE else View.GONE
+            
+            // 更新图标
+            expandIcon.setImageResource(R.drawable.ic_expand_more)
+        } else {
+            // 收缩：设置区域占 1 份（只显示标题），照片区域占 10 份
+            settingsParams.weight = 1f
+            photoParams.weight = 10f
+            
+            // 隐藏内容
+            binding.scrollViewSettings.visibility = View.GONE
+            binding.textSettingsEmpty.visibility = View.GONE
+            
+            // 更新图标
+            expandIcon.setImageResource(R.drawable.ic_expand_less)
+        }
+        
+        // 应用新的 LayoutParams
+        settingsArea.layoutParams = settingsParams
+        photoArea.layoutParams = photoParams
+        
+        // 请求重新布局
+        settingsArea.requestLayout()
+        photoArea.requestLayout()
     }
     
     /**
