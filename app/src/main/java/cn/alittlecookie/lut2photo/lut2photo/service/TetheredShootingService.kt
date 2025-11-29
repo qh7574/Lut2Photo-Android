@@ -36,7 +36,9 @@ class TetheredShootingService : Service() {
     companion object {
         private const val TAG = "TetheredShootingService"
         private const val NOTIFICATION_ID = 1001
+        private const val TRANSFER_NOTIFICATION_ID = 1002
         private const val CHANNEL_ID = "tethered_shooting_channel"
+        private const val TRANSFER_CHANNEL_ID = "tethered_transfer_channel"
         
         // 广播 Action
         const val ACTION_CAMERA_CONNECTED = "cn.alittlecookie.lut2photo.CAMERA_CONNECTED"
@@ -48,6 +50,10 @@ class TetheredShootingService : Service() {
         // Extra 键
         const val EXTRA_PHOTO_PATH = "photo_path"
         const val EXTRA_ERROR_MESSAGE = "error_message"
+        
+        // 分块下载配置
+        private const val CHUNK_SIZE = 1024 * 1024  // 1MB
+        private const val LARGE_FILE_THRESHOLD = 5 * 1024 * 1024  // 5MB 以上显示进度
     }
 
     private val binder = LocalBinder()
@@ -64,6 +70,12 @@ class TetheredShootingService : Service() {
     
     @Volatile
     private var downloadedCount = 0
+    
+    @Volatile
+    private var totalFilesToDownload = 0
+    
+    @Volatile
+    private var currentDownloadingFile = ""
 
     inner class LocalBinder : Binder() {
         fun getService(): TetheredShootingService = this@TetheredShootingService
@@ -497,17 +509,48 @@ class TetheredShootingService : Service() {
         try {
             // 提取文件名
             val fileName = photoPath.substringAfterLast('/')
+            currentDownloadingFile = fileName
             
             // 先下载到临时文件
             val tempFile = File(cacheDir, fileName)
             
             Log.i(TAG, "下载照片: $photoPath -> ${tempFile.absolutePath}")
             
+            // 获取文件大小
+            val fileSize = gphoto2Manager.getFileSize(photoPath)
+            val isLargeFile = fileSize > LARGE_FILE_THRESHOLD
+            
+            if (isLargeFile) {
+                Log.i(TAG, "大文件检测: $fileName, 大小: ${fileSize / 1024 / 1024}MB")
+            }
+            
             // 更新通知
             updateNotification("正在下载: $fileName")
             
             // 下载照片到临时文件
-            val result = gphoto2Manager.downloadPhoto(photoPath, tempFile.absolutePath)
+            val result = if (isLargeFile && fileSize > 0) {
+                // 大文件使用分块下载并显示进度
+                showTransferNotification(fileName, 0, fileSize)
+                
+                gphoto2Manager.downloadPhotoWithProgress(
+                    photoPath, 
+                    tempFile.absolutePath,
+                    CHUNK_SIZE
+                ) { downloaded, total ->
+                    // 更新传输进度通知
+                    mainHandler.post {
+                        showTransferNotification(fileName, downloaded, total)
+                    }
+                }
+            } else {
+                // 小文件直接下载
+                gphoto2Manager.downloadPhoto(photoPath, tempFile.absolutePath)
+            }
+            
+            // 隐藏传输进度通知
+            if (isLargeFile) {
+                hideTransferNotification()
+            }
             
             if (result == GPhoto2Manager.GP_OK && tempFile.exists()) {
                 // 使用 SAF API 复制到目标文件夹
@@ -549,23 +592,67 @@ class TetheredShootingService : Service() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "下载照片异常", e)
+            hideTransferNotification()
+        } finally {
+            currentDownloadingFile = ""
         }
+    }
+    
+    /**
+     * 显示传输进度通知
+     */
+    private fun showTransferNotification(fileName: String, downloaded: Long, total: Long) {
+        val progress = if (total > 0) ((downloaded * 100) / total).toInt() else 0
+        val downloadedMB = downloaded / 1024 / 1024
+        val totalMB = total / 1024 / 1024
+        
+        val notification = NotificationCompat.Builder(this, TRANSFER_CHANNEL_ID)
+            .setContentTitle("正在传输照片")
+            .setContentText("$fileName ($downloadedMB MB / $totalMB MB)")
+            .setSmallIcon(R.drawable.outline_photo_camera_24)
+            .setProgress(100, progress, false)
+            .setOngoing(true)
+            .setSilent(true)
+            .build()
+        
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(TRANSFER_NOTIFICATION_ID, notification)
+    }
+    
+    /**
+     * 隐藏传输进度通知
+     */
+    private fun hideTransferNotification() {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.cancel(TRANSFER_NOTIFICATION_ID)
     }
 
     /**
      * 创建通知渠道
      */
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        
+        // 服务状态通知渠道
+        val serviceChannel = NotificationChannel(
             CHANNEL_ID,
             "联机拍摄服务",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "显示相机连接状态和照片下载进度"
+            description = "显示相机连接状态"
         }
+        notificationManager.createNotificationChannel(serviceChannel)
         
-        val notificationManager = getSystemService(NotificationManager::class.java)
-        notificationManager.createNotificationChannel(channel)
+        // 文件传输通知渠道
+        val transferChannel = NotificationChannel(
+            TRANSFER_CHANNEL_ID,
+            "文件传输进度",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "显示照片下载进度"
+            setShowBadge(false)
+        }
+        notificationManager.createNotificationChannel(transferChannel)
     }
 
     /**

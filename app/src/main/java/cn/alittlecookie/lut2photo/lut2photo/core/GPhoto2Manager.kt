@@ -315,6 +315,8 @@ class GPhoto2Manager private constructor() {
     private external fun nativeListPhotos(): Array<PhotoInfo>
     private external fun nativeGetThumbnail(photoPath: String): ByteArray?
     private external fun nativeDownloadPhoto(photoPath: String, destPath: String): Int
+    private external fun nativeGetFileSize(photoPath: String): Long
+    private external fun nativeDownloadPhotoChunk(photoPath: String, destPath: String, offset: Long, chunkSize: Int): Int
     private external fun nativeDeletePhoto(photoPath: String): Int
 
     // ==================== 事件监听 (Native) ====================
@@ -357,6 +359,20 @@ class GPhoto2Manager private constructor() {
     }
 
     /**
+     * 获取文件大小（线程安全）
+     * @param photoPath 照片路径
+     * @return 文件大小（字节），失败返回 -1
+     */
+    fun getFileSize(photoPath: String): Long {
+        ioLock.lock()
+        try {
+            return nativeGetFileSize(photoPath)
+        } finally {
+            ioLock.unlock()
+        }
+    }
+
+    /**
      * 下载照片（线程安全）
      * @param photoPath 照片在相机中的路径
      * @param destPath 目标保存路径
@@ -369,6 +385,66 @@ class GPhoto2Manager private constructor() {
         } finally {
             ioLock.unlock()
         }
+    }
+    
+    /**
+     * 分块下载照片（线程安全）
+     * @param photoPath 照片在相机中的路径
+     * @param destPath 目标保存路径
+     * @param offset 起始偏移量
+     * @param chunkSize 块大小
+     * @return 错误码，0 表示成功
+     */
+    fun downloadPhotoChunk(photoPath: String, destPath: String, offset: Long, chunkSize: Int): Int {
+        ioLock.lock()
+        try {
+            return nativeDownloadPhotoChunk(photoPath, destPath, offset, chunkSize)
+        } finally {
+            ioLock.unlock()
+        }
+    }
+    
+    /**
+     * 分块下载照片（带进度回调）
+     * @param photoPath 照片在相机中的路径
+     * @param destPath 目标保存路径
+     * @param chunkSize 块大小（默认 1MB）
+     * @param progressCallback 进度回调 (已下载字节数, 总字节数)
+     * @return 错误码，0 表示成功
+     */
+    fun downloadPhotoWithProgress(
+        photoPath: String, 
+        destPath: String, 
+        chunkSize: Int = 1024 * 1024,
+        progressCallback: ((Long, Long) -> Unit)? = null
+    ): Int {
+        // 先获取文件大小
+        val fileSize = getFileSize(photoPath)
+        if (fileSize <= 0) {
+            Log.e(TAG, "无法获取文件大小")
+            return GP_ERROR
+        }
+        
+        Log.i(TAG, "开始分块下载: $photoPath, 大小: $fileSize 字节")
+        
+        var offset = 0L
+        while (offset < fileSize) {
+            val currentChunkSize = minOf(chunkSize.toLong(), fileSize - offset).toInt()
+            
+            val ret = downloadPhotoChunk(photoPath, destPath, offset, currentChunkSize)
+            if (ret != GP_OK) {
+                Log.e(TAG, "下载块失败: offset=$offset, size=$currentChunkSize")
+                return ret
+            }
+            
+            offset += currentChunkSize
+            progressCallback?.invoke(offset, fileSize)
+            
+            Log.d(TAG, "下载进度: $offset / $fileSize (${offset * 100 / fileSize}%)")
+        }
+        
+        Log.i(TAG, "分块下载完成")
+        return GP_OK
     }
 
     /**

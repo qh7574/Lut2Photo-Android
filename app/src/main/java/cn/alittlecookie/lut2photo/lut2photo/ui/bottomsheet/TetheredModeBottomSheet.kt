@@ -54,8 +54,13 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private val gphoto2Manager = GPhoto2Manager.getInstance()
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var photoAdapter: CameraPhotoAdapter
+    private var tetheredService: TetheredShootingService? = null
 
     private var configItems = listOf<ConfigItem>()
+    
+    // 是否正在导入（用于暂停事件监听）
+    @Volatile
+    private var isImporting = false
     
     // 文件类型过滤状态
     private var showJpg = true
@@ -72,20 +77,45 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 TetheredShootingService.ACTION_PHOTO_ADDED -> {
                     // 照片添加，刷新列表
                     Log.d(TAG, "收到 ACTION_PHOTO_ADDED 广播，刷新照片列表")
-                    loadPhotos()
+                    if (!isImporting) {
+                        loadPhotos()
+                    }
                 }
                 TetheredShootingService.ACTION_CAMERA_CONNECTED -> {
                     // 相机连接/存储卡挂载，刷新列表
                     Log.d(TAG, "收到 ACTION_CAMERA_CONNECTED 广播，刷新照片列表")
-                    loadPhotos()
+                    if (!isImporting) {
+                        loadPhotos()
+                    }
                 }
                 TetheredShootingService.ACTION_CAMERA_DISCONNECTED -> {
                     // 相机断开，清除缓存
                     Log.d(TAG, "收到 ACTION_CAMERA_DISCONNECTED 广播，清除缓存")
                     photoAdapter.clearThumbnailCache()
                     updateConnectionStatus(false)
+                    
+                    // 如果正在导入，提示传输已取消
+                    if (isImporting) {
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                            Toast.makeText(requireContext(), "相机断开，传输已取消", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
+        }
+    }
+    
+    // Service 连接
+    private val serviceConnection = object : android.content.ServiceConnection {
+        override fun onServiceConnected(name: android.content.ComponentName?, service: android.os.IBinder?) {
+            val binder = service as? TetheredShootingService.LocalBinder
+            tetheredService = binder?.getService()
+            Log.d(TAG, "Service 已连接")
+        }
+
+        override fun onServiceDisconnected(name: android.content.ComponentName?) {
+            tetheredService = null
+            Log.d(TAG, "Service 已断开")
         }
     }
 
@@ -131,6 +161,8 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
 
             setupViews()
             registerBroadcastReceiver()
+            bindToService()
+            createImportNotificationChannel()
             
             // 显示加载状态
             binding.progressLoading.visibility = View.VISIBLE
@@ -205,7 +237,17 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        
+        // 如果正在导入，提示传输已取消
+        if (isImporting) {
+            Toast.makeText(requireContext(), "页面退出，传输已取消", Toast.LENGTH_SHORT).show()
+            // 恢复事件监听
+            tetheredService?.resumeEventMonitoring()
+        }
+        
         unregisterBroadcastReceiver()
+        unbindFromService()
+        hideImportNotification()
         _binding = null
     }
 
@@ -304,7 +346,20 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         }
         
         // 更新连接状态文本
-        binding.textConnectionStatus.text = "相机已连接 (${filteredPhotos.size} 个文件)"
+        updateConnectionStatusText(filteredPhotos.size)
+    }
+    
+    /**
+     * 更新连接状态文本
+     */
+    private fun updateConnectionStatusText(fileCount: Int) {
+        if (!isBindingAvailable) return
+        
+        binding.textConnectionStatus.text = if (isImporting) {
+            "相机已连接（监听已暂停）($fileCount 个文件)"
+        } else {
+            "相机已连接 ($fileCount 个文件)"
+        }
     }
     
     /**
@@ -712,6 +767,14 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    // 大文件阈值：5MB 以上使用流式下载
+    private val LARGE_FILE_THRESHOLD = 5 * 1024 * 1024L
+    // 分块大小：1MB
+    private val CHUNK_SIZE = 1024 * 1024
+    // 通知 ID
+    private val IMPORT_NOTIFICATION_ID = 2001
+    private val IMPORT_CHANNEL_ID = "import_progress_channel"
+
     private fun importSelectedPhotos() {
         val selectedPhotos = photoAdapter.getSelectedPhotos()
         if (selectedPhotos.isEmpty()) {
@@ -729,6 +792,17 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         binding.buttonImport.isEnabled = false
         var importedCount = 0
         val totalCount = selectedPhotos.size
+        
+        // 标记正在导入
+        isImporting = true
+        
+        // 暂停事件监听，提升下载速度
+        tetheredService?.pauseEventMonitoring()
+        Log.i(TAG, "已暂停事件监听，开始全速下载")
+        
+        // 更新状态文本
+        val currentFileCount = allPhotos.size
+        updateConnectionStatusText(currentFileCount)
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -744,18 +818,50 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
 
-                selectedPhotos.forEach { photoPath ->
+                selectedPhotos.forEachIndexed { index, photoPath ->
                     withContext(Dispatchers.IO) {
                         val fileName = photoPath.substringAfterLast('/')
                         
                         // 先下载到临时文件
                         val tempFile = File(context.cacheDir, fileName)
-                        val result = gphoto2Manager.downloadPhoto(photoPath, tempFile.absolutePath)
+                        
+                        // 获取文件大小，决定使用哪种下载方式
+                        val fileSize = gphoto2Manager.getFileSize(photoPath)
+                        val isLargeFile = fileSize > LARGE_FILE_THRESHOLD
+                        
+                        Log.d(TAG, "下载文件: $fileName, 大小: ${fileSize / 1024}KB, 大文件: $isLargeFile")
+                        
+                        val result = if (isLargeFile && fileSize > 0) {
+                            // 大文件使用流式下载，显示通知栏进度
+                            gphoto2Manager.downloadPhotoWithProgress(
+                                photoPath,
+                                tempFile.absolutePath,
+                                CHUNK_SIZE
+                            ) { downloaded, total ->
+                                // 更新通知栏显示当前文件的下载进度
+                                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                                    showImportNotification(fileName, index + 1, totalCount, downloaded, total)
+                                }
+                            }
+                        } else {
+                            // 小文件直接下载
+                            gphoto2Manager.downloadPhoto(photoPath, tempFile.absolutePath)
+                        }
 
                         if (result == GPhoto2Manager.GP_OK && tempFile.exists()) {
                             // 复制到目标文件夹
                             try {
-                                val destFile = destFolder.createFile("image/jpeg", fileName)
+                                // 根据文件扩展名确定 MIME 类型
+                                val mimeType = when (fileName.substringAfterLast('.').lowercase()) {
+                                    "jpg", "jpeg" -> "image/jpeg"
+                                    "png" -> "image/png"
+                                    "raw", "rw2", "arw", "cr2", "nef", "dng" -> "image/x-raw"
+                                    "mp4" -> "video/mp4"
+                                    "mov" -> "video/quicktime"
+                                    else -> "application/octet-stream"
+                                }
+                                
+                                val destFile = destFolder.createFile(mimeType, fileName)
                                 if (destFile != null) {
                                     contentResolver.openOutputStream(destFile.uri)?.use { outputStream ->
                                         tempFile.inputStream().use { inputStream ->
@@ -769,16 +875,21 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                                 // 删除临时文件
                                 tempFile.delete()
                             }
+                        } else {
+                            Log.e(TAG, "下载失败: $fileName, 错误码: $result")
                         }
                     }
 
-                    // 更新进度
+                    // 更新按钮进度（文件级别）
                     withContext(Dispatchers.Main) {
                         if (isBindingAvailable) {
-                            binding.buttonImport.text = "导入中 $importedCount/$totalCount"
+                            binding.buttonImport.text = "导入中 ${index + 1}/$totalCount"
                         }
                     }
                 }
+                
+                // 隐藏通知
+                hideImportNotification()
 
                 withContext(Dispatchers.Main) {
                     context?.let { ctx ->
@@ -803,7 +914,16 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 }
             } finally {
                 withContext(Dispatchers.Main) {
+                    // 恢复事件监听
+                    isImporting = false
+                    tetheredService?.resumeEventMonitoring()
+                    Log.i(TAG, "下载完成，已恢复事件监听")
+                    
+                    // 更新状态文本
                     if (isBindingAvailable) {
+                        val currentFileCount = allPhotos.size
+                        updateConnectionStatusText(currentFileCount)
+                        
                         binding.buttonImport.isEnabled = true
                         binding.buttonImport.text = "导入"
                     }
@@ -990,6 +1110,84 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             requireContext().unregisterReceiver(broadcastReceiver)
         } catch (e: Exception) {
             Log.e(TAG, "注销广播接收器失败", e)
+        }
+    }
+    
+    /**
+     * 绑定到 Service
+     */
+    private fun bindToService() {
+        try {
+            val intent = Intent(requireContext(), TetheredShootingService::class.java)
+            requireContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            Log.d(TAG, "正在绑定到 Service")
+        } catch (e: Exception) {
+            Log.e(TAG, "绑定 Service 失败", e)
+        }
+    }
+    
+    /**
+     * 解绑 Service
+     */
+    private fun unbindFromService() {
+        try {
+            if (tetheredService != null) {
+                requireContext().unbindService(serviceConnection)
+                tetheredService = null
+                Log.d(TAG, "已解绑 Service")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "解绑 Service 失败", e)
+        }
+    }
+    
+    /**
+     * 创建导入进度通知渠道
+     */
+    private fun createImportNotificationChannel() {
+        val notificationManager = requireContext().getSystemService(android.app.NotificationManager::class.java)
+        
+        val channel = android.app.NotificationChannel(
+            IMPORT_CHANNEL_ID,
+            "照片导入进度",
+            android.app.NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "显示照片导入进度"
+            setShowBadge(false)
+        }
+        notificationManager.createNotificationChannel(channel)
+    }
+    
+    /**
+     * 显示导入进度通知
+     */
+    private fun showImportNotification(fileName: String, currentFile: Int, totalFiles: Int, downloaded: Long, total: Long) {
+        val progress = if (total > 0) ((downloaded * 100) / total).toInt() else 0
+        val downloadedMB = downloaded / 1024 / 1024
+        val totalMB = total / 1024 / 1024
+        
+        val notification = androidx.core.app.NotificationCompat.Builder(requireContext(), IMPORT_CHANNEL_ID)
+            .setContentTitle("正在导入照片 ($currentFile/$totalFiles)")
+            .setContentText("$fileName ($downloadedMB MB / $totalMB MB)")
+            .setSmallIcon(R.drawable.outline_photo_camera_24)
+            .setProgress(100, progress, false)
+            .setOngoing(true)
+            .setSilent(true)
+            .build()
+        
+        val notificationManager = requireContext().getSystemService(android.app.NotificationManager::class.java)
+        notificationManager.notify(IMPORT_NOTIFICATION_ID, notification)
+    }
+    
+    /**
+     * 隐藏导入进度通知
+     */
+    private fun hideImportNotification() {
+        try {
+            val notificationManager = requireContext().getSystemService(android.app.NotificationManager::class.java)
+            notificationManager.cancel(IMPORT_NOTIFICATION_ID)
+        } catch (e: Exception) {
+            Log.e(TAG, "隐藏通知失败", e)
         }
     }
 }

@@ -648,6 +648,98 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeDownloadPhot
     return GP_OK;
 }
 
+extern "C" JNIEXPORT jlong JNICALL
+Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeGetFileSize(
+        JNIEnv *env, jobject thiz, jstring photoPath) {
+    std::string path = getStdString(env, photoPath);
+    
+    if (camera == nullptr || context == nullptr) {
+        LOGE("相机未连接");
+        return -1;
+    }
+    
+    // 分离文件夹和文件名
+    size_t pos = path.find_last_of('/');
+    std::string folder = (pos != std::string::npos) ? path.substr(0, pos) : "/";
+    std::string name = (pos != std::string::npos) ? path.substr(pos + 1) : path;
+    
+    if (folder.empty()) folder = "/";
+    
+    // 获取文件信息
+    CameraFileInfo info;
+    int ret = gp_camera_file_get_info(camera, folder.c_str(), name.c_str(), &info, context);
+    
+    if (ret < GP_OK) {
+        LOGE("获取文件信息失败: %s", gp_result_as_string(ret));
+        return -1;
+    }
+    
+    if (info.file.fields & GP_FILE_INFO_SIZE) {
+        return (jlong)info.file.size;
+    }
+    
+    return -1;
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeDownloadPhotoChunk(
+        JNIEnv *env, jobject thiz, jstring photoPath, jstring destPath, jlong offset, jint chunkSize) {
+    std::string path = getStdString(env, photoPath);
+    std::string dest = getStdString(env, destPath);
+    
+    LOGI("流式下载照片块: %s, offset=%lld, size=%d", path.c_str(), (long long)offset, chunkSize);
+    
+    if (camera == nullptr || context == nullptr) {
+        LOGE("相机未连接");
+        return GP_ERROR;
+    }
+    
+    // 分离文件夹和文件名
+    size_t pos = path.find_last_of('/');
+    std::string folder = (pos != std::string::npos) ? path.substr(0, pos) : "/";
+    std::string name = (pos != std::string::npos) ? path.substr(pos + 1) : path;
+    
+    if (folder.empty()) folder = "/";
+    
+    // 分配缓冲区
+    std::vector<char> buffer(chunkSize);
+    uint64_t readSize = chunkSize;
+    
+    // 使用 gp_camera_file_read 进行流式读取
+    // 这个函数支持从指定偏移量读取指定大小的数据，不需要将整个文件加载到内存
+    int ret = gp_camera_file_read(camera, folder.c_str(), name.c_str(),
+                                   GP_FILE_TYPE_NORMAL,
+                                   (uint64_t)offset, buffer.data(), &readSize,
+                                   context);
+    
+    if (ret < GP_OK) {
+        LOGE("流式读取照片失败: %s", gp_result_as_string(ret));
+        return ret;
+    }
+    
+    LOGI("从相机读取了 %llu 字节", (unsigned long long)readSize);
+    
+    // 打开文件追加写入
+    FILE *fp = fopen(dest.c_str(), offset == 0 ? "wb" : "ab");
+    if (fp == nullptr) {
+        LOGE("打开目标文件失败: %s", dest.c_str());
+        return GP_ERROR;
+    }
+    
+    // 写入数据块
+    size_t written = fwrite(buffer.data(), 1, readSize, fp);
+    fclose(fp);
+    
+    if (written != readSize) {
+        LOGE("写入数据失败: written=%zu, expected=%llu", written, (unsigned long long)readSize);
+        return GP_ERROR;
+    }
+    
+    LOGI("照片块写入成功: %zu 字节 (offset=%lld)", written, (long long)offset);
+    
+    return GP_OK;
+}
+
 extern "C" JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeDeletePhoto(
         JNIEnv *env, jobject thiz, jstring photoPath) {
