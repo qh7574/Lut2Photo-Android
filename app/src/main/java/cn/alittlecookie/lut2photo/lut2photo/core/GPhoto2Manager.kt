@@ -404,6 +404,8 @@ class GPhoto2Manager private constructor() {
     private external fun nativeGetConfig(name: String): ConfigItem?
     private external fun nativeSetConfig(name: String, value: String): Int
 
+
+
     // ==================== 照片操作 (带锁) ====================
 
     /**

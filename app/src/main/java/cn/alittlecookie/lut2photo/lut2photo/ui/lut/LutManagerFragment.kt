@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -17,6 +18,7 @@ import cn.alittlecookie.lut2photo.lut2photo.adapter.LutAdapter
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentLutManagerBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.VltFileManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,6 +30,7 @@ class LutManagerFragment : Fragment() {
     
     private lateinit var lutAdapter: LutAdapter
     private lateinit var lutManager: LutManager
+    private lateinit var vltFileManager: VltFileManager
     private val lutItems = mutableListOf<LutItem>()
     
     private val importLutLauncher = registerForActivityResult(
@@ -64,6 +67,16 @@ class LutManagerFragment : Fragment() {
         }
     }
     
+    private val exportVltLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data?.data?.let { uri ->
+                exportSelectedVlts(uri)
+            }
+        }
+    }
+    
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -71,6 +84,7 @@ class LutManagerFragment : Fragment() {
     ): View {
         _binding = FragmentLutManagerBinding.inflate(inflater, container, false)
         lutManager = LutManager(requireContext())
+        vltFileManager = VltFileManager(requireContext())
         
         setupViews()
         setupRecyclerView()
@@ -99,40 +113,54 @@ class LutManagerFragment : Fragment() {
                 importLutLauncher.launch(intent)
             }
             
-            // 导出LUT文件
+            // 导出 CUBE 文件
             buttonExportLut.setOnClickListener {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 exportLutLauncher.launch(intent)
             }
 
-            // 移除了删除选中按钮的点击事件
+            // 导出 VLT 文件
+            buttonExportVlt.setOnClickListener {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                exportVltLauncher.launch(intent)
+            }
         }
     }
-    
+
     private fun setupRecyclerView() {
         lutAdapter = LutAdapter(
             onItemClick = { lutItem ->
                 // 点击切换选择状态
                 lutAdapter.toggleSelection(lutItem)
+                // 更新导出按钮状态
+                updateExportButtonsState()
             },
             onDeleteClick = { lutItem ->
                 deleteLutFile(lutItem)
             }
         )
-        
+
         binding.recyclerViewLuts.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = lutAdapter
         }
     }
-    
+
     private fun loadLutFiles() {
         lifecycleScope.launch {
             val luts = lutManager.getAllLuts()
+            android.util.Log.d("LutManagerFragment", "加载了 ${luts.size} 个 LUT 文件")
+            
+            // 打印每个 LUT 的 VLT 信息
+            luts.forEach { lut ->
+                android.util.Log.d("LutManagerFragment", "LUT: ${lut.name}, vltFileName=${lut.vltFileName}, uploadName=${lut.uploadName}")
+            }
+            
             lutItems.clear()
             lutItems.addAll(luts)
             lutAdapter.submitList(lutItems.toList())
             updateUI()
+            updateExportButtonsState()
         }
     }
 
@@ -229,12 +257,78 @@ class LutManagerFragment : Fragment() {
                 
                 val success = lutManager.exportLuts(selectedLuts, targetUri)
                 if (success) {
-                    Toast.makeText(requireContext(), "LUT文件导出成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "CUBE文件导出成功", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(requireContext(), "LUT文件导出失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "CUBE文件导出失败", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "导出错误: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    private fun exportSelectedVlts(targetUri: Uri) {
+        lifecycleScope.launch {
+            try {
+                val selectedLuts = lutAdapter.getSelectedLuts()
+                if (selectedLuts.isEmpty()) {
+                    Toast.makeText(requireContext(), "请选择要导出的 LUT", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                
+                // 过滤出有 VLT 文件的 LUT
+                val exportableLuts = selectedLuts.filter { it.vltFileName != null && it.uploadName != null }
+                if (exportableLuts.isEmpty()) {
+                    Toast.makeText(requireContext(), "选中的 LUT 没有 VLT 格式文件", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                
+                val targetDir = DocumentFile.fromTreeUri(requireContext(), targetUri) ?: return@launch
+                
+                var successCount = 0
+                var failCount = 0
+                
+                exportableLuts.forEach { lutItem ->
+                    try {
+                        // 获取 VLT 文件
+                        val vltFile = vltFileManager.getVltFile(lutItem.vltFileName!!)
+                        if (vltFile != null && vltFile.exists()) {
+                            // 生成导出文件名（8位）
+                            val exportFileName = "${lutItem.uploadName}.vlt"
+                            
+                            // 创建目标文件
+                            val targetFile = targetDir.createFile("application/octet-stream", exportFileName)
+                            targetFile?.let { docFile ->
+                                requireContext().contentResolver.openOutputStream(docFile.uri)?.use { output ->
+                                    vltFile.inputStream().use { input ->
+                                        input.copyTo(output)
+                                    }
+                                }
+                                successCount++
+                            } ?: run {
+                                failCount++
+                            }
+                        } else {
+                            failCount++
+                        }
+                    } catch (e: Exception) {
+                        failCount++
+                        android.util.Log.e("LutManagerFragment", "导出 VLT 失败", e)
+                    }
+                }
+                
+                // 显示结果
+                val message = when {
+                    failCount == 0 -> "成功导出 $successCount 个 VLT 文件"
+                    successCount == 0 -> "导出失败"
+                    else -> "成功导出 $successCount 个，失败 $failCount 个"
+                }
+                
+                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "导出错误: ${e.message}", Toast.LENGTH_SHORT).show()
+                android.util.Log.e("LutManagerFragment", "导出错误", e)
             }
         }
     }
@@ -254,6 +348,20 @@ class LutManagerFragment : Fragment() {
     @SuppressLint("SetTextI18n")
     private fun updateUI() {
         binding.textLutCount.text = "共 ${lutItems.size} 个LUT文件"
+    }
+
+    /**
+     * 更新导出按钮状态
+     */
+    private fun updateExportButtonsState() {
+        val selectedLuts = lutAdapter.getSelectedLuts()
+        val hasVltLuts = selectedLuts.any { it.vltFileName != null }
+        
+        // 导出 CUBE 按钮：选中任意 LUT 时启用
+        binding.buttonExportLut.isEnabled = selectedLuts.isNotEmpty()
+        
+        // 导出 VLT 按钮：选中有 VLT 的 LUT 时启用
+        binding.buttonExportVlt.isEnabled = hasVltLuts && selectedLuts.isNotEmpty()
     }
 
     override fun onDestroyView() {

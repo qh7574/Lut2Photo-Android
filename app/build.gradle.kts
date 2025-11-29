@@ -128,6 +128,9 @@ dependencies {
     // FlexboxLayout 用于灵活的布局排列
     implementation("com.google.android.flexbox:flexbox:3.0.0")
     
+    // 中文转拼音
+    implementation(libs.pinyin4j)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

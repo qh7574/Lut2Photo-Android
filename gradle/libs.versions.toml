@@ -27,6 +27,8 @@ openglWrapper = "1.0.0"
 glide = "4.16.0"
 # 水印处理相关依赖版本
 coil = "2.5.0"
+# 中文转拼音
+pinyin4j = "2.5.1"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
@@ -59,6 +61,8 @@ glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", versi
 # 水印处理相关库定义
 coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+# 中文转拼音库定义
+pinyin4j = { group = "com.belerweb", name = "pinyin4j", version.ref = "pinyin4j" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

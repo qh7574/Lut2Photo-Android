@@ -41,19 +41,45 @@ class LutManager(private val context: Context) {
         dir
     }
     
+    // VLT 文件管理器
+    private val vltFileManager: VltFileManager by lazy {
+        VltFileManager(context)
+    }
+    
     suspend fun getAllLuts(): List<LutItem> = withContext(Dispatchers.IO) {
-        lutDirectory.listFiles { file ->
-            file.isFile && (
-                file.name.endsWith(".cube", ignoreCase = true) ||
-                file.name.endsWith(".vlt", ignoreCase = true)
-            )
-        }?.map { file ->
+        android.util.Log.d("LutManager", "开始扫描 LUT 文件，目录: ${lutDirectory.absolutePath}")
+        
+        val cubeFiles = lutDirectory.listFiles { file ->
+            file.isFile && file.name.endsWith(".cube", ignoreCase = true)
+        }
+        
+        android.util.Log.d("LutManager", "找到 ${cubeFiles?.size ?: 0} 个 CUBE 文件")
+        
+        cubeFiles?.map { file ->
+            android.util.Log.d("LutManager", "处理 CUBE 文件: ${file.name}")
+            
+            // 检查是否有对应的 VLT 文件
+            val vltFileName = vltFileManager.getVltName(file.name)
+            android.util.Log.d("LutManager", "  - 对应的 VLT 文件: $vltFileName")
+            
+            val uploadName = if (vltFileName != null) {
+                // 生成上传文件名（不含扩展名）
+                val name = VltNameGenerator.generateUploadName(vltFileName.substringBeforeLast("."))
+                android.util.Log.d("LutManager", "  - 生成的上传文件名: $name")
+                name
+            } else {
+                android.util.Log.d("LutManager", "  - 没有对应的 VLT 文件")
+                null
+            }
+            
             LutItem(
                 id = file.name,
                 name = file.nameWithoutExtension,
                 filePath = file.name, // 只存储文件名，不存储完整路径
                 size = file.length(),
-                lastModified = file.lastModified()
+                lastModified = file.lastModified(),
+                vltFileName = vltFileName,
+                uploadName = uploadName
             )
         }?.sortedBy { it.name } ?: emptyList()
     }
@@ -97,24 +123,18 @@ class LutManager(private val context: Context) {
                 )
                 
                 // 生成目标文件名（统一为.cube格式）
-                // 如果是.vlt格式，添加-vlt标识
+                // 如果是.vlt格式，去除-vlt标识（按需求文档）
                 val baseFileName = originalFileName.substringBeforeLast(".")
                 val isVltFormat = lutInfo.format == LutConverter.LutFormat.VLT
-                val targetFileName = if (isVltFormat) {
-                    "${baseFileName}-vlt.cube"
-                } else {
-                    "${baseFileName}.cube"
-                }
+                
+                // 目标 CUBE 文件名（不含 -vlt 后缀）
+                val targetFileName = "${baseFileName}.cube"
                 val targetFile = File(lutDirectory, targetFileName)
                 
                 // 如果文件已存在，添加时间戳
                 val finalFile = if (targetFile.exists()) {
                     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                    if (isVltFormat) {
-                        File(lutDirectory, "${baseFileName}-vlt-${timestamp}.cube")
-                    } else {
-                        File(lutDirectory, "${baseFileName}-${timestamp}.cube")
-                    }
+                    File(lutDirectory, "${baseFileName}-${timestamp}.cube")
                 } else {
                     targetFile
                 }
@@ -124,6 +144,19 @@ class LutManager(private val context: Context) {
                 
                 if (success) {
                     android.util.Log.d("LutManager", "LUT转换并导入成功: ${finalFile.name}")
+                    
+                    // 如果是 VLT 格式，保存原始 VLT 文件并建立映射
+                    if (isVltFormat) {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            val vltFile = vltFileManager.saveVltFileFromStream(input, originalFileName)
+                            if (vltFile != null) {
+                                // 建立 CUBE 和 VLT 的映射关系
+                                vltFileManager.addMapping(finalFile.name, originalFileName)
+                                android.util.Log.d("LutManager", "VLT文件已保存并建立映射: ${finalFile.name} -> $originalFileName")
+                            }
+                        }
+                    }
+                    
                     validateLutFile(finalFile)
                 } else {
                     android.util.Log.e("LutManager", "LUT转换失败")
@@ -134,7 +167,16 @@ class LutManager(private val context: Context) {
                 // 33位LUT，直接复制
                 android.util.Log.d("LutManager", "33位LUT，直接导入")
                 
-                val targetFile = File(lutDirectory, originalFileName)
+                val isVltFormat = lutInfo.format == LutConverter.LutFormat.VLT
+                val baseFileName = originalFileName.substringBeforeLast(".")
+                
+                // 目标文件名（如果是 VLT 格式，去除 .vlt 扩展名，改为 .cube）
+                val targetFileName = if (isVltFormat) {
+                    "${baseFileName}.cube"
+                } else {
+                    originalFileName
+                }
+                val targetFile = File(lutDirectory, targetFileName)
                 
                 // 如果文件已存在，添加时间戳
                 val finalFile = if (targetFile.exists()) {
@@ -153,6 +195,19 @@ class LutManager(private val context: Context) {
                 }
                 
                 android.util.Log.d("LutManager", "LUT直接导入成功: ${finalFile.name}")
+                
+                // 如果是 VLT 格式，保存原始 VLT 文件并建立映射
+                if (isVltFormat) {
+                    // 重新打开流保存 VLT 文件
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        val vltFile = vltFileManager.saveVltFileFromStream(input, originalFileName)
+                        if (vltFile != null) {
+                            // 建立 CUBE 和 VLT 的映射关系
+                            vltFileManager.addMapping(finalFile.name, originalFileName)
+                            android.util.Log.d("LutManager", "VLT文件已保存并建立映射: ${finalFile.name} -> $originalFileName")
+                        }
+                    }
+                }
                 
                 // 验证LUT文件格式
                 validateLutFile(finalFile)

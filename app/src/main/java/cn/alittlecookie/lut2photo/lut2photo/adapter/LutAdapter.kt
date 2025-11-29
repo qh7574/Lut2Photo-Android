@@ -42,11 +42,20 @@ class LutAdapter(
     // }
     
     fun getSelectedLuts(): List<LutItem> {
-        return currentList.filter { it.isSelected }
+        val selected = currentList.filter { it.isSelected }
+        android.util.Log.d("LutAdapter", "获取选中的 LUT: ${selected.size} 个")
+        selected.forEach { lut ->
+            android.util.Log.d("LutAdapter", "  - ${lut.name}, vltFileName=${lut.vltFileName}")
+        }
+        return selected
     }
     
     fun toggleSelection(lutItem: LutItem) {
+        val oldState = lutItem.isSelected
         lutItem.isSelected = !lutItem.isSelected
+        android.util.Log.d("LutAdapter", "切换选择状态: ${lutItem.name}, $oldState -> ${lutItem.isSelected}")
+        android.util.Log.d("LutAdapter", "  - vltFileName: ${lutItem.vltFileName}")
+        android.util.Log.d("LutAdapter", "  - uploadName: ${lutItem.uploadName}")
         notifyDataSetChanged()
     }
     
@@ -60,15 +69,30 @@ class LutAdapter(
                 textLutDate.text = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                     .format(Date(lutItem.lastModified))
                 
-                // 只保留复选框逻辑
+                // 显示 VLT 上传状态
+                if (lutItem.vltFileName != null && lutItem.uploadName != null) {
+                    textVltStatus.text = "VLT：${lutItem.uploadName}"
+                    textVltStatus.setTextColor(root.context.getColor(android.R.color.holo_green_dark))
+                } else {
+                    textVltStatus.text = "无 VLT"
+                    textVltStatus.setTextColor(root.context.getColor(android.R.color.darker_gray))
+                }
+                
+                // 先移除旧的监听器，避免重复触发
+                checkboxSelect.setOnCheckedChangeListener(null)
+                // 设置复选框状态
                 checkboxSelect.isChecked = lutItem.isSelected
                 
+                // 点击整个项目切换选择状态
                 root.setOnClickListener {
                     onItemClick(lutItem)
                 }
                 
+                // 点击复选框也切换选择状态
                 checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
-                    lutItem.isSelected = isChecked
+                    if (lutItem.isSelected != isChecked) {
+                        onItemClick(lutItem)
+                    }
                 }
                 
                 buttonDelete.setOnClickListener {

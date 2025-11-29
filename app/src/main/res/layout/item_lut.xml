@@ -12,7 +12,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:paddingLeft="8dp"
+        android:paddingRight="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
         android:gravity="center_vertical">
 
         <!-- 保留复选框用于多选 -->
@@ -33,16 +36,32 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="LUT Name"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/text_lut_size"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Size"
-                android:textSize="12sp"
-                android:textColor="?android:attr/textColorSecondary" />
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/text_lut_size"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Size"
+                    android:textSize="12sp"
+                    android:textColor="?android:attr/textColorSecondary" />
+
+                <TextView
+                    android:id="@+id/text_vlt_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorPrimary" />
+
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/text_lut_date"

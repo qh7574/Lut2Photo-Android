@@ -4,7 +4,10 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:paddingTop="16dp"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingBottom="0dp">
 
     <!-- 标题栏 -->
     <LinearLayout
@@ -56,9 +59,18 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             app:icon="@drawable/ic_menu_upload"
-            android:text="导出" />
+            android:text="CUBE"
+            android:enabled="false" />
 
-        <!-- 移除了删除选中按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_export_vlt"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/ic_menu_upload"
+            android:text="VLT"
+            android:enabled="false" />
+
 
     </LinearLayout>
 

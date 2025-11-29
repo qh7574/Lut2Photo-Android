@@ -1257,3 +1257,264 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeSetConfig(
     
     return GP_OK;
 }
+
+// ==================== 文件上传 ====================
+// 注意：经测试，松下相机不支持通过 PTP 协议上传 VLT 文件
+// 以下代码保留供参考，但不再使用
+
+/*
+extern "C" JNIEXPORT jint JNICALL
+Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeUploadFile(
+        JNIEnv *env, jobject thiz, jstring localPath, jstring remotePath) {
+    std::string local = getStdString(env, localPath);
+    std::string remote = getStdString(env, remotePath);
+    
+    LOGI("上传文件: %s -> %s", local.c_str(), remote.c_str());
+    
+    if (camera == nullptr || context == nullptr) {
+        LOGE("相机未连接");
+        return GP_ERROR;
+    }
+    
+    // 分离远程路径的文件夹和文件名
+    // remotePath 格式："/xxxxxx.vlt" 或 "/DCIM/xxxxxx.vlt"
+    size_t pos = remote.find_last_of('/');
+    std::string folder = (pos != std::string::npos) ? remote.substr(0, pos) : "/";
+    std::string name = (pos != std::string::npos) ? remote.substr(pos + 1) : remote;
+    
+    if (folder.empty()) folder = "/";
+    
+    LOGI("目标文件夹: %s, 文件名: %s", folder.c_str(), name.c_str());
+    
+    // 检查相机能力
+    CameraAbilities abilities;
+    int ret = gp_camera_get_abilities(camera, &abilities);
+    if (ret >= GP_OK) {
+        LOGI("相机能力检查:");
+        if (abilities.folder_operations & GP_FOLDER_OPERATION_PUT_FILE) {
+            LOGI("  ✓ 支持上传文件");
+        } else {
+            LOGE("  ✗ 不支持上传文件");
+            return GP_ERROR_NOT_SUPPORTED;
+        }
+    }
+    
+    // 注意：文件夹存在性检查已在 Kotlin 层完成（通过 getFirstAvailableFolder）
+    // 这里直接尝试上传
+    
+    // 创建 CameraFile 对象并从本地文件加载
+    CameraFile *file;
+    ret = gp_file_new(&file);
+    if (ret < GP_OK) {
+        LOGE("创建文件对象失败: %s", gp_result_as_string(ret));
+        return ret;
+    }
+    
+    // 从本地文件加载数据
+    ret = gp_file_open(file, local.c_str());
+    if (ret < GP_OK) {
+        LOGE("打开本地文件失败: %s", gp_result_as_string(ret));
+        gp_file_unref(file);
+        return ret;
+    }
+    
+    // 设置文件名
+    ret = gp_file_set_name(file, name.c_str());
+    if (ret < GP_OK) {
+        LOGE("设置文件名失败: %s", gp_result_as_string(ret));
+        gp_file_unref(file);
+        return ret;
+    }
+    
+    // 上传文件到相机
+    ret = gp_camera_folder_put_file(camera, folder.c_str(), name.c_str(), 
+                                     GP_FILE_TYPE_NORMAL, file, context);
+    
+    if (ret < GP_OK) {
+        LOGE("上传文件失败: %s", gp_result_as_string(ret));
+        gp_file_unref(file);
+        return ret;
+    }
+    
+    gp_file_unref(file);
+    
+    LOGI("文件上传成功");
+    
+    return GP_OK;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeGetFirstAvailableFolder(
+        JNIEnv *env, jobject thiz) {
+    LOGI("获取第一个可用文件夹...");
+    
+    if (camera == nullptr || context == nullptr) {
+        LOGE("相机未连接");
+        return nullptr;
+    }
+    
+    CameraList *folderList;
+    int ret = gp_list_new(&folderList);
+    if (ret < GP_OK) {
+        LOGE("创建文件夹列表失败: %s", gp_result_as_string(ret));
+        return nullptr;
+    }
+    
+    // 列出根目录下的所有文件夹
+    ret = gp_camera_folder_list_folders(camera, "/", folderList, context);
+    if (ret < GP_OK) {
+        LOGE("列出文件夹失败: %s", gp_result_as_string(ret));
+        gp_list_free(folderList);
+        return nullptr;
+    }
+    
+    int count = gp_list_count(folderList);
+    LOGI("根目录下有 %d 个文件夹", count);
+    
+    if (count == 0) {
+        LOGE("根目录下没有文件夹");
+        gp_list_free(folderList);
+        return nullptr;
+    }
+    
+    // 优先查找 DCIM 文件夹
+    std::string targetFolder;
+    bool foundDCIM = false;
+    
+    for (int i = 0; i < count; i++) {
+        const char *name;
+        gp_list_get_name(folderList, i, &name);
+        LOGI("  - 文件夹 %d: %s", i, name);
+        
+        // 检查是否是 DCIM 或包含 DCIM 的文件夹
+        std::string folderName(name);
+        if (folderName.find("DCIM") != std::string::npos || 
+            folderName.find("dcim") != std::string::npos) {
+            targetFolder = std::string("/") + name;
+            foundDCIM = true;
+            LOGI("找到 DCIM 文件夹: %s", targetFolder.c_str());
+            break;
+        }
+    }
+    
+    // 如果找到 DCIM，尝试查找其子文件夹
+    if (foundDCIM) {
+        CameraList *subFolderList;
+        ret = gp_list_new(&subFolderList);
+        if (ret >= GP_OK) {
+            ret = gp_camera_folder_list_folders(camera, targetFolder.c_str(), subFolderList, context);
+            if (ret >= GP_OK) {
+                int subCount = gp_list_count(subFolderList);
+                LOGI("DCIM 文件夹中有 %d 个子文件夹", subCount);
+                
+                if (subCount > 0) {
+                    // 使用第一个子文件夹
+                    const char *subName;
+                    ret = gp_list_get_name(subFolderList, 0, &subName);
+                    if (ret >= GP_OK && subName != nullptr) {
+                        targetFolder = targetFolder + "/" + subName;
+                        LOGI("使用 DCIM 子文件夹: %s", targetFolder.c_str());
+                    }
+                }
+            }
+            gp_list_free(subFolderList);
+        }
+        
+        gp_list_free(folderList);
+        return createJavaString(env, targetFolder.c_str());
+    }
+    
+    // 如果没有找到 DCIM，检查第一个文件夹的子文件夹
+    const char *firstFolder = nullptr;
+    ret = gp_list_get_name(folderList, 0, &firstFolder);
+    if (ret < GP_OK || firstFolder == nullptr) {
+        LOGE("获取第一个文件夹失败: %s", gp_result_as_string(ret));
+        gp_list_free(folderList);
+        return nullptr;
+    }
+    
+    std::string firstFolderPath = std::string("/") + firstFolder;
+    LOGI("检查第一个文件夹的子文件夹: %s", firstFolderPath.c_str());
+    
+    // 列出第一个文件夹的子文件夹
+    CameraList *subFolderList;
+    ret = gp_list_new(&subFolderList);
+    if (ret >= GP_OK) {
+        ret = gp_camera_folder_list_folders(camera, firstFolderPath.c_str(), subFolderList, context);
+        if (ret >= GP_OK) {
+            int subCount = gp_list_count(subFolderList);
+            LOGI("%s 中有 %d 个子文件夹", firstFolderPath.c_str(), subCount);
+            
+            // 在子文件夹中查找 DCIM
+            for (int i = 0; i < subCount; i++) {
+                const char *subName;
+                gp_list_get_name(subFolderList, i, &subName);
+                LOGI("  - 子文件夹 %d: %s", i, subName);
+                
+                std::string subFolderName(subName);
+                if (subFolderName.find("DCIM") != std::string::npos || 
+                    subFolderName.find("dcim") != std::string::npos) {
+                    std::string dcimPath = firstFolderPath + "/" + subName;
+                    LOGI("在子文件夹中找到 DCIM: %s", dcimPath.c_str());
+                    
+                    // 列出 DCIM 的子文件夹
+                    CameraList *dcimSubList;
+                    ret = gp_list_new(&dcimSubList);
+                    if (ret >= GP_OK) {
+                        ret = gp_camera_folder_list_folders(camera, dcimPath.c_str(), dcimSubList, context);
+                        if (ret >= GP_OK) {
+                            int dcimSubCount = gp_list_count(dcimSubList);
+                            LOGI("DCIM 中有 %d 个子文件夹", dcimSubCount);
+                            
+                            if (dcimSubCount > 0) {
+                                const char *dcimSubName;
+                                ret = gp_list_get_name(dcimSubList, 0, &dcimSubName);
+                                if (ret >= GP_OK && dcimSubName != nullptr) {
+                                    std::string finalPath = dcimPath + "/" + dcimSubName;
+                                    LOGI("使用 DCIM 子文件夹: %s", finalPath.c_str());
+                                    gp_list_free(dcimSubList);
+                                    gp_list_free(subFolderList);
+                                    gp_list_free(folderList);
+                                    return createJavaString(env, finalPath.c_str());
+                                }
+                            } else {
+                                // DCIM 没有子文件夹，直接使用 DCIM
+                                LOGI("使用 DCIM 文件夹: %s", dcimPath.c_str());
+                                gp_list_free(dcimSubList);
+                                gp_list_free(subFolderList);
+                                gp_list_free(folderList);
+                                return createJavaString(env, dcimPath.c_str());
+                            }
+                        }
+                        gp_list_free(dcimSubList);
+                    }
+                    
+                    gp_list_free(subFolderList);
+                    gp_list_free(folderList);
+                    return createJavaString(env, dcimPath.c_str());
+                }
+            }
+            
+            // 如果没有找到 DCIM，使用第一个子文件夹
+            if (subCount > 0) {
+                const char *firstSubName;
+                ret = gp_list_get_name(subFolderList, 0, &firstSubName);
+                if (ret >= GP_OK && firstSubName != nullptr) {
+                    std::string subPath = firstFolderPath + "/" + firstSubName;
+                    LOGI("使用第一个子文件夹: %s", subPath.c_str());
+                    gp_list_free(subFolderList);
+                    gp_list_free(folderList);
+                    return createJavaString(env, subPath.c_str());
+                }
+            }
+        }
+        gp_list_free(subFolderList);
+    }
+    
+    // 如果都失败了，使用第一个文件夹本身
+    LOGI("使用第一个文件夹: %s", firstFolderPath.c_str());
+    gp_list_free(folderList);
+    return createJavaString(env, firstFolderPath.c_str());
+}
+
+*/
