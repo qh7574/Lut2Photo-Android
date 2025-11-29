@@ -2,10 +2,18 @@
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
 
-![应用版本](https://img.shields.io/badge/版本-2.9.1-blue)
-![Android](https://img.shields.io/badge/Android-11+-green)
-![Kotlin](https://img.shields.io/badge/Kotlin-1.8.0-purple)
+## 技术徽标
+
+![应用版本](https://img.shields.io/badge/版本-3.0.0-blue)
+![Android](https://img.shields.io/badge/Android-10+-green)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
+![License](https://img.shields.io/badge/License-MPL--2.0-red)
+![NDK](https://img.shields.io/badge/NDK-29.0-blue)
+![CMake](https://img.shields.io/badge/CMake-3.22.1-green)
+![OpenGL ES](https://img.shields.io/badge/OpenGL%20ES-3.0-orange)
+![C++](https://img.shields.io/badge/C++-17-blue)
+![Gradle](https://img.shields.io/badge/Gradle-8.11.2-green)
 
 ## ⏬ 网盘下载链接
 
@@ -45,24 +53,77 @@
 6. 设置**水印**（可选）
 7. 开启**文件夹监控**开关
 
-#### 4. LUT管理
+#### 4. LUT 管理
 1. 进入**LUT管理**页面
-2. 点击**导入**（可长按多选文件导入）
-3. 选择已导入的文件点击**导出**可将LUT导出
-4. 内置富士胶片模拟LUT，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作的srgb转rec2020.flog2
+2. 点击**导入**按钮
+   - 支持单个或多个文件导入
+   - 支持 .cube 和 .vlt 格式
+   - 自动转换为 33 位 LUT
+3. 管理已导入的 LUT
+   - 点击选择 LUT 文件
+   - 支持多选操作
+   - 查看 LUT 详细信息
+4. 导出 LUT 文件
+   - **导出 CUBE**：导出为 .cube 格式（通用格式）
+   - **导出 VLT**：导出为 .vlt 格式（松下相机专用）
+   - 支持批量导出
+5. 删除不需要的 LUT
+   - 点击删除按钮
+   - 确认后删除
+
+**内置 LUT**：
+- 内置富士胶片模拟 LUT
+- 感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作的 srgb 转 rec2020.flog2
+
+#### 5. 联机拍摄模式
+1. **准备工作**
+   - 使用 USB OTG 线连接相机和手机
+   - 确保相机支持 PTP/MTP 模式
+   - 设置好输入文件夹（照片保存位置）
+
+2. **启动联机模式**
+   - 在主页找到"联机拍摄"卡片
+   - 打开"启用联机拍摄"开关
+   - 等待相机连接（状态显示"相机已连接"）
+
+3. **拍摄流程**
+   - 在相机上正常拍摄
+   - 照片自动下载到手机
+   - 打开**文件夹监控开关**
+   - 自动应用 LUT 处理
+   - 处理后的照片保存到输出文件夹
+
+4. **高级设置**
+   - 点击"联机设置"按钮
+   - 配置下载选项
+
+5. **注意事项**
+   - 保持 USB 连接稳定
+   - 确保手机电量充足
+   - 建议使用高速 USB 3.0 线
+
+**支持的相机品牌**（来自libgphoto2）：
+- 松下（Panasonic）
+- 索尼（Sony）
+- 佳能（Canon）
+- 尼康（Nikon）
+- 富士（Fujifilm）
+- 其他支持 PTP/MTP 的相机
 
 ## 📝todolist
 ### ⌛计划内
-- **.vlt格式支持**
-- **.vlt与.cube格式互转**
 - **接入usb设备后自动处理usb设备内的图片**
 
-### ⭕评估中
+### ✅已完成
+- **.vlt格式支持**
+- **.vlt与.cube格式互转**
 - **无实时预览的图片联机拍摄**
+
+### ⭕评估中
 - **透过hdmi采集卡实现的实时预览**
 
 ### ⛔已放弃
-~~- **通过usb实时监看与控制**：由于libgphoto2库在安卓上还存在部分问题，因此暂时搁置，v3分支已移除，项目回退至2.8.5（分辨率低，图传与照片同时传输会导致usb占用，无法绕过）~~
+~~- **通过usb实时监看与控制**：过度占用带宽，且对相机处理器要求比较高~~
 
 ## 🚀 主要特性
 
@@ -324,8 +385,104 @@ CPU理：~15秒
 
 ### 贡献与反馈
 
-- **Bug报告**：通过GitHub Issues
-- **功能建议**：欢迎在GitHub上提出Feature Request
+#### Bug 报告和问题反馈
+
+如果您在使用过程中遇到问题，请按照以下步骤提交反馈：
+
+**1. 启用 Logcat 捕获**
+- 打开应用，进入"设置"页面
+- 找到"Logcat 捕获"卡片
+- 打开"启用 Logcat 捕获"开关
+- 应用会自动记录系统信息和运行日志
+
+**2. 复现问题**
+- 在开启 Logcat 捕获后
+- 重新操作导致问题的步骤
+- 确保问题被记录到日志中
+
+**3. 分享日志文件**
+- 在"Logcat 捕获"卡片中
+- 点击"分享日志文件"按钮
+- 选择分享方式
+- 将日志文件发送给开发者
+
+**4. 提交 Issue**
+- 访问 [GitHub Issues](https://github.com/qh7574/Lut2Photo-Android/issues)
+- 点击"New Issue"
+- 描述问题：
+  - 问题现象
+  - 复现步骤
+  - 设备型号和 Android 版本
+  - 附上日志文件
+- 提交 Issue
+
+**注意事项**：
+- 日志文件包含应用运行信息，不包含个人隐私
+- 提交反馈后可关闭 Logcat 捕获以节省存储空间
+- 关闭开关会自动删除所有日志文件
+
+#### 功能建议
+- 欢迎在 GitHub 上提出 Feature Request
+- 描述您期望的功能和使用场景
+- 我们会认真考虑每一个建议
+
+------------
+
+## 🙏 开源库鸣谢
+
+本项目使用了以下优秀的开源库，感谢所有开源项目的贡献者！
+
+### Android Jetpack 组件
+- **Core KTX** `1.16.0` - Android KTX 核心扩展
+- **AppCompat** `1.6.1` - Android 兼容性支持
+- **Material Components** `1.12.0` - Material Design 3 组件
+- **Lifecycle** `2.9.2` - 生命周期管理
+- **Navigation** `2.7.6` - 导航组件
+- **WorkManager** `2.9.0` - 后台任务管理
+- **ExifInterface** `1.3.7` - EXIF 信息读写
+- **Palette** `1.0.0` - 颜色提取
+
+### Kotlin 生态
+- **Kotlin** `2.0.21` - 主要开发语言
+- **Kotlin Coroutines** `1.10.2` - 协程支持
+
+### 图片处理
+- **Glide** `4.16.0` - 图片加载和缓存
+  - 链接：https://github.com/bumptech/glide
+- **Coil** `2.5.0` - 水印图片处理
+  - 链接：https://github.com/coil-kt/coil
+
+### UI 组件
+- **ColorPickerDialog** `0.2.2` - 颜色选择器
+  - 链接：https://github.com/fennifith/ColorPickerDialog
+- **FlexboxLayout** `3.0.0` - 弹性布局
+  - 链接：https://github.com/google/flexbox-layout
+
+### 工具库
+- **pinyin4j** `2.5.1` - 中文转拼音
+  - 链接：https://github.com/belerweb/pinyin4j
+  - 用途：VLT 文件名生成
+
+### 原生库
+- **libgphoto2** - 相机控制库（LGPL v2.1）
+  - 链接：http://www.gphoto.org/
+  - 用途：USB 相机连接和控制
+- **libusb** - USB 设备访问库（LGPL v2.1）
+  - 链接：https://libusb.info/
+  - 用途：USB 设备通信
+
+### 构建工具
+- **Android Gradle Plugin** `8.11.2`
+- **CMake** `3.22.1` - 原生代码构建
+- **Android NDK** `29.0` - 原生开发工具包
+
+**完整的开源库清单**请查看：[开源库清单文档](.kiro/docs/开源库清单.md)
+
+**许可证说明**：
+- 本项目主要使用 Apache 2.0、BSD、MIT 许可证的库
+- libgphoto2 和 libusb 使用 LGPL v2.1 许可证
+- pinyin4j 使用 GPL v2 许可证
+- 所有使用均遵守各自的许可证条款
 
 ------------
 
@@ -333,10 +490,10 @@ CPU理：~15秒
 
 本App免费使用，如果有帮到你，可以在设置页找到赞助码🍵
 
-**作者**：偷光你的小鱼干（某些情况下也叫狸花饺子喵）
-
-> 💻 *代码水平很烂，感谢AI，能跑就行*
+**作者**：偷光你的小鱼干（某些情况下也叫狸花饺子喵、Alittlecookie）
 
 ---
 
 🌟 **喜欢这个项目吗？记得给个 Star ⭐**
+
+📖 **项目地址**：https://github.com/qh7574/Lut2Photo-Android

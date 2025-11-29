@@ -169,6 +169,11 @@ class PreferencesManager(context: Context) {
         get() = sharedPreferences.getBoolean("process_new_files_only", false)
         set(value) = sharedPreferences.edit { putBoolean("process_new_files_only", value) }
 
+    // Logcat 捕获开关状态
+    var logcatCaptureEnabled: Boolean
+        get() = sharedPreferences.getBoolean("logcat_capture_enabled", false)
+        set(value) = sharedPreferences.edit { putBoolean("logcat_capture_enabled", value) }
+
     /**
      * 清除所有状态为"SKIPPED"的已跳过记录，保留正常处理过的记录
      */

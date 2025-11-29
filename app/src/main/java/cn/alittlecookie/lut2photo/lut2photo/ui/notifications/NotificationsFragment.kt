@@ -21,6 +21,8 @@ import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentNotificationsBinding
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.ThemeManager
+import cn.alittlecookie.lut2photo.lut2photo.MyApplication
+import androidx.core.content.FileProvider
 
 class NotificationsFragment : Fragment() {
 
@@ -54,6 +56,7 @@ class NotificationsFragment : Fragment() {
         setupThemeDropdown()
         setupProcessorDropdown()
         setupKeepOriginalResolutionSwitch()
+        setupLogcatCapture()
         
         return binding.root
     }
@@ -78,6 +81,11 @@ class NotificationsFragment : Fragment() {
             // 应用信息
             textAppVersion.text = getString(R.string.app_version_format, BuildConfig.VERSION_NAME)
             textAppDescription.text = getString(R.string.app_description)
+            
+            // 项目地址按钮
+            buttonGithub.setOnClickListener {
+                openGithubPage()
+            }
         }
     }
 
@@ -244,6 +252,80 @@ class NotificationsFragment : Fragment() {
             data = Uri.fromParts("package", requireContext().packageName, null)
         }
         startActivity(intent)
+    }
+
+    /**
+     * 设置 Logcat 捕获功能
+     */
+    private fun setupLogcatCapture() {
+        // 设置当前状态
+        binding.switchLogcatCapture.isChecked = preferencesManager.logcatCaptureEnabled
+        
+        // 设置开关监听器
+        binding.switchLogcatCapture.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.logcatCaptureEnabled = isChecked
+            
+            val logcatManager = MyApplication.getLogcatManager()
+            if (isChecked) {
+                logcatManager?.startCapture()
+                Toast.makeText(requireContext(), "Logcat 捕获已启动", Toast.LENGTH_SHORT).show()
+            } else {
+                logcatManager?.stopCaptureAndClean()
+                Toast.makeText(requireContext(), "Logcat 捕获已停止，日志文件已删除", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        // 设置分享按钮
+        binding.buttonShareLogcat.setOnClickListener {
+            shareLogcatFile()
+        }
+    }
+    
+    /**
+     * 打开 GitHub 项目页面
+     */
+    private fun openGithubPage() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://github.com/qh7574/Lut2Photo-Android")
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * 分享 Logcat 文件
+     */
+    private fun shareLogcatFile() {
+        val logcatManager = MyApplication.getLogcatManager()
+        val logFile = logcatManager?.getLatestLogFile()
+        
+        if (logFile == null || !logFile.exists()) {
+            Toast.makeText(requireContext(), "没有可分享的日志文件", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        try {
+            val uri = FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                logFile
+            )
+            
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Lut2Photo 日志文件")
+                putExtra(Intent.EXTRA_TEXT, "Lut2Photo 应用日志文件")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            
+            startActivity(Intent.createChooser(shareIntent, "分享日志文件"))
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onResume() {

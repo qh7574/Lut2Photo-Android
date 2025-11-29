@@ -10,6 +10,8 @@ import cn.alittlecookie.lut2photo.lut2photo.core.MemoryManager
 import cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.utils.BuiltInLutInitializer
+import cn.alittlecookie.lut2photo.lut2photo.utils.LogcatManager
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,6 +31,11 @@ class MyApplication : Application() {
         private var memoryManager: MemoryManager? = null
 
         fun getMemoryManager(): MemoryManager? = memoryManager
+        
+        @Volatile
+        private var logcatManager: LogcatManager? = null
+        
+        fun getLogcatManager(): LogcatManager? = logcatManager
     }
     
     // 应用级协程作用域
@@ -56,6 +63,9 @@ class MyApplication : Application() {
         
         // 初始化内置LUT文件
         initializeBuiltInLuts()
+        
+        // 初始化 Logcat 管理器
+        initializeLogcatManager()
     }
 
     /**
@@ -135,6 +145,28 @@ class MyApplication : Application() {
         }
     }
 
+    /**
+     * 初始化 Logcat 管理器
+     */
+    private fun initializeLogcatManager() {
+        try {
+            Log.i(TAG, "开始初始化 Logcat 管理器")
+            
+            logcatManager = LogcatManager(this)
+            
+            // 检查是否需要自动启动 Logcat 捕获
+            val preferencesManager = PreferencesManager(this)
+            if (preferencesManager.logcatCaptureEnabled) {
+                logcatManager?.startCapture()
+                Log.i(TAG, "Logcat 捕获已自动启动")
+            }
+            
+            Log.i(TAG, "Logcat 管理器初始化完成")
+        } catch (e: Exception) {
+            Log.e(TAG, "Logcat 管理器初始化失败", e)
+        }
+    }
+
     override fun onTerminate() {
         super.onTerminate()
 
@@ -142,6 +174,9 @@ class MyApplication : Application() {
 
         // 停止内存监控
         memoryManager?.stopMonitoring()
+
+        // 清理 Logcat 管理器
+        logcatManager?.release()
 
         // 清理Native全局组件
         try {
