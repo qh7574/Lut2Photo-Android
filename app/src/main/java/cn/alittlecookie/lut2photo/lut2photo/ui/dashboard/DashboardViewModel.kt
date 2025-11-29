@@ -155,7 +155,18 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun generatePreviewBitmap(uri: Uri): Bitmap? {
         return withContext(Dispatchers.IO) {
             try {
-                val inputStream = getApplication<Application>().contentResolver.openInputStream(uri)
+                val context = getApplication<Application>()
+                
+                // **修复：读取 EXIF 方向信息**
+                val exif = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    ExifInterface(stream)
+                }
+                val orientation = exif?.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                ) ?: ExifInterface.ORIENTATION_NORMAL
+                
+                val inputStream = context.contentResolver.openInputStream(uri)
                 val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
@@ -165,18 +176,59 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 // 计算缩放比例
                 val sampleSize = calculateInSampleSize(options, 200, 200)
 
-                val finalInputStream =
-                    getApplication<Application>().contentResolver.openInputStream(uri)
+                val finalInputStream = context.contentResolver.openInputStream(uri)
                 val finalOptions = BitmapFactory.Options().apply {
                     inSampleSize = sampleSize
                 }
                 val bitmap = BitmapFactory.decodeStream(finalInputStream, null, finalOptions)
                 finalInputStream?.close()
-                bitmap
+                
+                // **修复：应用 EXIF 方向变换**
+                if (bitmap != null && orientation != ExifInterface.ORIENTATION_NORMAL) {
+                    applyExifOrientation(bitmap, orientation)
+                } else {
+                    bitmap
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to generate preview bitmap", e)
                 null
             }
+        }
+    }
+    
+    /**
+     * 应用 EXIF 方向变换
+     */
+    private fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = android.graphics.Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(-90f)
+                matrix.postScale(-1f, 1f)
+            }
+            else -> return bitmap
+        }
+
+        return try {
+            val rotatedBitmap = Bitmap.createBitmap(
+                bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+            )
+            if (rotatedBitmap != bitmap) {
+                bitmap.recycle()
+            }
+            rotatedBitmap
+        } catch (e: OutOfMemoryError) {
+            Log.e(TAG, "内存不足，无法旋转预览图", e)
+            bitmap
         }
     }
 
@@ -828,7 +880,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             ExifInterface.TAG_MAKE,
             ExifInterface.TAG_MODEL,
             ExifInterface.TAG_SOFTWARE,
-            ExifInterface.TAG_ORIENTATION,
+            // **修复：不复制 TAG_ORIENTATION，因为图片已经旋转到正确方向**
             ExifInterface.TAG_X_RESOLUTION,
             ExifInterface.TAG_Y_RESOLUTION,
             ExifInterface.TAG_RESOLUTION_UNIT,
@@ -854,6 +906,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 target.setAttribute(tag, value)
             }
         }
+        
+        // **修复：重置方向标签为NORMAL，因为图片已经旋转到正确方向**
+        target.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
     }
 
     /**
@@ -882,7 +937,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     ExifInterface.TAG_MAKE,
                     ExifInterface.TAG_MODEL,
                     ExifInterface.TAG_SOFTWARE,
-                    ExifInterface.TAG_ORIENTATION,
+                    // **修复：不复制 TAG_ORIENTATION，因为图片已经旋转到正确方向**
                     ExifInterface.TAG_X_RESOLUTION,
                     ExifInterface.TAG_Y_RESOLUTION,
                     ExifInterface.TAG_RESOLUTION_UNIT,
@@ -908,6 +963,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         targetExif.setAttribute(tag, value)
                     }
                 }
+
+                // **修复：重置方向标签为NORMAL，因为图片已经旋转到正确方向**
+                targetExif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
 
                 targetExif.saveAttributes()
             }

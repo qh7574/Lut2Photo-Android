@@ -939,7 +939,7 @@ class HomeFragment : Fragment() {
                     .skipMemoryCache(false) // 启用内存缓存
                     .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC) // 启用磁盘缓存
                     .override(900, 600) // 限制预览图片大小以提高性能
-                    .dontTransform() // 禁用所有变换
+                    // **修复：移除 dontTransform()，让 Glide 自动处理 EXIF 方向**
                     .format(DecodeFormat.PREFER_ARGB_8888) // 强制使用ARGB_8888格式
                     .into(object : CustomTarget<Bitmap>() {
                         override fun onResourceReady(

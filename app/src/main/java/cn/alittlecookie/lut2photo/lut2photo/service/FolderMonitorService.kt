@@ -1155,6 +1155,9 @@ class FolderMonitorService : Service() {
                     }
                 }
 
+                // **修复：重置方向标签为NORMAL，因为图片已经旋转到正确方向**
+                targetExif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
+
                 // 保存EXIF信息到临时文件
                 targetExif.saveAttributes()
             }
