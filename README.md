@@ -17,8 +17,8 @@
 
 ## ⏬ 网盘下载链接
 
-- [百度网盘分享链接](https://pan.baidu.com/s/1OTJxQnF62DZKX4UCkr5S0g?pwd=dpsn)
-- [夸克网盘分享链接](https://pan.quark.cn/s/a03da928104d)
+- [百度网盘分享链接](https://pan.baidu.com/s/16dxiXBi3QjLzG3zLAlxKVw?pwd=o1d4)
+- [夸克网盘分享链接](https://pan.quark.cn/s/4431afc48b77)
 
 ------------
 
