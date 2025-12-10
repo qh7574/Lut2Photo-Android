@@ -31,6 +31,9 @@ import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
 import cn.alittlecookie.lut2photo.lut2photo.core.WatermarkProcessor
+import cn.alittlecookie.lut2photo.lut2photo.filetracker.FileRecord
+import cn.alittlecookie.lut2photo.lut2photo.filetracker.FileTrackerConfig
+import cn.alittlecookie.lut2photo.lut2photo.filetracker.FileTrackerManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +42,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -98,6 +100,19 @@ class FolderMonitorService : Service() {
         if (isMonitoring) {
             restartService()
         }
+    }
+    
+    // FileTracker组件
+    private var fileTrackerManager: FileTrackerManager? = null
+    
+    // 输出目录缓存
+    private var outputDir: DocumentFile? = null
+    
+    private fun getOutputDir(): DocumentFile? {
+        if (outputDir == null && outputFolderUri.isNotEmpty()) {
+            outputDir = DocumentFile.fromTreeUri(this, outputFolderUri.toUri())
+        }
+        return outputDir
     }
 
     private lateinit var threadManager: ThreadManager
@@ -385,10 +400,124 @@ class FolderMonitorService : Service() {
 
                 isLutLoaded = true
 
-                startContinuousMonitoring()
+                // 使用FileTracker进行监控（优化版本）
+                startFileTrackerMonitoring(processNewFilesOnly)
             } catch (e: Exception) {
                 Log.e(TAG, "监控过程中发生错误", e)
             }
+        }
+    }
+    
+    /**
+     * 使用FileTracker进行文件监控（优化版本）
+     * 替代原有的轮询扫描方式，解决ANR问题
+     */
+    private suspend fun startFileTrackerMonitoring(processNewFilesOnly: Boolean) {
+        // 初始化FileTrackerManager
+        fileTrackerManager = FileTrackerManager(this)
+        
+        val config = FileTrackerConfig(
+            targetFolderUri = inputFolderUri,
+            allowedExtensions = setOf("jpg", "jpeg", "png", "webp"),
+            batchSize = 500
+        )
+        
+        // 显示监控开始通知
+        val notification = createNotification("文件夹监控服务", "正在扫描现有文件...")
+        startForeground(NOTIFICATION_ID, notification)
+        
+        try {
+            // 启动FileTracker
+            fileTrackerManager!!.start(config)
+            
+            // 等待冷扫描完成
+            fileTrackerManager!!.awaitColdScanComplete()
+            
+            val existingCount = fileTrackerManager!!.getExistingFilesCount()
+            Log.d(TAG, "冷扫描完成，存量文件: ${existingCount}个")
+            
+            // 处理存量文件（如果需要）
+            if (!processNewFilesOnly) {
+                val existingFiles = fileTrackerManager!!.consumeExisting()
+                Log.d(TAG, "开始处理存量文件: ${existingFiles.size}个")
+                
+                val statusNotification = createNotification(
+                    "文件夹监控服务",
+                    "正在处理存量文件: 0/${existingFiles.size}"
+                )
+                startForeground(NOTIFICATION_ID, statusNotification)
+                
+                for ((index, fileRecord) in existingFiles.withIndex()) {
+                    if (!isMonitoring) break
+                    processFileRecord(fileRecord)
+                    
+                    // 每处理10个文件更新一次通知
+                    if (index % 10 == 0) {
+                        val progressNotification = createNotification(
+                            "文件夹监控服务",
+                            "正在处理存量文件: ${index + 1}/${existingFiles.size}"
+                        )
+                        startForeground(NOTIFICATION_ID, progressNotification)
+                    }
+                }
+            }
+            
+            // 更新通知为监控状态
+            val monitoringNotification = createNotification(
+                "文件夹监控服务",
+                "监控中... 已处理 $processedCount 个文件"
+            )
+            startForeground(NOTIFICATION_ID, monitoringNotification)
+            
+            // 监听增量文件
+            Log.d(TAG, "开始监听增量文件")
+            fileTrackerManager!!.consumeIncremental().collect { fileRecord ->
+                if (!isMonitoring) return@collect
+                
+                Log.d(TAG, "检测到增量文件: ${fileRecord.fileName}")
+                processFileRecord(fileRecord)
+                
+                // 更新通知
+                val updateNotification = createNotification(
+                    "文件夹监控服务",
+                    "已处理 $processedCount 个文件，监控中..."
+                )
+                startForeground(NOTIFICATION_ID, updateNotification)
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "FileTracker监控出错", e)
+            // 降级到原有的轮询方式
+            Log.w(TAG, "降级到轮询监控模式")
+            startContinuousMonitoring()
+        }
+    }
+    
+    /**
+     * 处理FileRecord
+     */
+    private suspend fun processFileRecord(fileRecord: FileRecord) {
+        try {
+            Log.d(TAG, "开始处理文件: ${fileRecord.fileName}")
+            
+            startProcessingFile(fileRecord.fileName)
+            
+            val documentFile = DocumentFile.fromSingleUri(this, fileRecord.uri)
+            if (documentFile != null && documentFile.exists()) {
+                processingParams?.let { params ->
+                    Log.d(TAG, "处理文件 ${fileRecord.fileName} 使用的参数: strength=${params.strength}, lut2Strength=${params.lut2Strength}, quality=${params.quality}, dither=${params.ditherType}")
+                    processDocumentFile(documentFile, getOutputDir()!!, params)
+                }
+            } else {
+                Log.w(TAG, "文件不存在或无法访问: ${fileRecord.fileName}")
+            }
+            
+            completeProcessingFile(fileRecord.fileName)
+            fileTrackerManager?.markFileAsProcessed(fileRecord.fileName)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "处理文件失败: ${fileRecord.fileName}", e)
+            completeProcessingFile(fileRecord.fileName)
         }
     }
 
@@ -425,91 +554,14 @@ class FolderMonitorService : Service() {
 
     /**
      * 标记现有文件为已处理（用于"仅处理新增文件"功能）
+     * 注意：此方法已被FileTracker替代，保留仅为向后兼容
+     * FileTracker会在冷扫描时自动处理存量文件的标记
      * @param inputFolderUri 输入文件夹URI
      */
     private fun markExistingFilesAsProcessed(inputFolderUri: String) {
-        try {
-            val inputUri = inputFolderUri.toUri()
-            val inputDir = DocumentFile.fromTreeUri(this, inputUri)
-            
-            if (inputDir == null) {
-                Log.e(TAG, "无法访问输入文件夹")
-                return
-            }
-            
-            // 扫描输入文件夹中的所有图片文件
-            val imageFiles = inputDir.listFiles().filter { file ->
-                file.isFile &&
-                file.name?.lowercase()?.let { name ->
-                    name.endsWith(".jpg") || name.endsWith(".jpeg") ||
-                    name.endsWith(".png") || name.endsWith(".webp")
-                } == true
-            }
-            
-            val prefs = getSharedPreferences("processing_history", MODE_PRIVATE)
-            val existingRecords = prefs.getStringSet("records", emptySet())?.toMutableSet() 
-                ?: mutableSetOf()
-            
-            val timestamp = System.currentTimeMillis()
-            var markedCount = 0
-            
-            for (imageFile in imageFiles) {
-                val fileName = imageFile.name ?: continue
-                
-                // 检查是否已经在历史记录中
-                val alreadyProcessed = existingRecords.any { recordStr ->
-                    try {
-                        val parts = recordStr.split("|")
-                        parts.size >= 2 && parts[1] == fileName
-                    } catch (_: Exception) {
-                        false
-                    }
-                }
-                
-                if (!alreadyProcessed) {
-                    // 创建一个标记记录（使用特殊状态标识，便于后续过滤）
-                    val recordString = buildString {
-                        append(timestamp)
-                        append("|")
-                        append(fileName)
-                        append("|")
-                        append(imageFile.uri.toString())
-                        append("|")
-                        append("") // 空输出路径
-                        append("|")
-                        append("SKIPPED") // 使用特殊状态标识，便于过滤
-                        append("|")
-                        append("") // 空LUT名称
-                        append("|")
-                        append("") // 空LUT2名称
-                        append("|")
-                        append("0") // 强度
-                        append("|")
-                        append("0") // LUT2强度
-                        append("|")
-                        append("0") // 质量
-                        append("|")
-                        append("NONE") // 抖动类型
-                    }
-                    
-                    existingRecords.add(recordString)
-                    markedCount++
-                }
-            }
-            
-            if (markedCount > 0) {
-                prefs.edit { putStringSet("records", existingRecords) }
-                Log.d(TAG, "已标记 $markedCount 个现有文件为已处理")
-                
-                // 发送广播通知历史页面更新
-                val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
-                sendBroadcast(intent)
-            } else {
-                Log.d(TAG, "没有需要标记的新文件")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "标记现有文件失败", e)
-        }
+        // FileTracker会在冷扫描时自动处理存量文件的标记
+        // 此方法保留为空操作，避免在主线程遍历大目录导致ANR
+        Log.d(TAG, "存量文件标记将由FileTracker在冷扫描时处理")
     }
 
     /**
@@ -982,6 +1034,11 @@ class FolderMonitorService : Service() {
         isMonitoring = false
         monitoringJob?.cancel()
         monitoringJob = null
+        
+        // 停止FileTracker
+        fileTrackerManager?.stop()
+        fileTrackerManager = null
+        outputDir = null
 
         // 修复：清理状态，表示服务已停止
         val preferencesManager = PreferencesManager(this)
@@ -1015,6 +1072,10 @@ class FolderMonitorService : Service() {
         }
 
         monitoringJob?.cancel()
+        
+        // 释放FileTracker资源
+        fileTrackerManager?.release()
+        fileTrackerManager = null
         
         // 修复：在协程中异步释放资源，避免阻塞主线程导致ANR
         // 使用GlobalScope因为serviceScope可能已经被取消

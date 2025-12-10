@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -867,43 +868,84 @@ class HomeFragment : Fragment() {
     }
 
     private fun updatePreviewFromInputFolder() {
-        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
-        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
-        val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
-
         val inputFolderPath = preferencesManager.homeInputFolder
         if (inputFolderPath.isNullOrEmpty()) {
             showPreviewPlaceholder("请选择输入文件夹")
             return
         }
 
-        try {
-            val inputFolderUri = inputFolderPath.toUri()
-            val inputFolder = DocumentFile.fromTreeUri(requireContext(), inputFolderUri)
-
-            if (inputFolder == null || !inputFolder.exists() || !inputFolder.isDirectory) {
-                showPreviewPlaceholder("输入文件夹不存在")
-                return
+        // 异步获取最新图片文件，避免在主线程遍历大目录导致ANR
+        lifecycleScope.launch {
+            try {
+                val latestImageUri = withContext(Dispatchers.IO) {
+                    getLatestImageFileAsync(inputFolderPath)
+                }
+                
+                if (latestImageUri == null) {
+                    showPreviewPlaceholder("输入文件夹中没有图片")
+                    return@launch
+                }
+                
+                // 在主线程显示预览
+                displayPreviewImage(latestImageUri)
+                
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "获取预览图片失败", e)
+                showPreviewPlaceholder("无法访问输入文件夹")
             }
-
-            // 获取文件夹中最新的图片文件
-            val imageFiles = inputFolder.listFiles().filter { file ->
-                file.isFile && file.name?.let { name ->
-                    val extension = name.substringAfterLast('.', "").lowercase()
-                    extension in listOf("jpg", "jpeg", "png", "bmp", "webp")
-                } ?: false
-            }.sortedByDescending { it.lastModified() }
-
-            if (imageFiles.isEmpty()) {
-                showPreviewPlaceholder("输入文件夹中没有图片")
-                return
+        }
+    }
+    
+    /**
+     * 异步获取最新图片文件（在IO线程执行）
+     * 使用流式处理，只保留最新的一个文件，避免内存峰值
+     */
+    private suspend fun getLatestImageFileAsync(inputFolderPath: String): Uri? {
+        val inputFolderUri = inputFolderPath.toUri()
+        val inputFolder = DocumentFile.fromTreeUri(requireContext(), inputFolderUri)
+            ?: return null
+        
+        if (!inputFolder.exists() || !inputFolder.isDirectory) {
+            return null
+        }
+        
+        // 流式遍历，只保留最新的一个文件
+        var latestFile: DocumentFile? = null
+        var latestModified = 0L
+        
+        inputFolder.listFiles().forEach { file ->
+            if (file.isFile && isImageFile(file.name)) {
+                val modified = file.lastModified()
+                if (modified > latestModified) {
+                    latestModified = modified
+                    latestFile = file
+                }
             }
-
-            // 显示最新的图片并应用效果
-            val latestImage = imageFiles.first()
-            imageView?.let { iv ->
+        }
+        
+        return latestFile?.uri
+    }
+    
+    /**
+     * 检查文件是否为图片文件
+     */
+    private fun isImageFile(fileName: String?): Boolean {
+        if (fileName == null) return false
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        return extension in listOf("jpg", "jpeg", "png", "bmp", "webp")
+    }
+    
+    /**
+     * 显示预览图片（在主线程执行）
+     */
+    private fun displayPreviewImage(imageUri: Uri) {
+        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+        val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
+        
+        imageView?.let { iv ->
                 // 隐藏占位图和占位文本
-                val placeholderLayout = previewCardView?.findViewById<View>(R.id.layout_placeholder)
+                val placeholderLayout = previewCardView.findViewById<View>(R.id.layout_placeholder)
                 placeholderLayout?.visibility = View.GONE
                 placeholderText?.visibility = View.GONE
                 iv.visibility = View.VISIBLE
@@ -911,7 +953,7 @@ class HomeFragment : Fragment() {
                 // 如果没有选择LUT且没有开启水印，直接显示原图
                 if (selectedLutItem == null && selectedLut2Item == null && !binding.switchWatermark.isChecked) {
                     Glide.with(this)
-                        .load(latestImage.uri)
+                        .load(imageUri)
                         .into(iv)
                     return
                 }
@@ -924,7 +966,7 @@ class HomeFragment : Fragment() {
 
                 // 使用真正影响图像的参数作为缓存键（移除时间戳以启用缓存）
                 val cacheKey =
-                    "${latestImage.uri}_${selectedLutItem?.name}_${selectedLut2Item?.name}_${currentStrength1}_${currentStrength2}_${currentWatermarkEnabled}"
+                    "${imageUri}_${selectedLutItem?.name}_${selectedLut2Item?.name}_${currentStrength1}_${currentStrength2}_${currentWatermarkEnabled}"
 
                 Log.d("HomeFragment", "生成缓存键: $cacheKey")
                 Log.d(
@@ -934,7 +976,7 @@ class HomeFragment : Fragment() {
 
                 Glide.with(this)
                     .asBitmap()
-                    .load(latestImage.uri)
+                    .load(imageUri)
                     .signature(ObjectKey(cacheKey)) // 使用不含时间戳的缓存键，启用缓存
                     .skipMemoryCache(false) // 启用内存缓存
                     .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC) // 启用磁盘缓存
@@ -997,7 +1039,7 @@ class HomeFragment : Fragment() {
                                         } else {
                                             Log.w(
                                                 "HomeFragment",
-                                                "GPU双LUT效果应用失败或无变化，lutResult=${lutResult?.let { "非null" } ?: "null"}"
+                                                "GPU双LUT效果应用失败或无变化，lutResult=${lutResult.let { "非null" }}"
                                             )
                                         }
                                     }
@@ -1057,7 +1099,7 @@ class HomeFragment : Fragment() {
                                             processedBitmap,
                                             watermarkConfig,
                                             requireContext(),
-                                            latestImage.uri,
+                                            imageUri,
                                             selectedLutItem?.name,
                                             selectedLut2Item?.name,
                                             currentStrength1,
@@ -1150,10 +1192,6 @@ class HomeFragment : Fragment() {
                             // 清理资源
                         }
                     })
-            }
-        } catch (e: Exception) {
-            Log.e("HomeFragment", "处理输入文件夹失败", e)
-            showPreviewPlaceholder("无法访问输入文件夹")
         }
     }
 
