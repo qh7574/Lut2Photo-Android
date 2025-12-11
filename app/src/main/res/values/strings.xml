@@ -266,4 +266,11 @@
     <string name="reset_to_default">恢复默认</string>
     <string name="grain_settings">颗粒设置</string>
     <string name="film_grain">启用颗粒</string>
+    <string name="import_grain_settings">导入颗粒设置</string>
+    <string name="export_grain_settings">导出颗粒设置</string>
+    <string name="grain_export_success">颗粒配置导出成功</string>
+    <string name="grain_export_failed">颗粒配置导出失败</string>
+    <string name="grain_import_success">颗粒配置导入成功</string>
+    <string name="grain_import_failed">颗粒配置导入失败</string>
+    <string name="invalid_grain_config">无效的颗粒配置文件</string>
 </resources>
