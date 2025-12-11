@@ -75,16 +75,32 @@ class HotFileObserver(
      * 停止监听
      */
     fun stop() {
+        Log.d(TAG, "正在停止HotFileObserver...")
+        
+        // 停止FileObserver
         fileObserver?.stopWatching()
         fileObserver = null
+        
+        // 取消轮询协程
         pollingJob?.cancel()
         pollingJob = null
+        
+        // 注销ContentObserver
         contentObserver?.let {
-            context.contentResolver.unregisterContentObserver(it)
+            try {
+                context.contentResolver.unregisterContentObserver(it)
+            } catch (e: Exception) {
+                Log.w(TAG, "注销ContentObserver失败", e)
+            }
         }
         contentObserver = null
+        
+        // 清理回调
         onNewFileCallback = null
+        
+        // 取消协程作用域
         observerScope.cancel()
+        
         Log.d(TAG, "HotFileObserver已停止")
     }
     
@@ -205,8 +221,8 @@ class HotFileObserver(
         
         // 同时启动低频轮询作为兜底（每10秒）
         pollingJob = observerScope.launch {
-            while (true) {
-                try {
+            try {
+                while (true) {
                     delay(10000) // 每10秒检查一次作为兜底
                     
                     if (childrenUri != null) {
@@ -215,10 +231,13 @@ class HotFileObserver(
                         // 降级到原有方式
                         checkForNewFilesLegacy(targetUri)
                     }
-                    
-                } catch (e: Exception) {
-                    Log.e(TAG, "轮询监控出错", e)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // 协程被正常取消，不记录错误日志
+                Log.d(TAG, "轮询监控已停止")
+                throw e // 重新抛出以确保协程正确取消
+            } catch (e: Exception) {
+                Log.e(TAG, "轮询监控出错", e)
             }
         }
     }

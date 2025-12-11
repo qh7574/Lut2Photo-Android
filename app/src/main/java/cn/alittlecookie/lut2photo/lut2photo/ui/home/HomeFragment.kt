@@ -111,6 +111,49 @@ class HomeFragment : Fragment() {
             }
         }
     }
+    
+    // 文件夹监控状态广播接收器
+    private val monitoringStatusReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d("HomeFragment", "========== 广播接收器被调用 ==========")
+            Log.d("HomeFragment", "Intent action: ${intent?.action}")
+            Log.d("HomeFragment", "Intent extras: ${intent?.extras}")
+            
+            when (intent?.action) {
+                FolderMonitorService.ACTION_MONITORING_STATUS_UPDATE -> {
+                    val statusMessage = intent.getStringExtra(FolderMonitorService.EXTRA_STATUS_MESSAGE) ?: "未知状态"
+                    val isMonitoring = intent.getBooleanExtra(FolderMonitorService.EXTRA_IS_MONITORING, false)
+                    
+                    Log.d("HomeFragment", "收到监控状态更新广播")
+                    Log.d("HomeFragment", "  - 状态消息: $statusMessage")
+                    Log.d("HomeFragment", "  - 是否监控中: $isMonitoring")
+                    Log.d("HomeFragment", "  - Fragment状态: isAdded=$isAdded, isVisible=$isVisible, isResumed=$isResumed")
+                    
+                    // 更新UI
+                    binding.textMonitoringStatus.text = "$statusMessage"
+                    Log.d("HomeFragment", "  - UI已更新: ${binding.textMonitoringStatus.text}")
+                    
+                    // 根据监控状态控制"仅处理新增文件"开关
+                    binding.switchProcessNewFilesOnly.isEnabled = !isMonitoring
+                    Log.d("HomeFragment", "  - 开关状态已更新: enabled=${binding.switchProcessNewFilesOnly.isEnabled}")
+                }
+                "cn.alittlecookie.lut2photo.FILE_COUNT_WARNING" -> {
+                    val fileCount = intent.getIntExtra("file_count", 0)
+                    Log.w("HomeFragment", "收到文件数量警告: $fileCount 个文件")
+                    
+                    // 显示Toast提示（3秒）
+                    Toast.makeText(
+                        requireContext(),
+                        "输入文件夹内文件数量过多（$fileCount 个），更改文件夹以提高处理性能",
+                        Toast.LENGTH_LONG  // LENGTH_LONG 约3.5秒
+                    ).show()
+                }
+                else -> {
+                    Log.w("HomeFragment", "收到未知广播: ${intent?.action}")
+                }
+            }
+        }
+    }
 
     // Activity Result Launchers
     private val selectInputFolderLauncher = registerForActivityResult(
@@ -174,6 +217,9 @@ class HomeFragment : Fragment() {
         loadSavedSettings()
         restoreUIState()
         registerTetheredReceiver()
+        
+        // 注册监控状态广播接收器（在onViewCreated中注册，确保及时接收广播）
+        registerMonitoringStatusReceiver()
 
         // 修复：延迟观察ViewModel，确保LUT加载完成
         lifecycleScope.launch {
@@ -305,10 +351,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun observeViewModel() {
-        homeViewModel.statusText.observe(viewLifecycleOwner) { status ->
-            binding.textMonitoringStatus.text = status
-        }
-
+        // 注意：状态文本现在由广播接收器管理，不再从ViewModel观察
+        // 移除了 homeViewModel.statusText.observe()，避免覆盖广播接收器设置的详细状态
+        
         homeViewModel.isMonitoring.observe(viewLifecycleOwner) { isMonitoring ->
             // 修复：只更新UI状态，不触发监听器
             // 临时移除监听器，避免触发启动/停止服务的逻辑
@@ -316,6 +361,9 @@ class HomeFragment : Fragment() {
             binding.switchMonitoring.isChecked = isMonitoring
             // 恢复监听器
             setupSwitchListener()
+            
+            // 更新"仅处理新增文件"开关状态
+            binding.switchProcessNewFilesOnly.isEnabled = !isMonitoring
             
             Log.d("HomeFragment", "ViewModel状态同步到UI: isMonitoring=$isMonitoring (不触发服务启动/停止)")
         }
@@ -619,10 +667,75 @@ class HomeFragment : Fragment() {
         }
     }
 
+    /**
+     * 注册监控状态广播接收器
+     */
+    private fun registerMonitoringStatusReceiver() {
+        try {
+            val filter = IntentFilter().apply {
+                addAction(FolderMonitorService.ACTION_MONITORING_STATUS_UPDATE)
+                addAction("cn.alittlecookie.lut2photo.FILE_COUNT_WARNING")
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                requireContext().registerReceiver(monitoringStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                requireContext().registerReceiver(monitoringStatusReceiver, filter)
+            }
+            Log.d("HomeFragment", "========== 监控状态广播接收器已注册 ==========")
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "注册监控状态广播接收器失败", e)
+        }
+    }
+    
+    /**
+     * 注销监控状态广播接收器
+     */
+    private fun unregisterMonitoringStatusReceiver() {
+        try {
+            requireContext().unregisterReceiver(monitoringStatusReceiver)
+            Log.d("HomeFragment", "========== 监控状态广播接收器已注销 ==========")
+        } catch (e: Exception) {
+            Log.w("HomeFragment", "注销监控状态广播接收器失败（可能未注册）", e)
+        }
+    }
+    
     override fun onResume() {
         super.onResume()
         // 同步联机模式状态，避免触发重新连接
         syncTetheredModeState()
+        
+        // 检查服务是否真正在运行
+        val isServiceActuallyRunning = isFolderMonitorServiceRunning()
+        
+        // 如果服务实际未运行，但PreferencesManager认为在运行，需要同步状态
+        if (!isServiceActuallyRunning && preferencesManager.isMonitoring) {
+            Log.w("HomeFragment", "检测到服务状态不一致：PreferencesManager认为在运行，但服务实际未运行，同步状态")
+            preferencesManager.isMonitoring = false
+            homeViewModel.setMonitoring(false)
+        }
+        
+        // 根据当前监控状态更新UI（只更新开关状态，不覆盖状态文本）
+        updateMonitoringStatusUI()
+        
+        // 如果服务未运行，设置初始状态文本并启用"仅处理新增文件"开关
+        if (!isServiceActuallyRunning) {
+            binding.textMonitoringStatus.text = "监控状态: 未启动"
+            binding.switchProcessNewFilesOnly.isEnabled = true
+        }
+    }
+    
+    /**
+     * 检查文件夹监控服务是否正在运行
+     */
+    private fun isFolderMonitorServiceRunning(): Boolean {
+        val manager = requireContext().getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        @Suppress("DEPRECATION")
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (FolderMonitorService::class.java.name == service.service.className) {
+                return true
+            }
+        }
+        return false
     }
     
     override fun onPause() {
@@ -637,6 +750,23 @@ class HomeFragment : Fragment() {
 
     private fun showToast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+    }
+    
+    /**
+     * 更新监控状态UI
+     * 根据PreferencesManager中的监控状态更新UI显示和控件状态
+     * 注意：不更新状态文本，状态文本完全由广播接收器管理
+     */
+    private fun updateMonitoringStatusUI() {
+        val isMonitoring = preferencesManager.isMonitoring
+        
+        // 不修改状态文本，完全由广播接收器管理
+        // 这样可以正确显示"正在扫描"、"正在标记"等详细状态
+        
+        // 根据监控状态控制"仅处理新增文件"开关
+        binding.switchProcessNewFilesOnly.isEnabled = !isMonitoring
+        
+        Log.d("HomeFragment", "监控状态UI已更新: isMonitoring=$isMonitoring (状态文本由广播接收器管理)")
     }
 
     private fun canStartMonitoring(): Boolean {
@@ -674,6 +804,10 @@ class HomeFragment : Fragment() {
         }
         requireContext().startForegroundService(intent)
         homeViewModel.setMonitoring(true)
+        
+        // 更新开关状态（禁用"仅处理新增文件"开关）
+        binding.switchProcessNewFilesOnly.isEnabled = false
+        // 状态文本将由服务的广播更新
     }
 
     private fun stopMonitoring() {
@@ -682,6 +816,12 @@ class HomeFragment : Fragment() {
         }
         requireContext().startService(intent)
         homeViewModel.setMonitoring(false)
+        
+        // 更新UI状态
+        updateMonitoringStatusUI()
+        
+        // 停止监控后，显式设置状态文本为"未启动"
+        binding.textMonitoringStatus.text = "监控状态: 未启动"
     }
 
     private fun updateMonitoringButtonState() {
@@ -1214,7 +1354,11 @@ class HomeFragment : Fragment() {
         // 清理防抖任务
         previewUpdateRunnable?.let { previewUpdateHandler.removeCallbacks(it) }
         configBroadcastRunnable?.let { configBroadcastHandler.removeCallbacks(it) }
+        
+        // 注销广播接收器
         unregisterTetheredReceiver()
+        unregisterMonitoringStatusReceiver()
+        
         _binding = null
     }
 

@@ -51,7 +51,7 @@
     <string name="monitoring_status">监控状态</string>
     <string name="monitoring_status_format">监控状态: %s</string>
     <string name="monitoring_control">监控控制</string>
-    <string name="monitoring_status_not_started">监控状态: 未启动</string>
+    <string name="monitoring_status_not_started">监控未启动</string>
     <string name="monitoring_status_running">监控中...</string>
     <string name="monitoring_status_stopped">已停止监控</string>
     <string name="folder_not_set">未设置文件夹</string>

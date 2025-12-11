@@ -22,7 +22,8 @@ import java.nio.file.attribute.BasicFileAttributes
 class OptimizedColdBootScanner(
     private val context: Context,
     private val persistentStore: PersistentStore,
-    private val config: FileTrackerConfig
+    private val config: FileTrackerConfig,
+    private val onFileCountDetected: ((Int) -> Unit)? = null  // 文件数量检测回调
 ) {
     companion object {
         private const val TAG = "OptimizedColdBootScanner"
@@ -168,6 +169,7 @@ class OptimizedColdBootScanner(
     /**
      * 使用优化的DocumentFile API进行扫描
      * 适用于SAF授权的外部目录
+     * 优化：使用 sequence 延迟计算，减少内存占用
      */
     private fun scanWithOptimizedDocumentFile(uri: Uri): List<FileRecord> {
         val documentDir = DocumentFile.fromTreeUri(context, uri)
@@ -183,14 +185,19 @@ class OptimizedColdBootScanner(
             
             Log.d(TAG, "DocumentFile扫描: 共${allFiles.size}个条目")
             
-            // 分批处理，避免内存峰值
+            // 立即通知文件数量（在过滤之前）
+            onFileCountDetected?.invoke(allFiles.size)
+            
+            // 优化：使用 sequence 延迟计算，减少内存占用
+            // 先过滤再转换，避免不必要的对象创建
             allFiles.asSequence()
-                .filter { it.isFile }
-                .filter { isImageFile(it.name) }
-                .chunked(config.batchSize)
-                .flatMap { batch ->
-                    batch.asSequence().mapNotNull { doc ->
+                .filter { it.isFile && isImageFile(it.name) }
+                .mapNotNull { doc ->
+                    try {
                         FileRecord.fromDocumentFile(doc, false)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "读取文件失败: ${doc.name}", e)
+                        null
                     }
                 }
                 .toList()

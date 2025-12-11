@@ -28,7 +28,10 @@ import kotlinx.coroutines.withContext
  * 5. 监听增量文件：manager.consumeIncremental().collect { ... }
  * 6. 停止追踪：manager.stop()
  */
-class FileTrackerManager(private val context: Context) {
+class FileTrackerManager(
+    private val context: Context,
+    private val onFileCountDetected: ((Int) -> Unit)? = null  // 文件数量检测回调
+) {
     
     companion object {
         private const val TAG = "FileTrackerManager"
@@ -99,8 +102,8 @@ class FileTrackerManager(private val context: Context) {
         // 初始化Channel
         incrementalChannel = Channel(Channel.BUFFERED)
         
-        // 初始化组件
-        coldBootScanner = OptimizedColdBootScanner(context, persistentStore, config)
+        // 初始化组件，传递文件数量检测回调
+        coldBootScanner = OptimizedColdBootScanner(context, persistentStore, config, onFileCountDetected)
         hotFileObserver = HotFileObserver(context, persistentStore, config)
         
         try {

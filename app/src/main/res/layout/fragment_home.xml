@@ -50,7 +50,7 @@
                     android:id="@+id/text_monitoring_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="监控状态: 未启动"
+                    android:text="监控未启动"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:layout_marginBottom="8dp" />
                     
