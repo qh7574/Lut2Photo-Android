@@ -92,9 +92,99 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 uniform float u_lutSize;
                 uniform float u_lut2Size;
                 
+                // 胶片颗粒参数
+                uniform int u_grainEnabled;
+                uniform float u_grainStrength;
+                uniform float u_grainSize;
+                uniform float u_grainSeed;
+                uniform float u_shadowGrainRatio;
+                uniform float u_midtoneGrainRatio;
+                uniform float u_highlightGrainRatio;
+                uniform float u_shadowSizeRatio;
+                uniform float u_highlightSizeRatio;
+                uniform float u_redChannelRatio;
+                uniform float u_greenChannelRatio;
+                uniform float u_blueChannelRatio;
+                uniform float u_channelCorrelation;
+                uniform float u_colorPreservation;
+                
                 // Random function for dithering
                 float random(vec2 co) {
                     return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+                }
+                
+                // 高斯噪声生成（Box-Muller变换简化版）
+                float gaussianNoise(vec2 uv, float seed) {
+                    float u1 = max(random(uv + seed), 0.0001);
+                    float u2 = random(uv + seed + 0.5);
+                    return sqrt(-2.0 * log(u1)) * cos(6.28318 * u2);
+                }
+                
+                // 平滑插值函数
+                float smoothstep3(float t) {
+                    float x = clamp(t, 0.0, 1.0);
+                    return x * x * (3.0 - 2.0 * x);
+                }
+                
+                // 根据亮度获取颗粒强度比例
+                float getGrainStrengthRatio(float luminance) {
+                    if (luminance < 0.25) {
+                        return u_shadowGrainRatio;
+                    } else if (luminance < 0.35) {
+                        float t = smoothstep3((luminance - 0.25) / 0.1);
+                        return mix(u_shadowGrainRatio, u_midtoneGrainRatio, t);
+                    } else if (luminance < 0.65) {
+                        return u_midtoneGrainRatio;
+                    } else if (luminance < 0.75) {
+                        float t = smoothstep3((luminance - 0.65) / 0.1);
+                        return mix(u_midtoneGrainRatio, u_highlightGrainRatio, t);
+                    } else {
+                        return u_highlightGrainRatio;
+                    }
+                }
+                
+                // 根据亮度获取颗粒尺寸比例
+                float getGrainSizeRatio(float luminance) {
+                    if (luminance < 0.25) {
+                        return u_shadowSizeRatio;
+                    } else if (luminance < 0.35) {
+                        float t = smoothstep3((luminance - 0.25) / 0.1);
+                        return mix(u_shadowSizeRatio, 1.0, t);
+                    } else if (luminance < 0.65) {
+                        return 1.0;
+                    } else if (luminance < 0.75) {
+                        float t = smoothstep3((luminance - 0.65) / 0.1);
+                        return mix(1.0, u_highlightSizeRatio, t);
+                    } else {
+                        return u_highlightSizeRatio;
+                    }
+                }
+                
+                // 应用胶片颗粒效果
+                vec3 applyFilmGrain(vec3 color, vec2 uv) {
+                    // 计算亮度
+                    float luminance = dot(color, vec3(0.299, 0.587, 0.114));
+                    
+                    // 获取当前亮度下的颗粒参数
+                    float strengthRatio = getGrainStrengthRatio(luminance);
+                    float sizeRatio = getGrainSizeRatio(luminance);
+                    
+                    // 计算实际噪声强度
+                    float noiseStrength = u_grainStrength * strengthRatio * u_grainSize * sizeRatio * 0.1;
+                    
+                    // 生成基础噪声（用于通道相关性）
+                    vec2 grainUV = uv * u_grainSize * sizeRatio * 100.0;
+                    float baseNoise = gaussianNoise(grainUV, u_grainSeed);
+                    
+                    // 生成各通道噪声（考虑通道相关性）
+                    float rNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.1), baseNoise, u_channelCorrelation) * u_redChannelRatio;
+                    float gNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.2), baseNoise, u_channelCorrelation) * u_greenChannelRatio;
+                    float bNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.3), baseNoise, u_channelCorrelation) * u_blueChannelRatio;
+                    
+                    // 应用颗粒并保护色彩
+                    vec3 noise = vec3(rNoise, gNoise, bNoise) * noiseStrength * u_colorPreservation;
+                    
+                    return color + noise;
                 }
                 
                 // Floyd-Steinberg dithering approximation - 修复分块处理时的坐标问题
@@ -139,12 +229,18 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                         processedColor = mix(processedColor, lut2Color, clampedStrength2);
                     }
                     
-                    // Apply dithering if enabled - 使用纹理坐标而非屏幕坐标
-                    vec3 finalColor = processedColor;
+                    // 步骤3：应用抖动 - 使用纹理坐标而非屏幕坐标
+                    vec3 ditheredColor = processedColor;
                     if (u_ditherType == 1) { // Floyd-Steinberg
-                        finalColor = applyFloydSteinbergDither(processedColor, v_texCoord);
+                        ditheredColor = applyFloydSteinbergDither(processedColor, v_texCoord);
                     } else if (u_ditherType == 2) { // Random
-                        finalColor = applyRandomDither(processedColor, v_texCoord);
+                        ditheredColor = applyRandomDither(processedColor, v_texCoord);
+                    }
+                    
+                    // 步骤4：应用胶片颗粒（在抖动之后）
+                    vec3 finalColor = ditheredColor;
+                    if (u_grainEnabled == 1 && u_grainStrength > 0.0) {
+                        finalColor = applyFilmGrain(ditheredColor, v_texCoord);
                     }
                     
                     fragColor = vec4(clamp(finalColor, 0.0, 1.0), originalColor.a);
@@ -177,6 +273,25 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     private var ditherTypeLocation: Int = 0
     private var lutSizeLocation: Int = 0
     private var lut2SizeLocation: Int = 0  // 第二个LUT尺寸位置
+    
+    // 胶片颗粒uniform位置
+    private var grainEnabledLocation: Int = 0
+    private var grainStrengthLocation: Int = 0
+    private var grainSizeLocation: Int = 0
+    private var grainSeedLocation: Int = 0
+    private var shadowGrainRatioLocation: Int = 0
+    private var midtoneGrainRatioLocation: Int = 0
+    private var highlightGrainRatioLocation: Int = 0
+    private var shadowSizeRatioLocation: Int = 0
+    private var highlightSizeRatioLocation: Int = 0
+    private var redChannelRatioLocation: Int = 0
+    private var greenChannelRatioLocation: Int = 0
+    private var blueChannelRatioLocation: Int = 0
+    private var channelCorrelationLocation: Int = 0
+    private var colorPreservationLocation: Int = 0
+    
+    // 当前颗粒配置
+    private var currentGrainConfig: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? = null
 
     private var isInitialized = false
     private var lutTexture: Int = 0
@@ -1300,6 +1415,30 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             }
         }
 
+        // **关键修复：在创建帧缓冲区之前验证着色器程序**
+        // 这样如果需要重新初始化GPU，不会影响后续创建的帧缓冲区
+        if (shaderProgram == 0) {
+            Log.w(TAG, "着色器程序未初始化，重新初始化GPU")
+            cleanupGpu()
+            initializeGpu()
+            if (shaderProgram == 0) {
+                throw RuntimeException("着色器程序初始化失败")
+            }
+        } else {
+            // 验证着色器程序是否有效
+            val isValid = IntArray(1)
+            GLES30.glGetProgramiv(shaderProgram, GLES30.GL_LINK_STATUS, isValid, 0)
+            if (isValid[0] == 0) {
+                Log.e(TAG, "着色器程序无效，重新初始化GPU（在创建帧缓冲区之前）")
+                cleanupGpu()
+                initializeGpu()
+                if (shaderProgram == 0) {
+                    throw RuntimeException("重新初始化后着色器程序仍然无效")
+                }
+                Log.d(TAG, "着色器程序重新初始化成功，ID: $shaderProgram")
+            }
+        }
+
         // **关键修复：验证LUT纹理是否有效**
         if (lutTexture == 0) {
             Log.e(TAG, "LUT纹理无效，尝试重新上传")
@@ -1482,25 +1621,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         // 设置视口
         GLES30.glViewport(0, 0, width, height)
 
-        // 验证着色器程序状态并使用
-        if (shaderProgram == 0) {
-            throw RuntimeException("着色器程序未初始化")
-        }
-
-        // 验证着色器程序是否有效
-        val isValid = IntArray(1)
-        GLES30.glGetProgramiv(shaderProgram, GLES30.GL_LINK_STATUS, isValid, 0)
-        if (isValid[0] == 0) {
-            Log.e(TAG, "着色器程序无效，重新初始化GPU")
-            cleanupGpu()
-            initializeGpu()
-
-            // 重新验证
-            if (shaderProgram == 0) {
-                throw RuntimeException("重新初始化后着色器程序仍然无效")
-            }
-        }
-
+        // 着色器程序已在创建帧缓冲区之前验证过，直接使用
         Log.d(TAG, "使用着色器程序，ID: $shaderProgram")
         GLES30.glUseProgram(shaderProgram)
         checkGLError("使用着色器程序")
@@ -1577,6 +1698,29 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             lut2SizeLocation,
             if (hasSecondLut) currentLut2Size.toFloat() else currentLutSize.toFloat()
         )
+        
+        // 设置胶片颗粒uniform变量
+        val grainConfig = currentGrainConfig
+        val grainEnabled = grainConfig?.isEnabled == true && grainConfig.globalStrength > 0f
+        GLES30.glUniform1i(grainEnabledLocation, if (grainEnabled) 1 else 0)
+        if (grainEnabled && grainConfig != null) {
+            GLES30.glUniform1f(grainStrengthLocation, grainConfig.globalStrength)
+            GLES30.glUniform1f(grainSizeLocation, grainConfig.grainSize)
+            GLES30.glUniform1f(grainSeedLocation, kotlin.random.Random.nextFloat() * 1000f)
+            GLES30.glUniform1f(shadowGrainRatioLocation, grainConfig.shadowGrainRatio)
+            GLES30.glUniform1f(midtoneGrainRatioLocation, grainConfig.midtoneGrainRatio)
+            GLES30.glUniform1f(highlightGrainRatioLocation, grainConfig.highlightGrainRatio)
+            GLES30.glUniform1f(shadowSizeRatioLocation, grainConfig.shadowSizeRatio)
+            GLES30.glUniform1f(highlightSizeRatioLocation, grainConfig.highlightSizeRatio)
+            GLES30.glUniform1f(redChannelRatioLocation, grainConfig.redChannelRatio)
+            GLES30.glUniform1f(greenChannelRatioLocation, grainConfig.greenChannelRatio)
+            GLES30.glUniform1f(blueChannelRatioLocation, grainConfig.blueChannelRatio)
+            GLES30.glUniform1f(channelCorrelationLocation, grainConfig.channelCorrelation)
+            GLES30.glUniform1f(colorPreservationLocation, grainConfig.colorPreservation)
+            Log.d(TAG, "胶片颗粒已启用，强度: ${grainConfig.globalStrength}")
+        } else {
+            Log.d(TAG, "胶片颗粒未启用")
+        }
 
         Log.d(TAG, "设置uniform变量完成:")
         Log.d(TAG, "  - u_strength: ${params.strength}")
@@ -1836,6 +1980,22 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             ditherTypeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_ditherType")
             lutSizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lutSize")
             lut2SizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_lut2Size")
+            
+            // 获取胶片颗粒uniform位置
+            grainEnabledLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainEnabled")
+            grainStrengthLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainStrength")
+            grainSizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainSize")
+            grainSeedLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainSeed")
+            shadowGrainRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_shadowGrainRatio")
+            midtoneGrainRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_midtoneGrainRatio")
+            highlightGrainRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_highlightGrainRatio")
+            shadowSizeRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_shadowSizeRatio")
+            highlightSizeRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_highlightSizeRatio")
+            redChannelRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_redChannelRatio")
+            greenChannelRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_greenChannelRatio")
+            blueChannelRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_blueChannelRatio")
+            channelCorrelationLocation = GLES30.glGetUniformLocation(shaderProgram, "u_channelCorrelation")
+            colorPreservationLocation = GLES30.glGetUniformLocation(shaderProgram, "u_colorPreservation")
 
             Log.d(TAG, "uniform位置获取结果:")
             Log.d(TAG, "  u_inputTexture: $inputTextureLocation")
@@ -1846,6 +2006,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             Log.d(TAG, "  u_ditherType: $ditherTypeLocation")
             Log.d(TAG, "  u_lutSize: $lutSizeLocation")
             Log.d(TAG, "  u_lut2Size: $lut2SizeLocation")
+            Log.d(TAG, "  u_grainEnabled: $grainEnabledLocation")
+            Log.d(TAG, "  u_grainStrength: $grainStrengthLocation")
 
             if (inputTextureLocation == -1 || lutTextureLocation == -1 || strengthLocation == -1 ||
                 ditherTypeLocation == -1 || lutSizeLocation == -1 || lut2TextureLocation == -1 ||
@@ -2202,5 +2364,21 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         } else {
             "GPU LUT处理器 - 未初始化"
         }
+    }
+    
+    /**
+     * 设置胶片颗粒配置
+     * @param config 颗粒配置，传null则禁用颗粒效果
+     */
+    fun setFilmGrainConfig(config: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig?) {
+        currentGrainConfig = config
+        Log.d(TAG, "设置胶片颗粒配置: ${if (config?.isEnabled == true) "启用，强度=${config.globalStrength}" else "禁用"}")
+    }
+    
+    /**
+     * 获取当前胶片颗粒配置
+     */
+    fun getFilmGrainConfig(): cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? {
+        return currentGrainConfig
     }
 }

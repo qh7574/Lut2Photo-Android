@@ -372,4 +372,67 @@ class PreferencesManager(context: Context) {
             borderColorMode = borderColorMode
         )
     }
+    
+    // ========== 胶片颗粒配置 ==========
+    
+    /**
+     * 保存胶片颗粒配置
+     */
+    fun saveFilmGrainConfig(config: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig) {
+        sharedPreferences.edit {
+            putBoolean("grain_enabled", config.isEnabled)
+            putFloat("grain_global_strength", config.globalStrength)
+            putFloat("grain_size", config.grainSize)
+            putFloat("grain_sharpness", config.grainSharpness)
+            putFloat("grain_anisotropy", config.anisotropy)
+            putFloat("grain_direction_variation", config.directionVariation)
+            putFloat("grain_shadow_ratio", config.shadowGrainRatio)
+            putFloat("grain_midtone_ratio", config.midtoneGrainRatio)
+            putFloat("grain_highlight_ratio", config.highlightGrainRatio)
+            putFloat("grain_shadow_size_ratio", config.shadowSizeRatio)
+            putFloat("grain_midtone_size_ratio", config.midtoneSizeRatio)
+            putFloat("grain_highlight_size_ratio", config.highlightSizeRatio)
+            putFloat("grain_red_channel_ratio", config.redChannelRatio)
+            putFloat("grain_green_channel_ratio", config.greenChannelRatio)
+            putFloat("grain_blue_channel_ratio", config.blueChannelRatio)
+            putFloat("grain_channel_correlation", config.channelCorrelation)
+            putFloat("grain_color_preservation", config.colorPreservation)
+        }
+        Log.d("PreferencesManager", "保存胶片颗粒配置: enabled=${config.isEnabled}, strength=${config.globalStrength}")
+    }
+    
+    /**
+     * 获取胶片颗粒配置
+     */
+    fun getFilmGrainConfig(): cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig {
+        return cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig(
+            isEnabled = sharedPreferences.getBoolean("grain_enabled", false),
+            globalStrength = sharedPreferences.getFloat("grain_global_strength", 0.5f),
+            grainSize = sharedPreferences.getFloat("grain_size", 1.0f),
+            grainSharpness = sharedPreferences.getFloat("grain_sharpness", 0.7f),
+            anisotropy = sharedPreferences.getFloat("grain_anisotropy", 0.3f),
+            directionVariation = sharedPreferences.getFloat("grain_direction_variation", 15f),
+            shadowGrainRatio = sharedPreferences.getFloat("grain_shadow_ratio", 0.6f),
+            midtoneGrainRatio = sharedPreferences.getFloat("grain_midtone_ratio", 1.0f),
+            highlightGrainRatio = sharedPreferences.getFloat("grain_highlight_ratio", 0.3f),
+            shadowSizeRatio = sharedPreferences.getFloat("grain_shadow_size_ratio", 1.5f),
+            midtoneSizeRatio = sharedPreferences.getFloat("grain_midtone_size_ratio", 1.0f),
+            highlightSizeRatio = sharedPreferences.getFloat("grain_highlight_size_ratio", 0.6f),
+            redChannelRatio = sharedPreferences.getFloat("grain_red_channel_ratio", 0.9f),
+            greenChannelRatio = sharedPreferences.getFloat("grain_green_channel_ratio", 1.0f),
+            blueChannelRatio = sharedPreferences.getFloat("grain_blue_channel_ratio", 1.2f),
+            channelCorrelation = sharedPreferences.getFloat("grain_channel_correlation", 0.9f),
+            colorPreservation = sharedPreferences.getFloat("grain_color_preservation", 0.95f)
+        )
+    }
+    
+    // 胶片颗粒开关状态（手动处理页面）
+    var dashboardGrainEnabled: Boolean
+        get() = sharedPreferences.getBoolean("dashboard_grain_enabled", false)
+        set(value) = sharedPreferences.edit { putBoolean("dashboard_grain_enabled", value) }
+    
+    // 胶片颗粒开关状态（文件夹监控）
+    var folderMonitorGrainEnabled: Boolean
+        get() = sharedPreferences.getBoolean("folder_monitor_grain_enabled", false)
+        set(value) = sharedPreferences.edit { putBoolean("folder_monitor_grain_enabled", value) }
 }

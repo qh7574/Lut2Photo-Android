@@ -27,7 +27,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import cn.alittlecookie.lut2photo.lut2photo.R
+import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentHomeBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
@@ -38,6 +40,7 @@ import cn.alittlecookie.lut2photo.lut2photo.utils.LutUtils
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkUtils
 import cn.alittlecookie.lut2photo.ui.bottomsheet.WatermarkSettingsBottomSheet
+import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.FilmGrainSettingsBottomSheet
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -48,6 +51,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
+import kotlin.coroutines.resume
 
 class HomeFragment : Fragment() {
 
@@ -57,6 +63,7 @@ class HomeFragment : Fragment() {
     private val homeViewModel: HomeViewModel by viewModels()
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var lutManager: LutManager
+    private lateinit var threadManager: ThreadManager
     private var selectedLutItem: LutItem? = null
     private var selectedLut2Item: LutItem? = null  // 第二个LUT
     private var availableLuts: List<LutItem> = emptyList()
@@ -209,6 +216,7 @@ class HomeFragment : Fragment() {
         
         preferencesManager = PreferencesManager(requireContext())
         lutManager = LutManager(requireContext())
+        threadManager = ThreadManager(requireContext())
         
         setupViews()
         setupTetheredMode()
@@ -257,6 +265,24 @@ class HomeFragment : Fragment() {
             // 修复：使用防抖机制，避免重复处理
             schedulePreviewUpdate()
             Log.d("HomeFragment", "文件夹监控水印开关状态改变: $isChecked")
+        }
+
+        // 添加颗粒开关监听器
+        binding.switchGrain.setOnCheckedChangeListener { _, isChecked ->
+            preferencesManager.folderMonitorGrainEnabled = isChecked
+            binding.buttonGrainSettings.isEnabled = isChecked
+            schedulePreviewUpdate()
+            Log.d("HomeFragment", "文件夹监控颗粒开关状态改变: $isChecked")
+        }
+
+        // 颗粒设置按钮
+        binding.buttonGrainSettings.setOnClickListener {
+            val bottomSheet = FilmGrainSettingsBottomSheet.newInstance(
+                onConfigChanged = { config ->
+                    schedulePreviewUpdate()
+                }
+            )
+            bottomSheet.show(parentFragmentManager, "FilmGrainSettingsBottomSheet")
         }
 
         // 添加"仅处理新增文件"开关监听器
@@ -494,6 +520,10 @@ class HomeFragment : Fragment() {
         // 加载水印开关状态
         binding.switchWatermark.isChecked = preferencesManager.folderMonitorWatermarkEnabled
         binding.buttonWatermarkSettings.isEnabled = preferencesManager.folderMonitorWatermarkEnabled
+
+        // 加载颗粒开关状态
+        binding.switchGrain.isChecked = preferencesManager.folderMonitorGrainEnabled
+        binding.buttonGrainSettings.isEnabled = preferencesManager.folderMonitorGrainEnabled
 
         // 加载"仅处理新增文件"开关状态
         binding.switchProcessNewFilesOnly.isChecked = preferencesManager.processNewFilesOnly
@@ -1031,6 +1061,11 @@ class HomeFragment : Fragment() {
             effects.add("水印")
         }
 
+        // 添加颗粒信息
+        if (binding.switchGrain.isChecked) {
+            effects.add("颗粒")
+        }
+
         // 添加抖动信息
         val ditherType = getDitherType()
         if (ditherType != LutProcessor.DitherType.NONE) {
@@ -1171,99 +1206,97 @@ class HomeFragment : Fragment() {
                                 var hasEffects = false
 
                                 try {
-                                    // 应用GPU双LUT效果
-                                    val lutPath =
-                                        selectedLutItem?.let { lutManager.getLutFilePath(it) }
-                                    val lut2Path =
-                                        selectedLut2Item?.let { lutManager.getLutFilePath(it) }
+                                    // 使用ThreadManager统一处理流程（LUT + 颗粒）
+                                    val lutPath = selectedLutItem?.let { lutManager.getLutFilePath(it) }
+                                    val lut2Path = selectedLut2Item?.let { lutManager.getLutFilePath(it) }
 
                                     if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty()) {
                                         // 使用固定的强度值，确保一致性
-                                        // 将0-100范围的值转换为0-1范围
                                         val strength1 = currentStrength1 / 100f
                                         val strength2 = currentStrength2 / 100f
 
-                                        Log.d("HomeFragment", "开始GPU双LUT处理")
-                                        Log.d(
-                                            "HomeFragment",
-                                            "- LUT1: ${selectedLutItem?.name ?: "未选择"}, 强度: $strength1"
-                                        )
-                                        Log.d(
-                                            "HomeFragment",
-                                            "- LUT2: ${selectedLut2Item?.name ?: "未选择"}, 强度: $strength2"
-                                        )
-                                        Log.d(
-                                            "HomeFragment",
-                                            "- 原始图片尺寸: ${processedBitmap.width}x${processedBitmap.height}"
-                                        )
-
-                                        val lutResult = LutUtils.applyDualLutGpu(
-                                            processedBitmap,
-                                            lutPath,
-                                            strength1,
-                                            lut2Path,
-                                            strength2,
-                                            requireContext()
-                                        )
-
-                                        if (lutResult != null && lutResult != processedBitmap) {
-                                            processedBitmap = lutResult
-                                            hasEffects = true
-                                            Log.d(
-                                                "HomeFragment",
-                                                "GPU双LUT效果应用成功，结果图片尺寸: ${lutResult.width}x${lutResult.height}"
-                                            )
+                                        Log.d("HomeFragment", "开始使用ThreadManager处理预览")
+                                        
+                                        // 设置颗粒配置（如果启用）
+                                        if (binding.switchGrain.isChecked) {
+                                            val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
+                                            threadManager.setFilmGrainConfig(grainConfig)
+                                            Log.d("HomeFragment", "预览颗粒配置已设置")
                                         } else {
-                                            Log.w(
-                                                "HomeFragment",
-                                                "GPU双LUT效果应用失败或无变化，lutResult=${lutResult.let { "非null" }}"
+                                            threadManager.setFilmGrainConfig(null)
+                                        }
+                                        
+                                        // 加载LUT到ThreadManager
+                                        if (!lutPath.isNullOrEmpty()) {
+                                            val lutFile = File(lutPath)
+                                            if (lutFile.exists()) {
+                                                threadManager.loadLut(lutFile.inputStream())
+                                            }
+                                        }
+                                        
+                                        // 加载第二个LUT（如果有）
+                                        if (!lut2Path.isNullOrEmpty()) {
+                                            val lut2File = File(lut2Path)
+                                            if (lut2File.exists()) {
+                                                threadManager.loadSecondLut(lut2File.inputStream())
+                                            }
+                                        }
+                                        
+                                        // 创建处理参数
+                                        val params = ILutProcessor.ProcessingParams(
+                                            strength = strength1,
+                                            lut2Strength = strength2,
+                                            quality = 95,
+                                            ditherType = ILutProcessor.DitherType.NONE
+                                        )
+                                        
+                                        // 使用ThreadManager处理（GPU会在着色器中处理LUT+颗粒）
+                                        val lutAndGrainResult = suspendCancellableCoroutine<Bitmap?> { continuation ->
+                                            threadManager.submitTask(
+                                                bitmap = processedBitmap,
+                                                params = params,
+                                                onComplete = { result ->
+                                                    continuation.resume(result.getOrNull())
+                                                }
                                             )
+                                        }
+                                        
+                                        if (lutAndGrainResult != null) {
+                                            processedBitmap = lutAndGrainResult
+                                            hasEffects = true
+                                            Log.d("HomeFragment", "ThreadManager处理成功（LUT+颗粒）")
+                                        } else {
+                                            Log.w("HomeFragment", "ThreadManager处理失败")
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("HomeFragment", "应用GPU双LUT效果失败，回退到CPU处理", e)
-
-                                    // 回退到原来的CPU处理方式
+                                    Log.e("HomeFragment", "ThreadManager处理失败，回退到原方式", e)
+                                    
+                                    // 回退到原来的处理方式
                                     try {
-                                        val lutPath =
-                                            selectedLutItem?.let { lutManager.getLutFilePath(it) }
-                                        if (!lutPath.isNullOrEmpty()) {
-                                            val strength1 = preferencesManager.homeStrength / 100f
-                                            val lutResult = LutUtils.applyLut(
+                                        val lutPath = selectedLutItem?.let { lutManager.getLutFilePath(it) }
+                                        val lut2Path = selectedLut2Item?.let { lutManager.getLutFilePath(it) }
+                                        val strength1 = currentStrength1 / 100f
+                                        val strength2 = currentStrength2 / 100f
+                                        
+                                        // GPU LUT处理
+                                        if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty()) {
+                                            val lutResult = LutUtils.applyDualLutGpu(
                                                 processedBitmap,
                                                 lutPath,
-                                                strength1
+                                                strength1,
+                                                lut2Path,
+                                                strength2,
+                                                requireContext()
                                             )
                                             if (lutResult != null) {
                                                 processedBitmap = lutResult
                                                 hasEffects = true
-                                                Log.d("HomeFragment", "LUT1 CPU回退处理成功")
                                             }
                                         }
-
-                                        val lut2Path =
-                                            selectedLut2Item?.let { lutManager.getLutFilePath(it) }
-                                        if (!lut2Path.isNullOrEmpty()) {
-                                            val strength2 =
-                                                preferencesManager.homeLut2Strength / 100f
-                                            val lut2Result = LutUtils.applyLut(
-                                                processedBitmap,
-                                                lut2Path,
-                                                strength2
-                                            )
-                                            if (lut2Result != null) {
-                                                processedBitmap = lut2Result
-                                                hasEffects = true
-                                                Log.d("HomeFragment", "LUT2 CPU回退处理成功")
-                                            }
-                                        }
-                                        Log.d("HomeFragment", "CPU回退处理完成")
+                                        Log.d("HomeFragment", "回退处理完成")
                                     } catch (fallbackException: Exception) {
-                                        Log.e(
-                                            "HomeFragment",
-                                            "CPU回退处理也失败",
-                                            fallbackException
-                                        )
+                                        Log.e("HomeFragment", "回退处理也失败", fallbackException)
                                     }
                                 }
 
@@ -1293,6 +1326,9 @@ class HomeFragment : Fragment() {
                                 } catch (e: Exception) {
                                     Log.e("HomeFragment", "应用水印效果失败", e)
                                 }
+
+                                // 颗粒效果已在ThreadManager中处理（GPU着色器或CPU回退）
+                                // 无需单独处理颗粒
 
                                 // 在主线程更新UI
                                 withContext(Dispatchers.Main) {
@@ -1395,6 +1431,11 @@ class HomeFragment : Fragment() {
         // 注销广播接收器
         unregisterTetheredReceiver()
         unregisterMonitoringStatusReceiver()
+        
+        // 释放ThreadManager资源
+        lifecycleScope.launch {
+            threadManager.release()
+        }
         
         _binding = null
     }

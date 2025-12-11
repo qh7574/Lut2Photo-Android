@@ -243,4 +243,27 @@
     <string name="photo_downloaded">照片已下载: %s</string>
     <string name="camera_photos">相机照片</string>
     <string name="selected_count">已选择 %d 张</string>
+    
+    <!-- 胶片颗粒设置 -->
+    <string name="film_grain_settings_title">胶片颗粒设置</string>
+    <string name="film_grain_basic_params">基础参数</string>
+    <string name="film_grain_global_strength">全局强度</string>
+    <string name="film_grain_size">颗粒大小</string>
+    <string name="film_grain_tonal_params">影调分区参数（以中间调为基准）</string>
+    <string name="film_grain_shadow_ratio">阴影颗粒强度</string>
+    <string name="film_grain_highlight_ratio">高光颗粒强度</string>
+    <string name="film_grain_shadow_size">阴影颗粒尺寸</string>
+    <string name="film_grain_highlight_size">高光颗粒尺寸</string>
+    <string name="film_grain_channel_params">色彩通道参数（以绿色通道为基准）</string>
+    <string name="film_grain_red_channel">红色通道系数</string>
+    <string name="film_grain_blue_channel">蓝色通道系数</string>
+    <string name="film_grain_correlation">通道相关性</string>
+    <string name="film_grain_color_preservation">色彩保护</string>
+    <string name="enable_film_grain">启用胶片颗粒</string>
+    <string name="film_grain_enabled">颗粒效果已启用</string>
+    <string name="film_grain_disabled">颗粒效果已禁用</string>
+    <string name="save_settings">保存设置</string>
+    <string name="reset_to_default">恢复默认</string>
+    <string name="grain_settings">颗粒设置</string>
+    <string name="film_grain">启用颗粒</string>
 </resources>

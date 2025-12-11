@@ -49,10 +49,14 @@ class ThreadManager(context: Context) {
     // Processors
     private val cpuProcessor = CpuLutProcessor()
     private val gpuProcessor = GpuLutProcessor(context)
+    private val filmGrainProcessor = FilmGrainProcessor()
 
     // Preferred processor type
     private var preferredProcessor = ILutProcessor.ProcessorType.CPU
     private var isGpuAvailable = false
+    
+    // 当前颗粒配置
+    private var currentGrainConfig: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? = null
 
     // PreferencesManager for reading user settings
     private val preferencesManager = PreferencesManager(context)
@@ -440,6 +444,40 @@ class ThreadManager(context: Context) {
             preferredProcessor = preferredProcessor,
             isGpuAvailable = isGpuAvailable
         )
+    }
+    
+    /**
+     * 设置胶片颗粒配置
+     * @param config 颗粒配置，传null则禁用颗粒效果
+     */
+    fun setFilmGrainConfig(config: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig?) {
+        currentGrainConfig = config
+        // 同步到GPU处理器
+        gpuProcessor.setFilmGrainConfig(config)
+        Log.d(TAG, "设置胶片颗粒配置: ${if (config?.isEnabled == true) "启用，强度=${config.globalStrength}" else "禁用"}")
+    }
+    
+    /**
+     * 获取当前胶片颗粒配置
+     */
+    fun getFilmGrainConfig(): cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? {
+        return currentGrainConfig
+    }
+    
+    /**
+     * 对图片应用颗粒效果（CPU版本，用于GPU回退或独立调用）
+     * @param bitmap 输入图片
+     * @param config 颗粒配置
+     * @return 处理后的图片
+     */
+    suspend fun applyFilmGrain(
+        bitmap: Bitmap,
+        config: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig?
+    ): Bitmap? {
+        if (config == null || !config.isEnabled || config.globalStrength <= 0f) {
+            return bitmap
+        }
+        return filmGrainProcessor.processImage(bitmap, config)
     }
 
     /**

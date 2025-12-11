@@ -464,6 +464,17 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     }
                 }
 
+                // 设置颗粒配置到处理器（GPU处理器会在同一pass中处理LUT+颗粒）
+                val grainEnabled = preferencesManager.dashboardGrainEnabled
+                if (grainEnabled) {
+                    val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
+                    threadManager.setFilmGrainConfig(grainConfig)
+                    Log.d("DashboardViewModel", "颗粒配置已设置到处理器: 强度=${grainConfig.globalStrength}")
+                } else {
+                    threadManager.setFilmGrainConfig(null)
+                    Log.d("DashboardViewModel", "颗粒效果已禁用")
+                }
+
                 // 处理每张图片
                 for ((index, imageItem) in images.withIndex()) {
                     if (!isActive) break
@@ -526,6 +537,33 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             if (processedBitmap != null) {
                                 Log.d("DashboardViewModel", "开始保存处理后的图片")
 
+                                // 颗粒效果处理逻辑：
+                                // - GPU处理器：颗粒已在着色器中与LUT一起处理，无需单独处理
+                                // - CPU处理器：需要单独调用FilmGrainProcessor处理颗粒
+                                var bitmapAfterGrain = processedBitmap
+                                val processorInfo = threadManager.getProcessorInfo()
+                                val usedGpu = processorInfo.preferredProcessor == ILutProcessor.ProcessorType.GPU && processorInfo.isGpuAvailable
+                                
+                                if (preferencesManager.dashboardGrainEnabled && !usedGpu) {
+                                    // CPU处理器：需要单独处理颗粒
+                                    try {
+                                        Log.d("DashboardViewModel", "CPU处理器：开始单独应用颗粒效果")
+                                        val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
+                                        val grainProcessor = cn.alittlecookie.lut2photo.lut2photo.core.FilmGrainProcessor()
+                                        val grainedBitmap = grainProcessor.processImage(processedBitmap, grainConfig)
+                                        if (grainedBitmap != null) {
+                                            bitmapAfterGrain = grainedBitmap
+                                            Log.d("DashboardViewModel", "CPU颗粒效果应用成功")
+                                        } else {
+                                            Log.w("DashboardViewModel", "CPU颗粒效果应用返回null，使用原图")
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("DashboardViewModel", "CPU应用颗粒效果失败: ${e.message}", e)
+                                    }
+                                } else if (preferencesManager.dashboardGrainEnabled && usedGpu) {
+                                    Log.d("DashboardViewModel", "GPU处理器：颗粒已在着色器中处理，跳过单独处理")
+                                }
+
                                 // 应用水印（如果启用）
                                 val finalBitmap =
                                     if (preferencesManager.dashboardWatermarkEnabled) {  // 使用分离的开关
@@ -536,7 +574,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                                 )  // 明确指定不是文件夹监控
                                             exifReader.readExifFromUri(imageItem.uri)
                                             watermarkProcessor.addWatermark(
-                                                processedBitmap,
+                                                bitmapAfterGrain,  // 使用颗粒处理后的图片
                                                 watermarkConfig,
                                                 imageItem.uri,
                                                 lutItem.name,
@@ -550,10 +588,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                                 "应用水印失败: ${e.message}",
                                                 e
                                             )
-                                            processedBitmap // 如果水印失败，使用原始处理后的图片
+                                            bitmapAfterGrain // 如果水印失败，使用颗粒处理后的图片
                                         }
                                     } else {
-                                        processedBitmap
+                                        bitmapAfterGrain  // 使用颗粒处理后的图片
                                     }
                                 
                                 // 修改saveProcessedImage方法调用
