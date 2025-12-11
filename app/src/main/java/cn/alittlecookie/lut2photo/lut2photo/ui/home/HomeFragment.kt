@@ -327,9 +327,9 @@ class HomeFragment : Fragment() {
                 } else {
                     Log.w("HomeFragment", "条件不满足，重置开关状态")
                     if (!hasLutFile && availableLuts.isNotEmpty()) {
-                        showToast("LUT文件正在加载中，请稍后再试")
+                        showToast("请选择Lut文件")
                     } else {
-                        showToast("读取设置中。。。")
+                        showToast("请确保设置了所有设置项")
                     }
 
                     // 临时移除监听器，重置状态，然后恢复监听器
@@ -721,6 +721,43 @@ class HomeFragment : Fragment() {
         if (!isServiceActuallyRunning) {
             binding.textMonitoringStatus.text = "监控状态: 未启动"
             binding.switchProcessNewFilesOnly.isEnabled = true
+        } else {
+            // 服务正在运行，主动查询当前状态
+            queryMonitoringStatus()
+        }
+    }
+    
+    /**
+     * 主动查询监控服务的当前状态
+     * 通过发送广播请求服务响应当前状态
+     */
+    private fun queryMonitoringStatus() {
+        Log.d("HomeFragment", "主动查询监控服务状态")
+        
+        // 发送状态查询广播
+        val queryIntent = Intent(requireContext(), FolderMonitorService::class.java).apply {
+            action = FolderMonitorService.ACTION_QUERY_STATUS
+        }
+        
+        try {
+            requireContext().startService(queryIntent)
+            Log.d("HomeFragment", "状态查询请求已发送")
+            
+            // 设置超时保护：如果500ms内没有收到响应，说明服务可能未正常运行
+            Handler(Looper.getMainLooper()).postDelayed({
+                // 检查是否收到了状态更新（通过检查状态文本是否仍是默认值）
+                if (binding.textMonitoringStatus.text == "监控状态: 未启动" && 
+                    preferencesManager.isMonitoring) {
+                    Log.w("HomeFragment", "状态查询超时，服务可能未响应")
+                    // 同步状态
+                    preferencesManager.isMonitoring = false
+                    homeViewModel.setMonitoring(false)
+                    binding.switchProcessNewFilesOnly.isEnabled = true
+                }
+            }, 500)
+            
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "发送状态查询请求失败", e)
         }
     }
     

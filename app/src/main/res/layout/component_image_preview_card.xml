@@ -96,7 +96,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:alpha="0.6"
-                    android:text="选择图片以显示预览"
+                    android:text="等待状态更新"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
             </LinearLayout>

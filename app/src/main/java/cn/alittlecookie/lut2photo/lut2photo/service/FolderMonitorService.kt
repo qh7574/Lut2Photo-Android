@@ -70,6 +70,9 @@ class FolderMonitorService : Service() {
         const val ACTION_MONITORING_STATUS_UPDATE = "cn.alittlecookie.lut2photo.MONITORING_STATUS_UPDATE"
         const val EXTRA_STATUS_MESSAGE = "status_message"
         const val EXTRA_IS_MONITORING = "is_monitoring"
+        
+        // 状态查询广播
+        const val ACTION_QUERY_STATUS = "cn.alittlecookie.lut2photo.QUERY_MONITORING_STATUS"
     }
 
 
@@ -79,6 +82,9 @@ class FolderMonitorService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var processedCount = 0
     private var currentLutName = ""
+    
+    // 当前状态消息，用于状态查询时返回准确的实时状态
+    private var currentStatusMessage: String = "监控未启动"
 
     // 添加图片完整性校验相关的变量
     private val incompleteFiles = mutableSetOf<String>()
@@ -253,6 +259,16 @@ class FolderMonitorService : Service() {
                 stopSelf()  // 停止服务
                 return START_NOT_STICKY  // 不要重启服务
             }
+            ACTION_QUERY_STATUS -> {
+                // 响应状态查询请求，直接返回当前状态消息
+                Log.d(TAG, "收到状态查询请求")
+                Log.d(TAG, "  - 当前监控状态: isMonitoring=$isMonitoring")
+                Log.d(TAG, "  - 当前状态消息: $currentStatusMessage")
+                
+                // 直接使用维护的状态消息，准确反映实时状态（扫描、标记、监控中等）
+                broadcastMonitoringStatus(currentStatusMessage)
+                // 不需要启动前台服务，只是响应查询
+            }
             else -> {
                 // 修复：如果没有明确的action，不显示启动通知
                 Log.w(TAG, "服务启动但没有明确的action,已停止服务")
@@ -314,10 +330,13 @@ class FolderMonitorService : Service() {
     }
     
     /**
-     * 发送监控状态广播到UI
+     * 发送监控状态广播到UI（持久状态）
      * @param statusMessage 状态消息
      */
     private fun broadcastMonitoringStatus(statusMessage: String) {
+        // 同步更新当前状态消息，用于状态查询
+        currentStatusMessage = statusMessage
+        
         val intent = Intent(ACTION_MONITORING_STATUS_UPDATE).apply {
             // 设置包名，使其成为显式广播，这样RECEIVER_NOT_EXPORTED的接收器才能收到
             setPackage(packageName)
@@ -325,7 +344,7 @@ class FolderMonitorService : Service() {
             putExtra(EXTRA_IS_MONITORING, isMonitoring)
         }
         
-        Log.d(TAG, "========== 准备发送监控状态广播 ==========")
+        Log.d(TAG, "========== 准备发送监控状态广播（持久） ==========")
         Log.d(TAG, "  - Action: $ACTION_MONITORING_STATUS_UPDATE")
         Log.d(TAG, "  - Package: $packageName")
         Log.d(TAG, "  - 状态消息: $statusMessage")
@@ -333,7 +352,40 @@ class FolderMonitorService : Service() {
         
         sendBroadcast(intent)
         
-        Log.d(TAG, "  - 广播已发送")
+        Log.d(TAG, "  - 广播已发送，currentStatusMessage已更新")
+    }
+    
+    /**
+     * 发送临时状态广播到UI（不更新currentStatusMessage）
+     * 用于配置更新等短暂提示，不会影响状态查询
+     * @param statusMessage 临时状态消息
+     * @param autoRestoreDelayMs 自动恢复延迟（毫秒），默认3秒后恢复到持久状态
+     */
+    private fun broadcastTemporaryStatus(statusMessage: String, autoRestoreDelayMs: Long = 3000) {
+        // 不更新 currentStatusMessage，保持持久状态
+        
+        val intent = Intent(ACTION_MONITORING_STATUS_UPDATE).apply {
+            setPackage(packageName)
+            putExtra(EXTRA_STATUS_MESSAGE, statusMessage)
+            putExtra(EXTRA_IS_MONITORING, isMonitoring)
+        }
+        
+        Log.d(TAG, "========== 准备发送临时状态广播 ==========")
+        Log.d(TAG, "  - 临时状态消息: $statusMessage")
+        Log.d(TAG, "  - 持久状态消息: $currentStatusMessage (不变)")
+        Log.d(TAG, "  - 自动恢复延迟: ${autoRestoreDelayMs}ms")
+        
+        sendBroadcast(intent)
+        
+        Log.d(TAG, "  - 临时广播已发送")
+        
+        // 延迟后自动恢复到持久状态
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (isMonitoring) {
+                Log.d(TAG, "自动恢复到持久状态: $currentStatusMessage")
+                broadcastMonitoringStatus(currentStatusMessage)
+            }
+        }, autoRestoreDelayMs)
     }
 
     private fun startMonitoring(
@@ -484,11 +536,13 @@ class FolderMonitorService : Service() {
                 val existingFiles = fileTrackerManager!!.consumeExisting()
                 Log.d(TAG, "开始处理存量文件: ${existingFiles.size}个")
                 
+                val initialStatus = "正在处理存量文件: 0/${existingFiles.size}"
                 val statusNotification = createNotification(
                     "文件夹监控服务",
-                    "正在处理存量文件: 0/${existingFiles.size}"
+                    initialStatus
                 )
                 startForeground(NOTIFICATION_ID, statusNotification)
+                broadcastMonitoringStatus(initialStatus)
                 
                 for ((index, fileRecord) in existingFiles.withIndex()) {
                     if (!isMonitoring) break
@@ -496,11 +550,13 @@ class FolderMonitorService : Service() {
                     
                     // 每处理10个文件更新一次通知
                     if (index % 10 == 0) {
+                        val progressStatus = "正在处理存量文件: ${index + 1}/${existingFiles.size}"
                         val progressNotification = createNotification(
                             "文件夹监控服务",
-                            "正在处理存量文件: ${index + 1}/${existingFiles.size}"
+                            progressStatus
                         )
                         startForeground(NOTIFICATION_ID, progressNotification)
+                        broadcastMonitoringStatus(progressStatus)
                     }
                 }
             } else {
@@ -562,16 +618,42 @@ class FolderMonitorService : Service() {
                 return
             }
             
+            val documentFile = DocumentFile.fromSingleUri(this, fileRecord.uri)
+            if (documentFile == null || !documentFile.exists()) {
+                Log.w(TAG, "文件不存在或无法访问: ${fileRecord.fileName}")
+                return
+            }
+            
+            // 检查文件完整性（防止处理未完全传输的文件）
+            if (!isImageFileComplete(documentFile)) {
+                // 记录重试次数
+                val retryCount = fileRetryCount.getOrDefault(fileRecord.fileName, 0) + 1
+                fileRetryCount[fileRecord.fileName] = retryCount
+                incompleteFiles.add(fileRecord.fileName)
+                
+                if (retryCount >= maxRetryCount) {
+                    Log.w(TAG, "文件 ${fileRecord.fileName} 重试次数已达上限($maxRetryCount)，跳过处理")
+                    // 标记为已处理，避免无限重试
+                    fileTrackerManager?.markFileAsProcessed(fileRecord.fileName)
+                    fileRetryCount.remove(fileRecord.fileName)
+                    incompleteFiles.remove(fileRecord.fileName)
+                } else {
+                    Log.d(TAG, "文件 ${fileRecord.fileName} 未完整传输，等待下次检测 (重试次数: $retryCount/$maxRetryCount)")
+                    // 不标记为已处理，等待下次增量检测时重新尝试
+                }
+                return
+            }
+            
+            // 文件完整性校验通过，清理重试记录
+            Log.d(TAG, "文件完整性校验通过: ${fileRecord.fileName}")
+            fileRetryCount.remove(fileRecord.fileName)
+            incompleteFiles.remove(fileRecord.fileName)
+            
             startProcessingFile(fileRecord.fileName)
             
-            val documentFile = DocumentFile.fromSingleUri(this, fileRecord.uri)
-            if (documentFile != null && documentFile.exists()) {
-                processingParams?.let { params ->
-                    Log.d(TAG, "处理文件 ${fileRecord.fileName} 使用的参数: strength=${params.strength}, lut2Strength=${params.lut2Strength}, quality=${params.quality}, dither=${params.ditherType}")
-                    processDocumentFile(documentFile, getOutputDir()!!, params)
-                }
-            } else {
-                Log.w(TAG, "文件不存在或无法访问: ${fileRecord.fileName}")
+            processingParams?.let { params ->
+                Log.d(TAG, "处理文件 ${fileRecord.fileName} 使用的参数: strength=${params.strength}, lut2Strength=${params.lut2Strength}, quality=${params.quality}, dither=${params.ditherType}")
+                processDocumentFile(documentFile, getOutputDir()!!, params)
             }
             
             completeProcessingFile(fileRecord.fileName)
@@ -712,11 +794,19 @@ class FolderMonitorService : Service() {
                 // 优化4：批量构建记录字符串，使用 StringBuilder 预分配容量
                 val timestamp = System.currentTimeMillis()
                 val batchRecords = batch.map { fileRecord ->
+                    // 格式：timestamp|fileName|inputPath|outputPath|status|lutFileName|lut2FileName|strength|lut2Strength|quality|ditherType
                     StringBuilder(256).apply {
                         append(timestamp).append('|')
                         append(fileRecord.fileName).append('|')
-                        append(fileRecord.uri).append('|')
-                        append("||SKIPPED|||0.0|0.0|0|NONE")
+                        append(fileRecord.uri).append('|')  // inputPath
+                        append('|')  // outputPath (空)
+                        append("SKIPPED").append('|')  // status
+                        append(currentLutName).append('|')  // lutFileName
+                        append(currentLut2Name).append('|')  // lut2FileName
+                        append(processingParams?.strength ?: 0.0f).append('|')  // strength
+                        append(processingParams?.lut2Strength ?: 0.0f).append('|')  // lut2Strength
+                        append(processingParams?.quality ?: 0).append('|')  // quality
+                        append(processingParams?.ditherType?.name ?: "NONE")  // ditherType
                     }.toString()
                 }
                 
@@ -862,11 +952,16 @@ class FolderMonitorService : Service() {
                 currentLutName
             }
 
+            // 使用临时状态广播，不更新 currentStatusMessage
+            val configStatus = "配置已更新: $lutDisplayName (强度:${strength}% 质量:${quality})"
             val notification = createNotification(
                 "文件夹监控服务",
-                "配置已更新: $lutDisplayName (强度:${strength}% 质量:${quality})"
+                configStatus
             )
             startForeground(NOTIFICATION_ID, notification)
+            
+            // 发送临时状态，3秒后自动恢复到持久状态
+            broadcastTemporaryStatus(configStatus, autoRestoreDelayMs = 3000)
 
             Log.d(TAG, "========== LUT配置重新加载完成 ==========")
 
@@ -1011,8 +1106,10 @@ class FolderMonitorService : Service() {
         }
 
         // 立即显示监控开始通知
-        val notification = createNotification("文件夹监控服务", "监控已启动，等待新文件...")
+        val initialStatus = "监控已启动，等待新文件..."
+        val notification = createNotification("文件夹监控服务", initialStatus)
         startForeground(NOTIFICATION_ID, notification)
+        broadcastMonitoringStatus(initialStatus)
 
         var scanCount = 0
         var lastHeartbeat = System.currentTimeMillis()
@@ -1024,11 +1121,13 @@ class FolderMonitorService : Service() {
 
                 // 每30秒更新一次心跳通知
                 if (currentTime - lastHeartbeat > 30000) {
+                    val heartbeatStatus = "监控中... 已处理 $processedCount 个文件 (扫描次数: $scanCount)"
                     val statusNotification = createNotification(
                         "文件夹监控服务",
-                        "监控中... 已处理 $processedCount 个文件 (扫描次数: $scanCount)"
+                        heartbeatStatus
                     )
                     startForeground(NOTIFICATION_ID, statusNotification)
+                    broadcastMonitoringStatus(heartbeatStatus)
                     lastHeartbeat = currentTime
 
                     // 重新获取WakeLock
@@ -1204,26 +1303,31 @@ class FolderMonitorService : Service() {
 
     private fun startProcessingFile(fileName: String) {
         processingFiles.add(fileName)
+        val status = "处理中: $fileName"
         val notification = createNotification(
             "正在处理文件",
-            "处理中: $fileName",
+            status,
             processedCount,
             processedCount + processingFiles.size
         )
         startForeground(NOTIFICATION_ID, notification)
+        // 同步更新状态消息
+        currentStatusMessage = status
     }
 
     private fun completeProcessingFile(fileName: String) {
         processingFiles.remove(fileName)
         completedFiles.add(fileName)
         processedCount++
+        val status = "已处理 $processedCount 个文件，监控中..."
         val notification = createNotification(
             "文件夹监控服务",
-            "已处理 $processedCount 个文件，监控中...",
+            status,
             processedCount,
             processedCount + processingFiles.size
         )
         startForeground(NOTIFICATION_ID, notification)
+        broadcastMonitoringStatus(status)
     }
 
     // 在服务停止时清理状态
@@ -1245,6 +1349,9 @@ class FolderMonitorService : Service() {
         preferencesManager.isMonitoring = false
         preferencesManager.monitoringSwitchEnabled = false
 
+        // 重置状态消息
+        currentStatusMessage = "监控已停止"
+        
         val notification = createNotification("监控已停止")
         startForeground(NOTIFICATION_ID, notification)
         broadcastMonitoringStatus("监控已停止")
