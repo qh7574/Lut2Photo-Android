@@ -90,4 +90,15 @@
         <item name="colorPrimary">@color/md_theme_dark_primary</item>
         <item name="colorAccent">@color/md_theme_dark_primary</item>
     </style>
+
+    <!-- Fullscreen Image Theme -->
+    <style name="Theme.Lut2Photo.Fullscreen" parent="Theme.Lut2Photo">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
 </resources>

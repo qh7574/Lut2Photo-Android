@@ -66,6 +66,14 @@
             </intent-filter>
         </activity>
 
+        <!-- 全屏图片查看Activity -->
+        <activity
+            android:name=".ui.FullscreenImageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Lut2Photo.Fullscreen"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
+
         <!-- 后台服务 -->
         <service
             android:name=".service.FolderMonitorService"

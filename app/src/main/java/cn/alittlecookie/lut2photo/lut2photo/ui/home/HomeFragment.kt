@@ -1071,6 +1071,12 @@ class HomeFragment : Fragment() {
         refreshButton?.setOnClickListener {
             updatePreviewFromInputFolder()
         }
+        
+        // 设置预览图点击事件 - 全屏查看
+        val previewImageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+        previewImageView?.setOnClickListener {
+            openFullscreenPreview()
+        }
 
         // 设置折叠/展开功能
         headerLayout?.setOnClickListener {
@@ -1792,6 +1798,34 @@ class HomeFragment : Fragment() {
         } catch (e: Exception) {
             Log.e("HomeFragment", "打开帮助链接失败: $url", e)
             Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * 打开全屏预览图片
+     */
+    private fun openFullscreenPreview() {
+        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+        val bitmap = (imageView?.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+        if (bitmap != null) {
+            // 保存到临时文件
+            val uri = cn.alittlecookie.lut2photo.lut2photo.utils.ImageShareUtils.saveBitmapToTempFile(requireContext(), bitmap)
+            if (uri != null) {
+                // 启动全屏 Activity
+                val intent = Intent(requireContext(), cn.alittlecookie.lut2photo.lut2photo.ui.FullscreenImageActivity::class.java).apply {
+                    putExtra(cn.alittlecookie.lut2photo.lut2photo.ui.FullscreenImageActivity.EXTRA_IMAGE_URI, uri.toString())
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(intent)
+                
+                // 清理旧文件
+                cn.alittlecookie.lut2photo.lut2photo.utils.ImageShareUtils.cleanOldTempFiles(requireContext())
+            } else {
+                Toast.makeText(requireContext(), "无法保存预览图", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(requireContext(), "请先生成预览图", Toast.LENGTH_SHORT).show()
         }
     }
 }

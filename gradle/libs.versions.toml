@@ -29,6 +29,8 @@ glide = "4.16.0"
 coil = "2.5.0"
 # 中文转拼音
 pinyin4j = "2.5.1"
+# 图片缩放查看
+zoomimage = "1.1.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
@@ -63,6 +65,8 @@ coil = { group = "io.coil-kt", name = "coil", version.ref = "coil" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 # 中文转拼音库定义
 pinyin4j = { group = "com.belerweb", name = "pinyin4j", version.ref = "pinyin4j" }
+# 图片缩放查看库定义
+zoomimage-view = { group = "io.github.panpf.zoomimage", name = "zoomimage-view", version.ref = "zoomimage" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

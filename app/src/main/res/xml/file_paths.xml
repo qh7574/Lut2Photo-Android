@@ -1,17 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 外部文件目录 -->
-    <external-files-path
-        name="external_files"
-        path="." />
-    
-    <!-- Logcat 日志目录 -->
-    <external-files-path
-        name="logcat"
-        path="logcat/" />
-    
-    <!-- 缓存目录 -->
-    <external-cache-path
-        name="external_cache"
-        path="." />
+    <cache-path name="preview_images" path="preview/" />
 </paths>

@@ -131,6 +131,9 @@ dependencies {
     // 中文转拼音
     implementation(libs.pinyin4j)
     
+    // 图片缩放查看
+    implementation(libs.zoomimage.view)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
