@@ -99,7 +99,7 @@
 
     <!-- 应用信息 -->
     <string name="app_version_format">App版本: %s</string>
-    <string name="app_description">一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n请访问项目地址获取使用说明。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 连接相机实时捕获图像\n• 快速导入相机内文件\n• 完善的vlt与cube支持与转码\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• Material 3 动态颜色主题\n\n内置富士胶片模拟LUT，感谢 小红书@JC\'s here 制作的srgb转rec2020.flog2。\n\n感谢以下开源项目，排名不分先后：\nGlide（图片加载），Coil（水印处理），ColorPickerDialog（颜色选择器），pinyin4j（中文转拼音），libgphoto2（相机控制），libusb（USB 通信）\n\n项目地址：\nhttps://github.com/qh7574/Lut2Photo-Android\n\n作者：偷光你的小鱼干（Alittlecookie）</string>
+    <string name="app_description">一个用于将Lut文件应用到图片的安卓App，可直接应用或监控文件夹新增文件自动应用。\n请访问项目地址获取使用说明。\n\n特性：\n• 实时文件夹监控和自动处理\n• 单个或批量图片处理\n• 连接相机实时捕获图像\n• 快速导入相机内文件\n• 完善的vlt与cube支持与转码\n• 支持GPU加速处理\n• 多种抖动算法减少色彩断层\n• 可调节的效果强度和输出质量\n• 完整可自定义的边框水印效果\n• 强大且可高度自定义的胶片颗粒效果\n• Material 3 动态颜色主题\n\n内置富士胶片模拟LUT，感谢 小红书@JC\'s here 制作的srgb转rec2020.flog2。\n\n感谢以下开源项目，排名不分先后：\nGlide（图片加载），Coil（水印处理），ColorPickerDialog（颜色选择器），pinyin4j（中文转拼音），libgphoto2（相机控制），libusb（USB 通信），ZoomImage（图片缩放查看）\n\n项目地址：\nhttps://github.com/qh7574/Lut2Photo-Android\n\n作者：偷光你的小鱼干（Alittlecookie）</string>
 
     <!-- 权限状态格式化 -->
     <string name="permission_status_format">权限状态: %d/%d 已授权</string>

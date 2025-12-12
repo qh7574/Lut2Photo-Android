@@ -20,7 +20,7 @@ data class WatermarkConfig(
     val imagePositionY: Float = 10f, // 图片水印Y位置百分比
 
     // 大小设置 (百分比形式，0-100)
-    val textSize: Float = 8f, // 文字水印大小百分比
+    val textSize: Float = 35f, // 文字水印大小百分比
     val imageSize: Float = 10f, // 图片水印大小百分比
 
     // 透明度设置 (百分比形式，0-100)

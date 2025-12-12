@@ -234,7 +234,7 @@ class WatermarkConfigManager(private val context: Context) {
             imageOpacity = json.optDouble("imageOpacity", json.optDouble("opacity", 80.0))
                 .toFloat(),
 
-            textSize = json.optDouble("textSize", 8.0).toFloat(),
+            textSize = json.optDouble("textSize", 35.0).toFloat(),
             imageSize = json.optDouble("imageSize", 10.0).toFloat(),
             textContent = json.optString(
                 "textContent",

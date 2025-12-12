@@ -20,7 +20,7 @@ class BuiltInLutInitializer(private val context: Context) {
         private const val KEY_LUT_VERSION = "built_in_luts_version"
         
         // LUT文件版本号 - 每次修改内置LUT列表时需要递增此版本号
-        private const val CURRENT_LUT_VERSION = 3
+        private const val CURRENT_LUT_VERSION = 4
         
         // 内置LUT文件列表
         private val BUILT_IN_LUTS = listOf(
@@ -34,7 +34,9 @@ class BuiltInLutInitializer(private val context: Context) {
             "ProNegStd.cube",
             "PROVIA.cube",
             "REALA.cube",
-            "VELVIA.cube"
+            "sRGBto709.cube",
+            "VELVIA.cube",
+            "VLogto709.cube"
         )
     }
     

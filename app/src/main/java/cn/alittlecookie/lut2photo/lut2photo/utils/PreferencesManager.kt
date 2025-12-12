@@ -350,7 +350,7 @@ class PreferencesManager(context: Context) {
                 sharedPreferences.getFloat("watermark_opacity", 80f)
             ),
                 
-            textSize = sharedPreferences.getFloat("watermark_text_size", 8f),
+            textSize = sharedPreferences.getFloat("watermark_text_size", 35f),
             imageSize = sharedPreferences.getFloat("watermark_image_size", 10f),
             textContent = sharedPreferences.getString(
                 "watermark_text_content",
