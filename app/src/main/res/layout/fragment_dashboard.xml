@@ -443,7 +443,7 @@
                                 android:id="@+id/toggle_group_dither"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="16dp"
+                                android:layout_marginBottom="4dp"
                                 app:selectionRequired="true"
                                 app:singleSelection="true">
 
@@ -526,7 +526,7 @@
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="16dp"
+                                android:layout_marginTop="4dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 

@@ -10,7 +10,7 @@ data class FilmGrainConfig(
     val globalStrength: Float = 0.5f,      // 0-1，全局颗粒强度
     
     // 颗粒特性
-    val grainSize: Float = 1.0f,           // 0.5-3.0，基础颗粒大小
+    val grainSize: Float = 1.0f,           // 0.5-6.0，基础颗粒大小
     val grainSharpness: Float = 0.7f,      // 0-1，颗粒锐度
     
     // 各向异性参数

@@ -212,7 +212,7 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         sliderGlobalStrength.value = (config.globalStrength * 100).coerceIn(0f, 100f)
         textGlobalStrength.text = "${(config.globalStrength * 100).toInt()}%"
         
-        sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 3.0f)
+        sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 6.0f)
         textGrainSize.text = String.format("%.1f", config.grainSize)
         
         // 设置影调范围
@@ -469,7 +469,7 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
      */
     private fun applyConfig(config: FilmGrainConfig) {
         sliderGlobalStrength.value = (config.globalStrength * 100).coerceIn(0f, 100f)
-        sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 3.0f)
+        sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 6.0f)
         rangeSliderTonal.values = listOf(
             config.shadowThreshold.toFloat().coerceIn(0f, 255f),
             config.highlightThreshold.toFloat().coerceIn(0f, 255f)
