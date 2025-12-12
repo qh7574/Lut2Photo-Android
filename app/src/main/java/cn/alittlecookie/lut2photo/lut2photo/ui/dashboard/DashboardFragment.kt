@@ -176,6 +176,11 @@ class DashboardFragment : Fragment() {
     }
 
     private fun setupViews() {
+        // 帮助按钮
+        binding.buttonHelpDashboard.setOnClickListener { view ->
+            showHelpMenu(view)
+        }
+        
         // 图片选择按钮 - 优先使用系统相册，不可用时使用SAF
         binding.buttonSelectImages.setOnClickListener {
             launchImagePicker()
@@ -1133,6 +1138,47 @@ class DashboardFragment : Fragment() {
                 "无法打开图片选择器",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+    }
+
+    /**
+     * 显示帮助菜单
+     */
+    private fun showHelpMenu(view: View) {
+        val popup = androidx.appcompat.widget.PopupMenu(requireContext(), view)
+        popup.menuInflater.inflate(R.menu.menu_help, popup.menu)
+        
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.menu_app_guide -> {
+                    openHelpUrl("https://alittlecookie.cn/2025/12/04/Lut2Photo%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E5%8F%8A%E4%B8%8B%E8%BD%BD%F0%9F%94%97/")
+                    true
+                }
+                R.id.menu_watermark_help -> {
+                    openHelpUrl("https://alittlecookie.cn/2025/12/12/Lut2Photo%E6%B0%B4%E5%8D%B0%E8%AE%BE%E7%BD%AE%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/")
+                    true
+                }
+                R.id.menu_grain_help -> {
+                    openHelpUrl("https://alittlecookie.cn/2025/12/12/Lut2Photo%E8%83%B6%E7%89%87%E9%A2%97%E7%B2%92%E5%8F%82%E6%95%B0%E8%AF%A6%E8%A7%A3/")
+                    true
+                }
+                else -> false
+            }
+        }
+        
+        popup.show()
+    }
+
+    /**
+     * 在浏览器中打开帮助链接
+     */
+    private fun openHelpUrl(url: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("DashboardFragment", "打开帮助链接失败: $url", e)
+            Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
         }
     }
 }

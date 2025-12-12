@@ -276,4 +276,10 @@
     <string name="grain_import_success">颗粒配置导入成功</string>
     <string name="grain_import_failed">颗粒配置导入失败</string>
     <string name="invalid_grain_config">无效的颗粒配置文件</string>
+    
+    <!-- 帮助相关 -->
+    <string name="help">帮助</string>
+    <string name="app_guide">应用说明</string>
+    <string name="watermark_help">水印效果帮助</string>
+    <string name="grain_help">颗粒效果帮助</string>
 </resources>

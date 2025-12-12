@@ -14,13 +14,32 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- 标题 -->
-        <com.google.android.material.textview.MaterialTextView
+        <!-- 标题栏 -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/realtime_monitoring"
-            android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/realtime_monitoring"
+                android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/button_help_home"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/help"
+                app:icon="@drawable/ic_help"
+                app:iconSize="36dp"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp" />
+        </LinearLayout>
 
         <!-- 1. 监控控制 -->
         <com.google.android.material.card.MaterialCardView

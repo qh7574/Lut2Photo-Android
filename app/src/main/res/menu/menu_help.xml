@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_app_guide"
+        android:title="@string/app_guide" />
+    <item
+        android:id="@+id/menu_watermark_help"
+        android:title="@string/watermark_help" />
+    <item
+        android:id="@+id/menu_grain_help"
+        android:title="@string/grain_help" />
+</menu>
