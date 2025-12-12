@@ -323,7 +323,13 @@ class CpuLutProcessor : ILutProcessor {
         bitmap: Bitmap,
         params: ILutProcessor.ProcessingParams
     ): Bitmap? = withContext(Dispatchers.Default) {
-        if (lut == null) return@withContext null
+        // 检查是否需要 LUT 处理
+        val needsLutProcessing = lut != null || lut2 != null
+        
+        if (!needsLutProcessing) {
+            // 跳过 LUT 和抖动处理，直接返回原图副本
+            return@withContext bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+        }
 
         try {
             val width = bitmap.width

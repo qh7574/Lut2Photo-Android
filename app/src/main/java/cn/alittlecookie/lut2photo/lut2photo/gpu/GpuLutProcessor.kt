@@ -774,6 +774,15 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         params: ILutProcessor.ProcessingParams
     ): Bitmap? {
         Log.d(TAG, "开始GPU处理，图片尺寸: ${bitmap.width}x${bitmap.height}")
+        
+        // 检查是否需要 LUT 处理
+        val needsLutProcessing = currentLut != null || currentLut2 != null
+        
+        if (!needsLutProcessing) {
+            // 跳过 LUT 和抖动处理，只返回原图副本（后续会处理颗粒、水印等）
+            Log.d(TAG, "跳过 LUT 处理：未加载任何 LUT")
+            return bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
+        }
 
         val totalPixels = bitmap.width.toLong() * bitmap.height.toLong()
         Log.d(TAG, "总像素数: $totalPixels, 限制: $MAX_PIXELS_FOR_DIRECT_PROCESSING")

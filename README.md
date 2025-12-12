@@ -378,10 +378,6 @@ CPU理：~15秒
 - **并发处理**：Kotlin Coroutines
 - **数据存储**：SharedPreferences，DocumentFile API
 
-### 开源信息
-本应用基于Python版本LUT处理算法移植开发：
-- **Python版项目**：[Lut2Photo-Py](https://github.com/qh7574/Lut2Photo-Py)
-- **授权协议**：免费使用，遵循MPL协议
 
 ### 贡献与反馈
 

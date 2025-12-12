@@ -305,7 +305,10 @@ class DashboardFragment : Fragment() {
                     selectedLutItem = if (position == 0) null else availableLuts[position - 1]
                     selectedLutItem?.let {
                         preferencesManager.dashboardLutUri = it.filePath
+                    } ?: run {
+                        preferencesManager.dashboardLutUri = ""
                     }
+                    updateLutStrengthSliderState()  // 新增：更新滑块状态
                     updateProcessButtonState()
                     updatePreview()
                 }
@@ -317,8 +320,9 @@ class DashboardFragment : Fragment() {
                     selectedLut2Item?.let {
                         preferencesManager.dashboardLut2Uri = it.filePath
                     } ?: run {
-                        preferencesManager.dashboardLut2Uri = null
+                        preferencesManager.dashboardLut2Uri = ""
                     }
+                    updateLut2StrengthSliderState()  // 新增：更新滑块状态
                     updatePreview()
                     Log.d(
                         "DashboardFragment",
@@ -350,9 +354,13 @@ class DashboardFragment : Fragment() {
                     }
                 }
                 
-                // 修复：LUT恢复完成后，更新处理按钮状态
-                updateProcessButtonState()
-                Log.d("DashboardFragment", "LUT恢复完成，按钮状态已更新")
+                // 修复：LUT恢复完成后，更新滑块状态和处理按钮状态（确保在主线程执行）
+                withContext(Dispatchers.Main) {
+                    updateLutStrengthSliderState()
+                    updateLut2StrengthSliderState()
+                    updateProcessButtonState()
+                    Log.d("DashboardFragment", "LUT恢复完成，滑块状态已更新: LUT1=${selectedLutItem != null}, LUT2=${selectedLut2Item != null}")
+                }
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -468,6 +476,10 @@ class DashboardFragment : Fragment() {
         // 加载颗粒设置
         binding.switchGrain.isChecked = preferencesManager.dashboardGrainEnabled
         binding.buttonGrainSettings.isEnabled = preferencesManager.dashboardGrainEnabled
+        
+        // 初始化滑块状态
+        updateLutStrengthSliderState()
+        updateLut2StrengthSliderState()
     }
 
     private fun updateOutputFolderDisplay() {
@@ -957,12 +969,12 @@ class DashboardFragment : Fragment() {
      */
     private fun updateProcessButtonState() {
         val hasImages = dashboardViewModel.selectedImages.value?.isNotEmpty() == true
-        val hasLut = selectedLutItem != null
-        val shouldEnable = hasImages && hasLut
+        // 移除 LUT 检查，允许不选择 LUT（只处理水印等）
+        val shouldEnable = hasImages
         
         binding.buttonStartProcessing.isEnabled = shouldEnable
         
-        Log.d("DashboardFragment", "更新处理按钮状态: hasImages=$hasImages, hasLut=$hasLut, enabled=$shouldEnable")
+        Log.d("DashboardFragment", "更新处理按钮状态: hasImages=$hasImages, hasLut1=${selectedLutItem != null}, hasLut2=${selectedLut2Item != null}, enabled=$shouldEnable")
     }
 
     private fun updateProcessedCount(processed: Int, total: Int) {
@@ -988,7 +1000,7 @@ class DashboardFragment : Fragment() {
     }
 
     private fun startProcessing() {
-        val selectedLut = selectedLutItem ?: return
+        // 移除 LUT 必选检查，允许不选择 LUT
         val outputFolderUri = preferencesManager.dashboardOutputFolder
 
         if (outputFolderUri.isEmpty()) {
@@ -996,10 +1008,9 @@ class DashboardFragment : Fragment() {
             return
         }
 
-        Log.d("DashboardFragment", "开始处理，主要LUT: ${selectedLut.name}")
-        selectedLut2Item?.let {
-            Log.d("DashboardFragment", "第二个LUT: ${it.name}, 路径: ${it.filePath}")
-        } ?: Log.d("DashboardFragment", "未选择第二个LUT")
+        Log.d("DashboardFragment", "开始处理")
+        Log.d("DashboardFragment", "LUT1: ${selectedLutItem?.name ?: "未选择"}")
+        Log.d("DashboardFragment", "LUT2: ${selectedLut2Item?.name ?: "未选择"}")
 
         // 添加更详细的调试信息
         Log.d("DashboardFragment", "selectedLut2Item是否为null: ${selectedLut2Item == null}")
@@ -1027,8 +1038,8 @@ class DashboardFragment : Fragment() {
         val images = dashboardViewModel.selectedImages.value ?: emptyList()
         dashboardViewModel.startProcessing(
             images,
-            selectedLut,
-            selectedLut2Item,
+            selectedLutItem,   // 允许为 null
+            selectedLut2Item,  // 允许为 null
             params,
             outputFolderUri
         )
@@ -1055,6 +1066,28 @@ class DashboardFragment : Fragment() {
         }
         
         _binding = null
+    }
+    
+    /**
+     * 更新 LUT1 强度滑块状态
+     */
+    private fun updateLutStrengthSliderState() {
+        val isEnabled = selectedLutItem != null
+        binding.sliderStrength.isEnabled = isEnabled
+        binding.textStrengthValue.alpha = if (isEnabled) 1.0f else 0.5f
+        binding.sliderStrength.alpha = if (isEnabled) 1.0f else 0.5f
+        Log.d("DashboardFragment", "updateLutStrengthSliderState: isEnabled=$isEnabled, selectedLutItem=${selectedLutItem?.name}")
+    }
+
+    /**
+     * 更新 LUT2 强度滑块状态
+     */
+    private fun updateLut2StrengthSliderState() {
+        val isEnabled = selectedLut2Item != null
+        binding.sliderLut2Strength.isEnabled = isEnabled
+        binding.textLut2StrengthValue.alpha = if (isEnabled) 1.0f else 0.5f
+        binding.sliderLut2Strength.alpha = if (isEnabled) 1.0f else 0.5f
+        Log.d("DashboardFragment", "updateLut2StrengthSliderState: isEnabled=$isEnabled, selectedLut2Item=${selectedLut2Item?.name}")
     }
     
     /**

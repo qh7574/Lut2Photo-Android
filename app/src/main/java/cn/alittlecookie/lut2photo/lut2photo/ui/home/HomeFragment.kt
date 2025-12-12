@@ -441,7 +441,10 @@ class HomeFragment : Fragment() {
                     selectedLutItem = if (position == 0) null else availableLuts[position - 1]
                     selectedLutItem?.let {
                         preferencesManager.homeLutUri = it.filePath
+                    } ?: run {
+                        preferencesManager.homeLutUri = ""
                     }
+                    updateLutStrengthSliderState()  // 新增：更新滑块状态
                     updateMonitoringButtonState()
 
                     // 发送LUT配置变化广播
@@ -460,8 +463,9 @@ class HomeFragment : Fragment() {
                     selectedLut2Item?.let {
                         preferencesManager.homeLut2Uri = it.filePath
                     } ?: run {
-                        preferencesManager.homeLut2Uri = null
+                        preferencesManager.homeLut2Uri = ""
                     }
+                    updateLut2StrengthSliderState()  // 新增：更新滑块状态
 
                     // 发送LUT配置变化广播
                     sendLutConfigChangesBroadcast()
@@ -496,6 +500,13 @@ class HomeFragment : Fragment() {
                     }
                 } else {
                     binding.dropdownLut2.setText(lutNames[0], false)
+                }
+                
+                // 恢复LUT后，更新滑块状态（确保在主线程执行）
+                withContext(Dispatchers.Main) {
+                    updateLutStrengthSliderState()
+                    updateLut2StrengthSliderState()
+                    Log.d("HomeFragment", "滑块状态已更新: LUT1=${selectedLutItem != null}, LUT2=${selectedLut2Item != null}")
                 }
 
                 Log.d("HomeFragment", "LUT加载完成，共${availableLuts.size}个文件")
@@ -548,6 +559,8 @@ class HomeFragment : Fragment() {
         setupSwitchListener()
 
         Log.d("HomeFragment", "设置加载完成，监控开关预设为: ${preferencesManager.isMonitoring}")
+        
+        // 注意：滑块状态在 setupLutSpinner() 完成后初始化，因为需要等待 LUT 加载完成
     }
 
     private fun saveCurrentSettings() {
@@ -1556,6 +1569,28 @@ class HomeFragment : Fragment() {
         }
         
         _binding = null
+    }
+    
+    /**
+     * 更新 LUT1 强度滑块状态
+     */
+    private fun updateLutStrengthSliderState() {
+        val isEnabled = selectedLutItem != null
+        binding.sliderStrength.isEnabled = isEnabled
+        binding.textStrengthValue.alpha = if (isEnabled) 1.0f else 0.5f
+        binding.sliderStrength.alpha = if (isEnabled) 1.0f else 0.5f
+        Log.d("HomeFragment", "updateLutStrengthSliderState: isEnabled=$isEnabled, selectedLutItem=${selectedLutItem?.name}")
+    }
+
+    /**
+     * 更新 LUT2 强度滑块状态
+     */
+    private fun updateLut2StrengthSliderState() {
+        val isEnabled = selectedLut2Item != null
+        binding.sliderLut2Strength.isEnabled = isEnabled
+        binding.textLut2StrengthValue.alpha = if (isEnabled) 1.0f else 0.5f
+        binding.sliderLut2Strength.alpha = if (isEnabled) 1.0f else 0.5f
+        Log.d("HomeFragment", "updateLut2StrengthSliderState: isEnabled=$isEnabled, selectedLut2Item=${selectedLut2Item?.name}")
     }
 
     private fun showWatermarkSettingsDialog() {

@@ -409,7 +409,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     @SuppressLint("StringFormatInvalid", "StringFormatMatches")
     fun startProcessing(
         images: List<ImageItem>,
-        lutItem: LutItem,
+        lutItem: LutItem?,  // 允许为 null
         lut2Item: LutItem? = null,  // 第二个LUT
         params: ILutProcessor.ProcessingParams,
         outputFolderUri: String? = null
@@ -431,15 +431,18 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 _processedCount.postValue(0)
                 _statusMessage.postValue(getApplication<Application>().getString(R.string.status_processing))
 
-                // 修复：使用LutManager获取完整路径
-                val lutFilePath = lutManager.getLutFilePath(lutItem)
-                val lutFile = File(lutFilePath)
-                if (!lutFile.exists()) {
-                    throw Exception("LUT文件不存在: ${lutItem.name}")
-                }
+                // 加载第一个LUT（如果提供）
+                lutItem?.let { lut1 ->
+                    val lutFilePath = lutManager.getLutFilePath(lut1)
+                    val lutFile = File(lutFilePath)
+                    if (!lutFile.exists()) {
+                        throw Exception("LUT文件不存在: ${lut1.name}")
+                    }
 
-                threadManager.loadLut(lutFile.inputStream())
-                Log.d("DashboardViewModel", "LUT加载成功: ${lutItem.name}")
+                    threadManager.loadLut(lutFile.inputStream())
+                    Log.d("DashboardViewModel", "LUT加载成功: ${lut1.name}")
+                }
+                // 注意：如果lutItem为null，不需要清空LUT，因为处理器会检查
 
                 // 加载第二个LUT（如果提供）
                 lut2Item?.let { lut2 ->
@@ -577,7 +580,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                                 bitmapAfterGrain,  // 使用颗粒处理后的图片
                                                 watermarkConfig,
                                                 imageItem.uri,
-                                                lutItem.name,
+                                                lutItem?.name,
                                                 lut2Item?.name,
                                                 params.strength,
                                                 params.lut2Strength
@@ -600,7 +603,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                     imageItem,
                                     outputFolderUri,
                                     params,
-                                    lutItem.name
+                                    lutItem?.name ?: "NoLUT"
                                 )
                                 Log.d("DashboardViewModel", "图片保存完成，路径: $outputPath")
 
@@ -611,7 +614,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                     inputPath = imageItem.uri.toString(),
                                     outputPath = outputPath,
                                     status = "成功",
-                                    lutFileName = lutItem.name,
+                                    lutFileName = lutItem?.name ?: "",  // 使用安全调用
                                     lut2FileName = lut2Item?.name ?: "", // 第二个LUT文件名
                                     strength = params.strength,
                                     lut2Strength = params.lut2Strength, // 第二个LUT强度
@@ -804,7 +807,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun handleProcessingError(
         imageItem: ImageItem,
-        lutItem: LutItem,
+        lutItem: LutItem?,  // 允许为 null
         lut2Item: LutItem? = null, // 第二个LUT
         params: ILutProcessor.ProcessingParams,
         error: Throwable
@@ -815,7 +818,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             inputPath = imageItem.uri.toString(),
             outputPath = "",
             status = "失败: ${error.message}",
-            lutFileName = lutItem.name,
+            lutFileName = lutItem?.name ?: "",  // 使用安全调用
             lut2FileName = lut2Item?.name ?: "", // 第二个LUT文件名
             strength = params.strength,
             lut2Strength = params.lut2Strength, // 第二个LUT强度
