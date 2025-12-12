@@ -596,11 +596,18 @@ class DashboardFragment : Fragment() {
             }
 
             // 在后台线程获取原图尺寸
-            lifecycleScope.launch(Dispatchers.IO) {
+            // 使用 viewLifecycleOwner.lifecycleScope 确保 View 销毁时自动取消
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                 val (originalWidth, originalHeight) = getImageDimensions(uri)
                 Log.d("DashboardFragment", "原图尺寸: ${originalWidth}x${originalHeight}")
                 
                 withContext(Dispatchers.Main) {
+                    // 切换到主线程前再次检查 Fragment 和 binding 状态
+                    if (!isAdded || _binding == null) {
+                        Log.w("DashboardFragment", "showPreviewImageWithLut: Fragment已销毁，跳过Glide加载")
+                        return@withContext
+                    }
+                    
                     // 使用Glide加载图片并应用LUT效果
                     // 创建唯一的缓存键，包含强度值以避免缓存问题
                     "${uri}_${preferencesManager.dashboardStrength}_${preferencesManager.dashboardLut2Strength}_${binding.switchWatermark.isChecked}"
@@ -616,7 +623,8 @@ class DashboardFragment : Fragment() {
                         transition: Transition<in Bitmap>?
                     ) {
                         // 在后台线程应用LUT效果和水印效果
-                        lifecycleScope.launch(Dispatchers.IO) {
+                        // 使用 viewLifecycleOwner.lifecycleScope 确保 View 销毁时自动取消
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                             var processedBitmap = resource
                             var hasEffects = false
 
@@ -752,7 +760,8 @@ class DashboardFragment : Fragment() {
 
                             // 在主线程更新UI
                             withContext(Dispatchers.Main) {
-                                if (isAdded && !isDetached) { // 确保Fragment仍然附加
+                                // 切换到主线程后再次检查 Fragment 和 binding 状态
+                                if (isAdded && !isDetached && _binding != null) { // 确保Fragment仍然附加且binding未销毁
                                     iv.setImageBitmap(processedBitmap)
                                     if (hasEffects) {
                                         Log.d("DashboardFragment", "预览效果应用完成")

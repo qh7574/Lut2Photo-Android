@@ -381,12 +381,12 @@ class HomeFragment : Fragment() {
         // 移除了 homeViewModel.statusText.observe()，避免覆盖广播接收器设置的详细状态
         
         homeViewModel.isMonitoring.observe(viewLifecycleOwner) { isMonitoring ->
-            // 修复：只更新UI状态，不触发监听器
-            // 临时移除监听器，避免触发启动/停止服务的逻辑
-            binding.switchMonitoring.setOnCheckedChangeListener(null)
-            binding.switchMonitoring.isChecked = isMonitoring
-            // 恢复监听器
-            setupSwitchListener()
+            // 修复：只更新UI状态，不触发监听器，不播放动画
+            setSwitchStateWithoutAnimation(
+                binding.switchMonitoring, 
+                isMonitoring,
+                restoreListener = { setupSwitchListener() }
+            )
             
             // 更新"仅处理新增文件"开关状态
             binding.switchProcessNewFilesOnly.isEnabled = !isMonitoring
@@ -517,16 +517,19 @@ class HomeFragment : Fragment() {
         }
         binding.toggleGroupDither.check(buttonId)
 
-        // 加载水印开关状态
+        // 加载水印开关状态（不播放动画）
         binding.switchWatermark.isChecked = preferencesManager.folderMonitorWatermarkEnabled
+        binding.switchWatermark.jumpDrawablesToCurrentState()
         binding.buttonWatermarkSettings.isEnabled = preferencesManager.folderMonitorWatermarkEnabled
 
-        // 加载颗粒开关状态
+        // 加载颗粒开关状态（不播放动画）
         binding.switchGrain.isChecked = preferencesManager.folderMonitorGrainEnabled
+        binding.switchGrain.jumpDrawablesToCurrentState()
         binding.buttonGrainSettings.isEnabled = preferencesManager.folderMonitorGrainEnabled
 
-        // 加载"仅处理新增文件"开关状态
+        // 加载"仅处理新增文件"开关状态（不播放动画）
         binding.switchProcessNewFilesOnly.isChecked = preferencesManager.processNewFilesOnly
+        binding.switchProcessNewFilesOnly.jumpDrawablesToCurrentState()
     
         // 加载文件夹路径显示
         updateInputFolderDisplay()
@@ -774,17 +777,22 @@ class HomeFragment : Fragment() {
             Log.d("HomeFragment", "状态查询请求已发送")
             
             // 设置超时保护：如果500ms内没有收到响应，说明服务可能未正常运行
-            Handler(Looper.getMainLooper()).postDelayed({
-                // 检查是否收到了状态更新（通过检查状态文本是否仍是默认值）
-                if (binding.textMonitoringStatus.text == "监控状态: 未启动" && 
-                    preferencesManager.isMonitoring) {
-                    Log.w("HomeFragment", "状态查询超时，服务可能未响应")
-                    // 同步状态
-                    preferencesManager.isMonitoring = false
-                    homeViewModel.setMonitoring(false)
-                    binding.switchProcessNewFilesOnly.isEnabled = true
+            // 使用 viewLifecycleOwner.lifecycleScope 确保在 View 销毁时自动取消
+            viewLifecycleOwner.lifecycleScope.launch {
+                kotlinx.coroutines.delay(500)
+                // 协程会在 Fragment View 销毁时自动取消，无需额外检查
+                // 使用 _binding 安全访问，避免 NPE
+                _binding?.let { binding ->
+                    if (binding.textMonitoringStatus.text == "监控状态: 未启动" && 
+                        preferencesManager.isMonitoring) {
+                        Log.w("HomeFragment", "状态查询超时，服务可能未响应")
+                        // 同步状态
+                        preferencesManager.isMonitoring = false
+                        homeViewModel.setMonitoring(false)
+                        binding.switchProcessNewFilesOnly.isEnabled = true
+                    }
                 }
-            }, 500)
+            }
             
         } catch (e: Exception) {
             Log.e("HomeFragment", "发送状态查询请求失败", e)
@@ -817,6 +825,33 @@ class HomeFragment : Fragment() {
 
     private fun showToast(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+    }
+    
+    /**
+     * 设置开关状态但不播放动画
+     * 用于状态恢复时避免不必要的动画效果
+     * 
+     * @param switch 要设置的开关
+     * @param checked 目标状态
+     * @param restoreListener 恢复监听器的函数（可选）
+     */
+    private fun setSwitchStateWithoutAnimation(
+        switch: androidx.appcompat.widget.SwitchCompat, 
+        checked: Boolean,
+        restoreListener: (() -> Unit)? = null
+    ) {
+        // 临时移除监听器
+        switch.setOnCheckedChangeListener(null)
+        // 设置状态
+        switch.isChecked = checked
+        // 跳过动画，立即跳转到当前状态
+        switch.jumpDrawablesToCurrentState()
+        // 恢复监听器（如果提供了特定的恢复函数则使用，否则使用默认的）
+        if (restoreListener != null) {
+            restoreListener()
+        } else {
+            setupSwitchListener()
+        }
     }
     
     /**
@@ -1047,35 +1082,40 @@ class HomeFragment : Fragment() {
     }
 
     private fun updatePreviewEffectsInfo() {
-        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
-        val effectsInfoText = previewCardView?.findViewById<TextView>(R.id.text_effects_info)
+        // 安全访问 binding，避免 NPE
+        _binding?.let { binding ->
+            val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+            val effectsInfoText = previewCardView?.findViewById<TextView>(R.id.text_effects_info)
 
-        val effects = mutableListOf<String>()
+            val effects = mutableListOf<String>()
 
-        // 添加LUT信息
-        selectedLutItem?.let { effects.add("LUT1: ${it.name}") }
-        selectedLut2Item?.let { effects.add("LUT2: ${it.name}") }
+            // 添加LUT信息
+            selectedLutItem?.let { effects.add("LUT1: ${it.name}") }
+            selectedLut2Item?.let { effects.add("LUT2: ${it.name}") }
 
-        // 添加水印信息
-        if (binding.switchWatermark.isChecked) {
-            effects.add("水印")
-        }
+            // 添加水印信息
+            if (binding.switchWatermark.isChecked) {
+                effects.add("水印")
+            }
 
-        // 添加颗粒信息
-        if (binding.switchGrain.isChecked) {
-            effects.add("颗粒")
-        }
+            // 添加颗粒信息
+            if (binding.switchGrain.isChecked) {
+                effects.add("颗粒")
+            }
 
-        // 添加抖动信息
-        val ditherType = getDitherType()
-        if (ditherType != LutProcessor.DitherType.NONE) {
-            effects.add("抖动: ${ditherType.name}")
-        }
+            // 添加抖动信息
+            val ditherType = getDitherType()
+            if (ditherType != LutProcessor.DitherType.NONE) {
+                effects.add("抖动: ${ditherType.name}")
+            }
 
-        effectsInfoText?.text = if (effects.isNotEmpty()) {
-            effects.joinToString(" + ")
-        } else {
-            "无效果"
+            effectsInfoText?.text = if (effects.isNotEmpty()) {
+                effects.joinToString(" + ")
+            } else {
+                "无效果"
+            }
+        } ?: run {
+            Log.w("HomeFragment", "updatePreviewEffectsInfo: binding为null，跳过效果信息更新")
         }
     }
 
@@ -1087,10 +1127,17 @@ class HomeFragment : Fragment() {
         }
 
         // 异步获取最新图片文件，避免在主线程遍历大目录导致ANR
-        lifecycleScope.launch {
+        // 使用 viewLifecycleOwner.lifecycleScope 确保 View 销毁时自动取消
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val latestImageUri = withContext(Dispatchers.IO) {
                     getLatestImageFileAsync(inputFolderPath)
+                }
+                
+                // 切换到主线程前检查 Fragment 状态
+                if (!isAdded || _binding == null) {
+                    Log.w("HomeFragment", "Fragment已销毁，跳过预览更新")
+                    return@launch
                 }
                 
                 if (latestImageUri == null) {
@@ -1103,7 +1150,10 @@ class HomeFragment : Fragment() {
                 
             } catch (e: Exception) {
                 Log.e("HomeFragment", "获取预览图片失败", e)
-                showPreviewPlaceholder("无法访问输入文件夹")
+                // 检查 Fragment 状态后再更新 UI
+                if (isAdded && _binding != null) {
+                    showPreviewPlaceholder("无法访问输入文件夹")
+                }
             }
         }
     }
@@ -1170,11 +1220,13 @@ class HomeFragment : Fragment() {
      * 显示预览图片（在主线程执行）
      */
     private fun displayPreviewImage(imageUri: Uri) {
-        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
-        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
-        val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
-        
-        imageView?.let { iv ->
+        // 安全访问 binding，避免 NPE
+        _binding?.let { binding ->
+            val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+            val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+            val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
+            
+            imageView?.let { iv ->
                 // 隐藏占位图和占位文本
                 val placeholderLayout = previewCardView.findViewById<View>(R.id.layout_placeholder)
                 placeholderLayout?.visibility = View.GONE
@@ -1206,11 +1258,18 @@ class HomeFragment : Fragment() {
                 )
 
                 // 在后台线程获取原图尺寸
-                lifecycleScope.launch(Dispatchers.IO) {
+                // 使用 viewLifecycleOwner.lifecycleScope 确保 View 销毁时自动取消
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                     val (originalWidth, originalHeight) = getImageDimensions(imageUri)
                     Log.d("HomeFragment", "原图尺寸: ${originalWidth}x${originalHeight}")
                     
                     withContext(Dispatchers.Main) {
+                        // 切换到主线程前再次检查 Fragment 和 binding 状态
+                        if (!isAdded || _binding == null) {
+                            Log.w("HomeFragment", "displayPreviewImage: Fragment已销毁，跳过Glide加载")
+                            return@withContext
+                        }
+                        
                         Glide.with(this@HomeFragment)
                             .asBitmap()
                             .load(imageUri)
@@ -1226,7 +1285,8 @@ class HomeFragment : Fragment() {
                                     transition: Transition<in Bitmap>?
                                 ) {
                                     // 在后台线程应用LUT效果和水印效果
-                                    lifecycleScope.launch(Dispatchers.IO) {
+                                    // 使用 viewLifecycleOwner.lifecycleScope 确保 View 销毁时自动取消
+                                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                                         var processedBitmap = resource
                                         var hasEffects = false
 
@@ -1368,7 +1428,8 @@ class HomeFragment : Fragment() {
                                         "HomeFragment",
                                         "准备更新UI - isAdded: $isAdded, isDetached: $isDetached"
                                     )
-                                    if (isAdded && !isDetached) { // 确保Fragment仍然附加
+                                    // 切换到主线程后再次检查 Fragment 和 binding 状态
+                                    if (isAdded && !isDetached && _binding != null) { // 确保Fragment仍然附加且binding未销毁
                                         Log.d("HomeFragment", "开始设置处理后的bitmap到ImageView")
                                         Log.d(
                                             "HomeFragment",
@@ -1439,20 +1500,28 @@ class HomeFragment : Fragment() {
                             })
                     }
                 }
+            }
+        } ?: run {
+            Log.w("HomeFragment", "displayPreviewImage: binding为null，跳过预览显示")
         }
     }
 
     private fun showPreviewPlaceholder(message: String) {
-        val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
-        val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
-        val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
-        val placeholderLayout = previewCardView?.findViewById<View>(R.id.layout_placeholder)
+        // 安全访问 binding，避免 NPE
+        _binding?.let { binding ->
+            val previewCardView = binding.root.findViewById<View>(R.id.preview_card_home)
+            val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
+            val placeholderText = previewCardView?.findViewById<TextView>(R.id.text_placeholder)
+            val placeholderLayout = previewCardView?.findViewById<View>(R.id.layout_placeholder)
 
-        imageView?.visibility = View.GONE
-        placeholderLayout?.visibility = View.VISIBLE
-        placeholderText?.let {
-            it.visibility = View.VISIBLE
-            it.text = message
+            imageView?.visibility = View.GONE
+            placeholderLayout?.visibility = View.VISIBLE
+            placeholderText?.let {
+                it.visibility = View.VISIBLE
+                it.text = message
+            }
+        } ?: run {
+            Log.w("HomeFragment", "showPreviewPlaceholder: binding为null，跳过占位符显示")
         }
     }
 
@@ -1516,15 +1585,16 @@ class HomeFragment : Fragment() {
     }
     
     /**
-     * 同步联机模式状态（不触发启动/停止操作）
+     * 同步联机模式状态（不触发启动/停止操作，不播放动画）
      */
     private fun syncTetheredModeState() {
         val isServiceRunning = isTetheredServiceRunning()
         Log.d("HomeFragment", "同步联机模式状态: Service 运行中=$isServiceRunning")
         
-        // 临时移除监听器，避免触发启动/停止
+        // 设置状态但不播放动画
         binding.switchTetheredMode.setOnCheckedChangeListener(null)
         binding.switchTetheredMode.isChecked = isServiceRunning
+        binding.switchTetheredMode.jumpDrawablesToCurrentState()
         
         // 恢复监听器
         binding.switchTetheredMode.setOnCheckedChangeListener { _, isChecked ->
