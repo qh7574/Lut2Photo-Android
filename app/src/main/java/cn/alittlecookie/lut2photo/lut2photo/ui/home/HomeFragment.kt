@@ -381,17 +381,22 @@ class HomeFragment : Fragment() {
         // 移除了 homeViewModel.statusText.observe()，避免覆盖广播接收器设置的详细状态
         
         homeViewModel.isMonitoring.observe(viewLifecycleOwner) { isMonitoring ->
-            // 修复：只更新UI状态，不触发监听器，不播放动画
-            setSwitchStateWithoutAnimation(
-                binding.switchMonitoring, 
-                isMonitoring,
-                restoreListener = { setupSwitchListener() }
-            )
+            // 修复：只在状态不一致时才同步，避免取消用户点击产生的动画
+            // 如果开关状态已经是目标状态，说明是用户操作触发的ViewModel更新，无需再次设置
+            if (binding.switchMonitoring.isChecked != isMonitoring) {
+                // 状态不一致，需要同步（通常是程序自动恢复状态时）
+                setSwitchStateWithoutAnimation(
+                    binding.switchMonitoring, 
+                    isMonitoring,
+                    restoreListener = { setupSwitchListener() }
+                )
+                Log.d("HomeFragment", "ViewModel状态同步到UI: isMonitoring=$isMonitoring (状态已同步)")
+            } else {
+                Log.d("HomeFragment", "ViewModel状态与UI一致: isMonitoring=$isMonitoring (无需同步)")
+            }
             
             // 更新"仅处理新增文件"开关状态
             binding.switchProcessNewFilesOnly.isEnabled = !isMonitoring
-            
-            Log.d("HomeFragment", "ViewModel状态同步到UI: isMonitoring=$isMonitoring (不触发服务启动/停止)")
         }
     }
 
@@ -535,10 +540,14 @@ class HomeFragment : Fragment() {
         updateInputFolderDisplay()
         updateOutputFolderDisplay()
 
-        // 修复：不要在启动时自动设置开关状态，让HomeViewModel来控制
-        // 移除这行：binding.switchMonitoring.isChecked = savedSwitchState
+        // 预先设置监控开关状态（不播放动画），避免后续ViewModel同步时产生动画
+        // 注意：这里只设置UI状态，不触发监听器，实际的服务启动由ViewModel控制
+        binding.switchMonitoring.setOnCheckedChangeListener(null)
+        binding.switchMonitoring.isChecked = preferencesManager.isMonitoring
+        binding.switchMonitoring.jumpDrawablesToCurrentState()
+        setupSwitchListener()
 
-        Log.d("HomeFragment", "设置加载完成，等待ViewModel状态检查")
+        Log.d("HomeFragment", "设置加载完成，监控开关预设为: ${preferencesManager.isMonitoring}")
     }
 
     private fun saveCurrentSettings() {
@@ -840,11 +849,17 @@ class HomeFragment : Fragment() {
         checked: Boolean,
         restoreListener: (() -> Unit)? = null
     ) {
+        // 只有在状态真正改变时才需要处理
+        if (switch.isChecked == checked) {
+            // 状态没有改变，无需操作
+            return
+        }
+        
         // 临时移除监听器
         switch.setOnCheckedChangeListener(null)
         // 设置状态
         switch.isChecked = checked
-        // 跳过动画，立即跳转到当前状态
+        // 立即跳过动画
         switch.jumpDrawablesToCurrentState()
         // 恢复监听器（如果提供了特定的恢复函数则使用，否则使用默认的）
         if (restoreListener != null) {
