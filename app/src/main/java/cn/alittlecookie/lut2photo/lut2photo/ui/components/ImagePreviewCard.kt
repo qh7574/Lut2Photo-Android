@@ -298,7 +298,7 @@ class ImagePreviewCard @JvmOverloads constructor(
             // 根据屏幕分辨率动态计算目标尺寸
             val displayMetrics = context.resources.displayMetrics
             val screenWidth = displayMetrics.widthPixels
-            val screenHeight = displayMetrics.heightPixels
+            displayMetrics.heightPixels
             val density = displayMetrics.density
 
             // 目标尺寸为屏幕宽度的1/3，但不超过600dp，不小于200dp

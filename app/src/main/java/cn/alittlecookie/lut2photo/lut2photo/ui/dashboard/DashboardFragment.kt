@@ -306,8 +306,7 @@ class DashboardFragment : Fragment() {
                     selectedLutItem?.let {
                         preferencesManager.dashboardLutUri = it.filePath
                     }
-                    val hasImages = dashboardViewModel.selectedImages.value?.isNotEmpty() == true
-                    binding.buttonStartProcessing.isEnabled = hasImages && selectedLutItem != null
+                    updateProcessButtonState()
                     updatePreview()
                 }
 
@@ -350,6 +349,10 @@ class DashboardFragment : Fragment() {
                         Log.d("DashboardFragment", "恢复第二个LUT选择: ${selectedLut2Item?.name}")
                     }
                 }
+                
+                // 修复：LUT恢复完成后，更新处理按钮状态
+                updateProcessButtonState()
+                Log.d("DashboardFragment", "LUT恢复完成，按钮状态已更新")
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -364,7 +367,7 @@ class DashboardFragment : Fragment() {
         dashboardViewModel.selectedImages.observe(viewLifecycleOwner) { images ->
             imageAdapter.submitList(images)
             updateImageCount(images.size)
-            binding.buttonStartProcessing.isEnabled = images.isNotEmpty() && selectedLutItem != null
+            updateProcessButtonState()
             updatePreview()
         }
 
@@ -556,6 +559,25 @@ class DashboardFragment : Fragment() {
         }
     }
 
+    /**
+     * 获取图片的原始尺寸（不加载完整图片）
+     */
+    private fun getImageDimensions(uri: Uri): Pair<Int, Int> {
+        return try {
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+            }
+            Pair(options.outWidth, options.outHeight)
+        } catch (e: Exception) {
+            Log.e("DashboardFragment", "获取图片尺寸失败", e)
+            // 返回默认假设尺寸
+            Pair(4000, 6000)
+        }
+    }
+    
     private fun showPreviewImageWithLut(uri: Uri) {
         val previewCardView = binding.root.findViewById<View>(R.id.preview_card_dashboard)
         val imageView = previewCardView?.findViewById<ImageView>(R.id.image_preview)
@@ -573,19 +595,24 @@ class DashboardFragment : Fragment() {
                 return
             }
 
-            // 使用Glide加载图片并应用LUT效果
-            // 创建唯一的缓存键，包含强度值以避免缓存问题
-            val cacheKey =
-                "${uri}_${preferencesManager.dashboardStrength}_${preferencesManager.dashboardLut2Strength}_${binding.switchWatermark.isChecked}"
-            Glide.with(this)
-                .asBitmap()
-                .load(uri)
-                .skipMemoryCache(true) // 跳过内存缓存
-                .diskCacheStrategy(DiskCacheStrategy.NONE) // 跳过磁盘缓存
-                .override(800, 600) // 限制预览图片大小以提高性能
-                .into(object : CustomTarget<Bitmap>() {
-                    override fun onResourceReady(
-                        resource: Bitmap,
+            // 在后台线程获取原图尺寸
+            lifecycleScope.launch(Dispatchers.IO) {
+                val (originalWidth, originalHeight) = getImageDimensions(uri)
+                Log.d("DashboardFragment", "原图尺寸: ${originalWidth}x${originalHeight}")
+                
+                withContext(Dispatchers.Main) {
+                    // 使用Glide加载图片并应用LUT效果
+                    // 创建唯一的缓存键，包含强度值以避免缓存问题
+                    "${uri}_${preferencesManager.dashboardStrength}_${preferencesManager.dashboardLut2Strength}_${binding.switchWatermark.isChecked}"
+                    Glide.with(this@DashboardFragment)
+                        .asBitmap()
+                        .load(uri)
+                        .skipMemoryCache(true) // 跳过内存缓存
+                        .diskCacheStrategy(DiskCacheStrategy.NONE) // 跳过磁盘缓存
+                        .override(800, 600) // 限制预览图片大小以提高性能
+                        .into(object : CustomTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                resource: Bitmap,
                         transition: Transition<in Bitmap>?
                     ) {
                         // 在后台线程应用LUT效果和水印效果
@@ -606,9 +633,16 @@ class DashboardFragment : Fragment() {
                                     
                                     // 设置颗粒配置（如果启用）
                                     if (binding.switchGrain.isChecked) {
-                                        val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
-                                        threadManager.setFilmGrainConfig(grainConfig)
-                                        Log.d("DashboardFragment", "预览颗粒配置已设置")
+                                        val originalConfig = preferencesManager.getFilmGrainConfig()
+                                        // 为预览缩放颗粒参数，使用真实的原图尺寸
+                                        val previewConfig = originalConfig.scaleForPreview(
+                                            previewWidth = processedBitmap.width,
+                                            previewHeight = processedBitmap.height,
+                                            originalWidth = originalWidth,  // 使用真实的原图尺寸
+                                            originalHeight = originalHeight
+                                        ).copy(isEnabled = true)
+                                        threadManager.setFilmGrainConfig(previewConfig)
+                                        Log.d("DashboardFragment", "预览颗粒配置已设置并缩放: 原图${originalWidth}x${originalHeight} -> 预览${processedBitmap.width}x${processedBitmap.height}, grainSize: ${originalConfig.grainSize} -> ${previewConfig.grainSize}")
                                     } else {
                                         threadManager.setFilmGrainConfig(null)
                                     }
@@ -733,10 +767,12 @@ class DashboardFragment : Fragment() {
                         }
                     }
 
-                    override fun onLoadCleared(placeholder: Drawable?) {
-                        // 清理资源
-                    }
-                })
+                            override fun onLoadCleared(placeholder: Drawable?) {
+                                // 清理资源
+                            }
+                        })
+                }
+            }
         }
     }
 
@@ -905,6 +941,20 @@ class DashboardFragment : Fragment() {
     /*private fun updateProcessingStatus(status: String) {
         binding.textProcessingStatus.text = status
     }*/
+    
+    /**
+     * 统一更新处理按钮状态
+     * 确保在图片列表或LUT选择变化时，按钮状态正确更新
+     */
+    private fun updateProcessButtonState() {
+        val hasImages = dashboardViewModel.selectedImages.value?.isNotEmpty() == true
+        val hasLut = selectedLutItem != null
+        val shouldEnable = hasImages && hasLut
+        
+        binding.buttonStartProcessing.isEnabled = shouldEnable
+        
+        Log.d("DashboardFragment", "更新处理按钮状态: hasImages=$hasImages, hasLut=$hasLut, enabled=$shouldEnable")
+    }
 
     private fun updateProcessedCount(processed: Int, total: Int) {
         binding.textProcessedCount.text =

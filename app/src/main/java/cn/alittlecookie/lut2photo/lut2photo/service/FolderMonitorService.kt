@@ -512,7 +512,7 @@ class FolderMonitorService : Service() {
             // 文件数量检测回调：如果超过1000个，发送警告广播
             if (fileCount > 1000) {
                 Log.w(TAG, "检测到输入文件夹内文件数量过多: $fileCount 个")
-                val warningIntent = android.content.Intent("cn.alittlecookie.lut2photo.FILE_COUNT_WARNING").apply {
+                val warningIntent = Intent("cn.alittlecookie.lut2photo.FILE_COUNT_WARNING").apply {
                     setPackage(packageName)
                     putExtra("file_count", fileCount)
                 }
@@ -1087,7 +1087,7 @@ class FolderMonitorService : Service() {
                 }
                 
                 // 等待一小段时间后再次检查文件大小
-                kotlinx.coroutines.delay(500)
+                delay(500)
                 val newFileSize = file.length()
                 if (fileSize != newFileSize) {
                     Log.w(TAG, "文件大小不稳定，可能仍在写入: ${file.name}, 之前=$fileSize, 现在=$newFileSize")
@@ -1201,11 +1201,11 @@ class FolderMonitorService : Service() {
                 }
 
                 // 等待一段时间再次扫描
-                kotlinx.coroutines.delay(2000)
+                delay(2000)
             } catch (e: Exception) {
                 Log.e(TAG, "监控循环中发生错误", e)
                 // 不要立即退出，尝试继续监控
-                kotlinx.coroutines.delay(5000)
+                delay(5000)
             }
         }
     }

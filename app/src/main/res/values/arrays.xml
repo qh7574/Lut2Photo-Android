@@ -5,4 +5,9 @@
         <item>Random</item>
         <item>None</item>
     </string-array>
+    
+    <array name="default_tonal_range">
+        <item>85.0</item>
+        <item>170.0</item>
+    </array>
 </resources>

@@ -198,9 +198,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                     ) {
                         val isLightColor = isLightColor(typedValue.data)
                         window.decorView.systemUiVisibility = if (isLightColor) {
-                            window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                            window.decorView.systemUiVisibility or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
                         } else {
-                            window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+                            window.decorView.systemUiVisibility and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
                         }
                     }
                 }
@@ -799,10 +799,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 设置文字跟随方向
         val followDirectionButtonId = when (config.textFollowDirection) {
-            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.TOP -> binding.buttonFollowTop.id
-            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.BOTTOM -> binding.buttonFollowBottom.id
-            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.LEFT -> binding.buttonFollowLeft.id
-            cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection.RIGHT -> binding.buttonFollowRight.id
+            TextFollowDirection.TOP -> binding.buttonFollowTop.id
+            TextFollowDirection.BOTTOM -> binding.buttonFollowBottom.id
+            TextFollowDirection.LEFT -> binding.buttonFollowLeft.id
+            TextFollowDirection.RIGHT -> binding.buttonFollowRight.id
         }
         binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
 
@@ -993,16 +993,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     /**
      * 为预览加载大图片的缩略版本
      */
-    private suspend fun loadLargeImageForPreview(uri: Uri): android.graphics.Bitmap? {
+    private suspend fun loadLargeImageForPreview(uri: Uri): Bitmap? {
         return withContext(Dispatchers.IO) {
             try {
                 val inputStream = requireContext().contentResolver.openInputStream(uri)
 
                 // 获取图片尺寸
-                val options = android.graphics.BitmapFactory.Options().apply {
+                val options = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
-                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+                BitmapFactory.decodeStream(inputStream, null, options)
                 inputStream?.close()
 
                 if (options.outWidth <= 0 || options.outHeight <= 0) {
@@ -1020,12 +1020,12 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
                 // 加载缩略图用于预览
                 val decodingStream = requireContext().contentResolver.openInputStream(uri)
-                val bitmap = android.graphics.BitmapFactory.decodeStream(
+                val bitmap = BitmapFactory.decodeStream(
                     decodingStream,
                     null,
-                    android.graphics.BitmapFactory.Options().apply {
+                    BitmapFactory.Options().apply {
                         inSampleSize = sampleSize
-                        inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
                     }
                 )
                 decodingStream?.close()
@@ -1329,7 +1329,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         } else {
             cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
         }
-        dialog.setStyle(androidx.fragment.app.DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.setStyle(STYLE_NORMAL, themeResId)
         dialog.show(parentFragmentManager, "textColorPicker")
     }
 
@@ -1363,7 +1363,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         } else {
             cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
         }
-        dialog.setStyle(androidx.fragment.app.DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.setStyle(STYLE_NORMAL, themeResId)
         dialog.show(parentFragmentManager, "borderColorPicker")
     }
 
@@ -1596,11 +1596,11 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
             // 发送广播通知文件夹监控服务更新配置
             // 使用显式广播，明确指定接收者为FolderMonitorService
-            val intent = android.content.Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED").apply {
+            val intent = Intent("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED").apply {
                 setPackage(requireContext().packageName)  // 限制在本应用内
             }
             requireContext().sendBroadcast(intent)
-            android.util.Log.d("WatermarkSettings", "发送配置变化广播（显式广播），forFolderMonitor=$forFolderMonitor")
+            Log.d("WatermarkSettings", "发送配置变化广播（显式广播），forFolderMonitor=$forFolderMonitor")
 
             Toast.makeText(context, "水印设置已保存", Toast.LENGTH_SHORT).show()
             dismiss()

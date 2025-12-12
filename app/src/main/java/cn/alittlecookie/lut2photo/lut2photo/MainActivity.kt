@@ -226,7 +226,7 @@ class MainActivity : AppCompatActivity() {
             Log.i("MainActivity", "开始降级内存管理初始化")
 
             // 获取设备可用内存
-            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
             val memoryInfo = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memoryInfo)
 

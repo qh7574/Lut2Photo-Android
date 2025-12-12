@@ -681,7 +681,7 @@ class WatermarkProcessor(private val context: Context) {
         fontPath: String
     ): PointF {
         // 计算单个文字的尺寸
-        val (singleCharWidth, singleCharHeight) = calculateSingleCharSize(bitmap, textSizePercent, text, fontPath)
+        val (_, singleCharHeight) = calculateSingleCharSize(bitmap, textSizePercent, text, fontPath)
         
         // 计算间距（基于单个文字高度的百分比）
         val spacing = singleCharHeight * spacingPercent / 100f

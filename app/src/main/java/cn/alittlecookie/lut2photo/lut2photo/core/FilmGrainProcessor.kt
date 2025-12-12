@@ -208,7 +208,7 @@ class FilmGrainProcessor {
         return try {
             val width = bitmap.width
             val height = bitmap.height
-            val totalPixels = width * height
+            width * height
             
             Log.d(TAG, "开始处理颗粒效果（同步），图片尺寸: ${width}x${height}")
             

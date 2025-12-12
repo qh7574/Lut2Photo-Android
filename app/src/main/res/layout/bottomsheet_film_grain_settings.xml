@@ -69,281 +69,377 @@
             android:padding="16dp"
             android:paddingBottom="80dp">
 
-            <!-- 基础参数 -->
-            <com.google.android.material.textview.MaterialTextView
+            <!-- 基础参数卡片（不可折叠） -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="@string/film_grain_basic_params"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
 
-            <!-- 全局强度 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_global_strength" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_global_strength"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0"
-                    android:valueTo="100"
-                    android:stepSize="1" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_global_strength"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="50%" />
-            </LinearLayout>
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <!-- 颗粒大小 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_size" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_grain_size"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.5"
-                    android:valueTo="3.0"
-                    android:stepSize="0.1" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_grain_size"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="1.0" />
-            </LinearLayout>
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/film_grain_basic_params_title"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-            <!-- 影调分区参数 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:text="@string/film_grain_tonal_params"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                    <!-- 全局强度 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/film_grain_global_strength" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_global_strength"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="0"
+                            android:valueTo="100"
+                            android:stepSize="1" />
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_global_strength"
+                            android:layout_width="48dp"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:text="50%" />
+                    </LinearLayout>
 
-            <!-- 阴影颗粒强度 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_shadow_ratio" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_shadow_ratio"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.2"
-                    android:valueTo="1.0"
-                    android:stepSize="0.05" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_shadow_ratio"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="0.60" />
-            </LinearLayout>
+                    <!-- 颗粒大小 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/film_grain_size" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/slider_grain_size"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:valueFrom="0.5"
+                            android:valueTo="3.0"
+                            android:stepSize="0.1" />
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_grain_size"
+                            android:layout_width="48dp"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:text="1.0" />
+                    </LinearLayout>
 
-            <!-- 高光颗粒强度 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_highlight_ratio" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_highlight_ratio"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.1"
-                    android:valueTo="0.8"
-                    android:stepSize="0.05" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_highlight_ratio"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="0.30" />
-            </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- 阴影颗粒尺寸 -->
-            <com.google.android.material.textview.MaterialTextView
+            <!-- 高级参数卡片（可折叠） -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/film_grain_shadow_size" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_shadow_size_ratio"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="1.0"
-                    android:valueTo="2.0"
-                    android:stepSize="0.1" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_shadow_size_ratio"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="1.5" />
-            </LinearLayout>
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
 
-            <!-- 高光颗粒尺寸 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_highlight_size" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_highlight_size_ratio"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.3"
-                    android:valueTo="1.0"
-                    android:stepSize="0.05" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_highlight_size_ratio"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="0.60" />
-            </LinearLayout>
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <!-- 色彩通道参数 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="8dp"
-                android:text="@string/film_grain_channel_params"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                    <!-- 标题栏（可点击） -->
+                    <LinearLayout
+                        android:id="@+id/layout_advanced_header"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:minHeight="24dp"
+                        android:orientation="horizontal">
 
-            <!-- 红色通道 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_red_channel" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_red_channel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.5"
-                    android:valueTo="1.5"
-                    android:stepSize="0.05" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_red_channel"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="0.90" />
-            </LinearLayout>
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/film_grain_advanced_params_title"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
-            <!-- 蓝色通道 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_blue_channel" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_blue_channel"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.8"
-                    android:valueTo="1.5"
-                    android:stepSize="0.05" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_blue_channel"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="1.20" />
-            </LinearLayout>
+                        <ImageView
+                            android:id="@+id/button_toggle_advanced"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@string/toggle_section"
+                            android:src="@drawable/ic_expand_more" />
 
-            <!-- 通道相关性 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_correlation" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_correlation"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.8"
-                    android:valueTo="0.95"
-                    android:stepSize="0.01" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_correlation"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="0.90" />
-            </LinearLayout>
+                    </LinearLayout>
 
-            <!-- 色彩保护 -->
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/film_grain_color_preservation" />
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical">
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/slider_color_preservation"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:valueFrom="0.9"
-                    android:valueTo="1.0"
-                    android:stepSize="0.01" />
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_color_preservation"
-                    android:layout_width="48dp"
-                    android:layout_height="wrap_content"
-                    android:gravity="end"
-                    android:text="0.95" />
-            </LinearLayout>
+                    <!-- 高级参数内容区域 -->
+                    <LinearLayout
+                        android:id="@+id/layout_advanced_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <!-- 影调分区参数 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/film_grain_tonal_params"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+
+                        <!-- 影调范围 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_tonal_range" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.RangeSlider
+                                android:id="@+id/range_slider_tonal"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0"
+                                android:valueTo="255"
+                                android:stepSize="5"
+                                app:values="@array/default_tonal_range" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_tonal_range"
+                                android:layout_width="80dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="85-170" />
+                        </LinearLayout>
+
+                        <!-- 阴影颗粒强度 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_shadow_ratio" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_shadow_ratio"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.2"
+                                android:valueTo="1.0"
+                                android:stepSize="0.05" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_shadow_ratio"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="0.60" />
+                        </LinearLayout>
+
+                        <!-- 高光颗粒强度 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_highlight_ratio" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_highlight_ratio"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.1"
+                                android:valueTo="0.8"
+                                android:stepSize="0.05" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_highlight_ratio"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="0.30" />
+                        </LinearLayout>
+
+                        <!-- 阴影颗粒尺寸 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_shadow_size" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_shadow_size_ratio"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="1.0"
+                                android:valueTo="2.0"
+                                android:stepSize="0.1" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_shadow_size_ratio"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="1.5" />
+                        </LinearLayout>
+
+                        <!-- 高光颗粒尺寸 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_highlight_size" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_highlight_size_ratio"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.3"
+                                android:valueTo="1.0"
+                                android:stepSize="0.05" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_highlight_size_ratio"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="0.60" />
+                        </LinearLayout>
+
+                        <!-- 色彩通道参数 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/film_grain_channel_params"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall" />
+
+                        <!-- 红色通道 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_red_channel" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_red_channel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.5"
+                                android:valueTo="1.5"
+                                android:stepSize="0.05" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_red_channel"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="0.90" />
+                        </LinearLayout>
+
+                        <!-- 蓝色通道 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_blue_channel" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_blue_channel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.8"
+                                android:valueTo="1.5"
+                                android:stepSize="0.05" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_blue_channel"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="1.20" />
+                        </LinearLayout>
+
+                        <!-- 通道相关性 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_correlation" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_correlation"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.8"
+                                android:valueTo="0.95"
+                                android:stepSize="0.01" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_correlation"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="0.90" />
+                        </LinearLayout>
+
+                        <!-- 色彩保护 -->
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/film_grain_color_preservation" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical">
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_color_preservation"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:valueFrom="0.9"
+                                android:valueTo="1.0"
+                                android:stepSize="0.01" />
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_color_preservation"
+                                android:layout_width="48dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="end"
+                                android:text="0.95" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </ScrollView>

@@ -247,9 +247,12 @@
     <!-- 胶片颗粒设置 -->
     <string name="film_grain_settings_title">胶片颗粒设置</string>
     <string name="film_grain_basic_params">基础参数</string>
+    <string name="film_grain_basic_params_title">基础参数</string>
+    <string name="film_grain_advanced_params_title">高级参数</string>
     <string name="film_grain_global_strength">全局强度</string>
     <string name="film_grain_size">颗粒大小</string>
     <string name="film_grain_tonal_params">影调分区参数（以中间调为基准）</string>
+    <string name="film_grain_tonal_range">影调范围（阴影-中间调-高光）</string>
     <string name="film_grain_shadow_ratio">阴影颗粒强度</string>
     <string name="film_grain_highlight_ratio">高光颗粒强度</string>
     <string name="film_grain_shadow_size">阴影颗粒尺寸</string>

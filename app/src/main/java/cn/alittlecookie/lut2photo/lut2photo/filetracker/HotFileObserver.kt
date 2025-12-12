@@ -273,7 +273,7 @@ class HotFileObserver(
                 while (cursor.moveToNext()) {
                     val docId = cursor.getString(idIndex)
                     val name = cursor.getString(nameIndex)
-                    val mimeType = cursor.getString(mimeIndex) ?: ""
+                    cursor.getString(mimeIndex) ?: ""
                     val lastModified = cursor.getLong(modifiedIndex)
                     val size = cursor.getLong(sizeIndex)
                     

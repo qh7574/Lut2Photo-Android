@@ -188,7 +188,7 @@ object LutConverter {
                         for (b in 0 until lutSize) {
                             for (c in 0..2) {
                                 val value = lutArray[r][g][b][c]
-                                minVal = kotlin.math.min(minVal, value)
+                                minVal = min(minVal, value)
                                 maxVal = kotlin.math.max(maxVal, value)
                             }
                         }
@@ -260,7 +260,7 @@ object LutConverter {
                 for (b in 0 until sourceSize) {
                     for (c in 0..2) {
                         val value = sourceLut[r][g][b][c]
-                        minVal = kotlin.math.min(minVal, value)
+                        minVal = min(minVal, value)
                         maxVal = kotlin.math.max(maxVal, value)
                         if (sampleCount < 10) {
                             Log.v(TAG, "源LUT[$r][$g][$b][$c] = $value")

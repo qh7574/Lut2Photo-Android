@@ -1148,6 +1148,25 @@ class HomeFragment : Fragment() {
     }
     
     /**
+     * 获取图片的原始尺寸（不加载完整图片）
+     */
+    private fun getImageDimensions(uri: Uri): Pair<Int, Int> {
+        return try {
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
+                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+            }
+            Pair(options.outWidth, options.outHeight)
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "获取图片尺寸失败", e)
+            // 返回默认假设尺寸
+            Pair(4000, 6000)
+        }
+    }
+    
+    /**
      * 显示预览图片（在主线程执行）
      */
     private fun displayPreviewImage(imageUri: Uri) {
@@ -1186,26 +1205,32 @@ class HomeFragment : Fragment() {
                     "预览更新 - 强度1: $currentStrength1, 强度2: $currentStrength2, 水印: $currentWatermarkEnabled"
                 )
 
-                Glide.with(this)
-                    .asBitmap()
-                    .load(imageUri)
-                    .signature(ObjectKey(cacheKey)) // 使用不含时间戳的缓存键，启用缓存
-                    .skipMemoryCache(false) // 启用内存缓存
-                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC) // 启用磁盘缓存
-                    .override(900, 600) // 限制预览图片大小以提高性能
-                    // **修复：移除 dontTransform()，让 Glide 自动处理 EXIF 方向**
-                    .format(DecodeFormat.PREFER_ARGB_8888) // 强制使用ARGB_8888格式
-                    .into(object : CustomTarget<Bitmap>() {
-                        override fun onResourceReady(
-                            resource: Bitmap,
-                            transition: Transition<in Bitmap>?
-                        ) {
-                            // 在后台线程应用LUT效果和水印效果
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                var processedBitmap = resource
-                                var hasEffects = false
+                // 在后台线程获取原图尺寸
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val (originalWidth, originalHeight) = getImageDimensions(imageUri)
+                    Log.d("HomeFragment", "原图尺寸: ${originalWidth}x${originalHeight}")
+                    
+                    withContext(Dispatchers.Main) {
+                        Glide.with(this@HomeFragment)
+                            .asBitmap()
+                            .load(imageUri)
+                            .signature(ObjectKey(cacheKey)) // 使用不含时间戳的缓存键，启用缓存
+                            .skipMemoryCache(false) // 启用内存缓存
+                            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC) // 启用磁盘缓存
+                            .override(900, 600) // 限制预览图片大小以提高性能
+                            // **修复：移除 dontTransform()，让 Glide 自动处理 EXIF 方向**
+                            .format(DecodeFormat.PREFER_ARGB_8888) // 强制使用ARGB_8888格式
+                            .into(object : CustomTarget<Bitmap>() {
+                                override fun onResourceReady(
+                                    resource: Bitmap,
+                                    transition: Transition<in Bitmap>?
+                                ) {
+                                    // 在后台线程应用LUT效果和水印效果
+                                    lifecycleScope.launch(Dispatchers.IO) {
+                                        var processedBitmap = resource
+                                        var hasEffects = false
 
-                                try {
+                                        try {
                                     // 使用ThreadManager统一处理流程（LUT + 颗粒）
                                     val lutPath = selectedLutItem?.let { lutManager.getLutFilePath(it) }
                                     val lut2Path = selectedLut2Item?.let { lutManager.getLutFilePath(it) }
@@ -1219,9 +1244,16 @@ class HomeFragment : Fragment() {
                                         
                                         // 设置颗粒配置（如果启用）
                                         if (binding.switchGrain.isChecked) {
-                                            val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
-                                            threadManager.setFilmGrainConfig(grainConfig)
-                                            Log.d("HomeFragment", "预览颗粒配置已设置")
+                                            val originalConfig = preferencesManager.getFilmGrainConfig()
+                                            // 为预览缩放颗粒参数，使用真实的原图尺寸
+                                            val previewConfig = originalConfig.scaleForPreview(
+                                                previewWidth = processedBitmap.width,
+                                                previewHeight = processedBitmap.height,
+                                                originalWidth = originalWidth,  // 使用真实的原图尺寸
+                                                originalHeight = originalHeight
+                                            ).copy(isEnabled = true)
+                                            threadManager.setFilmGrainConfig(previewConfig)
+                                            Log.d("HomeFragment", "预览颗粒配置已设置并缩放: 原图${originalWidth}x${originalHeight} -> 预览${processedBitmap.width}x${processedBitmap.height}, grainSize: ${originalConfig.grainSize} -> ${previewConfig.grainSize}")
                                         } else {
                                             threadManager.setFilmGrainConfig(null)
                                         }
@@ -1401,10 +1433,12 @@ class HomeFragment : Fragment() {
                             }
                         }
 
-                        override fun onLoadCleared(placeholder: Drawable?) {
-                            // 清理资源
-                        }
-                    })
+                                override fun onLoadCleared(placeholder: Drawable?) {
+                                    // 清理资源
+                                }
+                            })
+                    }
+                }
         }
     }
 

@@ -49,7 +49,7 @@ class MyApplication : Application() {
         // 手动初始化 WorkManager
         try {
             val config = Configuration.Builder()
-                .setMinimumLoggingLevel(android.util.Log.INFO)
+                .setMinimumLoggingLevel(Log.INFO)
                 .build()
 
             WorkManager.initialize(this, config)
@@ -76,7 +76,7 @@ class MyApplication : Application() {
             Log.i(TAG, "开始初始化全局内存管理")
 
             // 获取设备内存信息
-            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val activityManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
             val memoryInfo = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memoryInfo)
 

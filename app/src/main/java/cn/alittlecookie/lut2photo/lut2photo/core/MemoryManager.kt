@@ -184,7 +184,7 @@ class MemoryManager private constructor(private val context: Context) {
 
         // 使用我们配置的内存限制，而不是系统的堆内存限制
         val configuredMaxHeapMB = memoryConfig.maxHeapSizeMB.toLong()
-        val systemMaxHeapMB = systemMaxHeap / (1024 * 1024)
+        systemMaxHeap / (1024 * 1024)
         val totalHeapMB = totalHeap / (1024 * 1024)
         val freeHeapMB = freeHeap / (1024 * 1024)
         val usedHeapMB = usedHeap / (1024 * 1024)

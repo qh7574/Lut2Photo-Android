@@ -120,7 +120,7 @@ class MemoryMonitorService : Service() {
             }
 
             val notificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -334,7 +334,7 @@ class MemoryMonitorService : Service() {
     private fun updateNotification(title: String, content: String) {
         val notification = createNotification(title, content)
         val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
 

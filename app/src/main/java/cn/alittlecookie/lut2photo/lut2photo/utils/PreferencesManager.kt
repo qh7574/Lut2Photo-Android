@@ -142,6 +142,11 @@ class PreferencesManager(context: Context) {
         get() = sharedPreferences.getBoolean("home_preview_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("home_preview_expanded", value) }
 
+    // 胶片颗粒设置折叠状态
+    var filmGrainAdvancedExpanded: Boolean
+        get() = sharedPreferences.getBoolean("film_grain_advanced_expanded", false)
+        set(value) = sharedPreferences.edit { putBoolean("film_grain_advanced_expanded", value) }
+
     // 处理器选择设置
     var processorType: String
         get() = sharedPreferences.getString("processor_type", "auto") ?: "auto"
@@ -386,6 +391,8 @@ class PreferencesManager(context: Context) {
             putFloat("grain_sharpness", config.grainSharpness)
             putFloat("grain_anisotropy", config.anisotropy)
             putFloat("grain_direction_variation", config.directionVariation)
+            putInt("grain_shadow_threshold", config.shadowThreshold)
+            putInt("grain_highlight_threshold", config.highlightThreshold)
             putFloat("grain_shadow_ratio", config.shadowGrainRatio)
             putFloat("grain_midtone_ratio", config.midtoneGrainRatio)
             putFloat("grain_highlight_ratio", config.highlightGrainRatio)
@@ -412,6 +419,8 @@ class PreferencesManager(context: Context) {
             grainSharpness = sharedPreferences.getFloat("grain_sharpness", 0.7f),
             anisotropy = sharedPreferences.getFloat("grain_anisotropy", 0.3f),
             directionVariation = sharedPreferences.getFloat("grain_direction_variation", 15f),
+            shadowThreshold = sharedPreferences.getInt("grain_shadow_threshold", 60),
+            highlightThreshold = sharedPreferences.getInt("grain_highlight_threshold", 180),
             shadowGrainRatio = sharedPreferences.getFloat("grain_shadow_ratio", 0.6f),
             midtoneGrainRatio = sharedPreferences.getFloat("grain_midtone_ratio", 1.0f),
             highlightGrainRatio = sharedPreferences.getFloat("grain_highlight_ratio", 0.3f),

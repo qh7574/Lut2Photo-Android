@@ -449,7 +449,7 @@ class WatermarkSettingsDialog : DialogFragment() {
         } else {
             cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
         }
-        dialog.setStyle(DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.setStyle(STYLE_NORMAL, themeResId)
         dialog.show(childFragmentManager, "textColorPicker")
     }
 
@@ -478,7 +478,7 @@ class WatermarkSettingsDialog : DialogFragment() {
         } else {
             cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
         }
-        dialog.setStyle(DialogFragment.STYLE_NORMAL, themeResId)
+        dialog.setStyle(STYLE_NORMAL, themeResId)
         dialog.show(childFragmentManager, "borderColorPicker")
     }
 

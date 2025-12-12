@@ -456,7 +456,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
             // 设置高质量渲染
             canvas.setDrawFilter(
-                android.graphics.PaintFlagsDrawFilter(
+                PaintFlagsDrawFilter(
                     0, Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG
                 )
             )

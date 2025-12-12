@@ -97,6 +97,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 uniform float u_grainStrength;
                 uniform float u_grainSize;
                 uniform float u_grainSeed;
+                uniform float u_shadowThreshold;      // 阴影/中间调分界点（0-1范围）
+                uniform float u_highlightThreshold;   // 中间调/高光分界点（0-1范围）
                 uniform float u_shadowGrainRatio;
                 uniform float u_midtoneGrainRatio;
                 uniform float u_highlightGrainRatio;
@@ -126,34 +128,38 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     return x * x * (3.0 - 2.0 * x);
                 }
                 
-                // 根据亮度获取颗粒强度比例
+                // 根据亮度获取颗粒强度比例（使用可配置阈值）
                 float getGrainStrengthRatio(float luminance) {
-                    if (luminance < 0.25) {
+                    float transitionWidth = 0.04;  // 过渡区域宽度（约10个亮度值）
+                    
+                    if (luminance < u_shadowThreshold - transitionWidth) {
                         return u_shadowGrainRatio;
-                    } else if (luminance < 0.35) {
-                        float t = smoothstep3((luminance - 0.25) / 0.1);
+                    } else if (luminance < u_shadowThreshold + transitionWidth) {
+                        float t = smoothstep3((luminance - (u_shadowThreshold - transitionWidth)) / (2.0 * transitionWidth));
                         return mix(u_shadowGrainRatio, u_midtoneGrainRatio, t);
-                    } else if (luminance < 0.65) {
+                    } else if (luminance < u_highlightThreshold - transitionWidth) {
                         return u_midtoneGrainRatio;
-                    } else if (luminance < 0.75) {
-                        float t = smoothstep3((luminance - 0.65) / 0.1);
+                    } else if (luminance < u_highlightThreshold + transitionWidth) {
+                        float t = smoothstep3((luminance - (u_highlightThreshold - transitionWidth)) / (2.0 * transitionWidth));
                         return mix(u_midtoneGrainRatio, u_highlightGrainRatio, t);
                     } else {
                         return u_highlightGrainRatio;
                     }
                 }
                 
-                // 根据亮度获取颗粒尺寸比例
+                // 根据亮度获取颗粒尺寸比例（使用可配置阈值）
                 float getGrainSizeRatio(float luminance) {
-                    if (luminance < 0.25) {
+                    float transitionWidth = 0.04;  // 过渡区域宽度
+                    
+                    if (luminance < u_shadowThreshold - transitionWidth) {
                         return u_shadowSizeRatio;
-                    } else if (luminance < 0.35) {
-                        float t = smoothstep3((luminance - 0.25) / 0.1);
+                    } else if (luminance < u_shadowThreshold + transitionWidth) {
+                        float t = smoothstep3((luminance - (u_shadowThreshold - transitionWidth)) / (2.0 * transitionWidth));
                         return mix(u_shadowSizeRatio, 1.0, t);
-                    } else if (luminance < 0.65) {
+                    } else if (luminance < u_highlightThreshold - transitionWidth) {
                         return 1.0;
-                    } else if (luminance < 0.75) {
-                        float t = smoothstep3((luminance - 0.65) / 0.1);
+                    } else if (luminance < u_highlightThreshold + transitionWidth) {
+                        float t = smoothstep3((luminance - (u_highlightThreshold - transitionWidth)) / (2.0 * transitionWidth));
                         return mix(1.0, u_highlightSizeRatio, t);
                     } else {
                         return u_highlightSizeRatio;
@@ -279,6 +285,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     private var grainStrengthLocation: Int = 0
     private var grainSizeLocation: Int = 0
     private var grainSeedLocation: Int = 0
+    private var shadowThresholdLocation: Int = 0
+    private var highlightThresholdLocation: Int = 0
     private var shadowGrainRatioLocation: Int = 0
     private var midtoneGrainRatioLocation: Int = 0
     private var highlightGrainRatioLocation: Int = 0
@@ -1707,6 +1715,9 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             GLES30.glUniform1f(grainStrengthLocation, grainConfig.globalStrength)
             GLES30.glUniform1f(grainSizeLocation, grainConfig.grainSize)
             GLES30.glUniform1f(grainSeedLocation, kotlin.random.Random.nextFloat() * 1000f)
+            // 设置影调范围阈值（从0-255转换为0-1范围）
+            GLES30.glUniform1f(shadowThresholdLocation, grainConfig.shadowThreshold / 255f)
+            GLES30.glUniform1f(highlightThresholdLocation, grainConfig.highlightThreshold / 255f)
             GLES30.glUniform1f(shadowGrainRatioLocation, grainConfig.shadowGrainRatio)
             GLES30.glUniform1f(midtoneGrainRatioLocation, grainConfig.midtoneGrainRatio)
             GLES30.glUniform1f(highlightGrainRatioLocation, grainConfig.highlightGrainRatio)
@@ -1717,7 +1728,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             GLES30.glUniform1f(blueChannelRatioLocation, grainConfig.blueChannelRatio)
             GLES30.glUniform1f(channelCorrelationLocation, grainConfig.channelCorrelation)
             GLES30.glUniform1f(colorPreservationLocation, grainConfig.colorPreservation)
-            Log.d(TAG, "胶片颗粒已启用，强度: ${grainConfig.globalStrength}")
+            Log.d(TAG, "胶片颗粒已启用，强度: ${grainConfig.globalStrength}, 影调范围: ${grainConfig.shadowThreshold}-${grainConfig.highlightThreshold}")
         } else {
             Log.d(TAG, "胶片颗粒未启用")
         }
@@ -1986,6 +1997,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             grainStrengthLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainStrength")
             grainSizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainSize")
             grainSeedLocation = GLES30.glGetUniformLocation(shaderProgram, "u_grainSeed")
+            shadowThresholdLocation = GLES30.glGetUniformLocation(shaderProgram, "u_shadowThreshold")
+            highlightThresholdLocation = GLES30.glGetUniformLocation(shaderProgram, "u_highlightThreshold")
             shadowGrainRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_shadowGrainRatio")
             midtoneGrainRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_midtoneGrainRatio")
             highlightGrainRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_highlightGrainRatio")

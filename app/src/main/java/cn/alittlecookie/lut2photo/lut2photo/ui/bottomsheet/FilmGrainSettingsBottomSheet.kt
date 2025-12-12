@@ -39,6 +39,8 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var textGlobalStrength: TextView
     private lateinit var sliderGrainSize: Slider
     private lateinit var textGrainSize: TextView
+    private lateinit var rangeSliderTonal: com.google.android.material.slider.RangeSlider
+    private lateinit var textTonalRange: TextView
     private lateinit var sliderShadowRatio: Slider
     private lateinit var textShadowRatio: TextView
     private lateinit var sliderHighlightRatio: Slider
@@ -62,6 +64,9 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
     private lateinit var buttonExport: MaterialButton
     private lateinit var scrollViewSettings: ScrollView
     private lateinit var layoutHeader: View
+    private lateinit var layoutAdvancedHeader: View
+    private lateinit var layoutAdvancedContent: View
+    private lateinit var buttonToggleAdvanced: ImageView
     
     // 保存初始配置，用于取消时恢复
     private var initialConfig: FilmGrainConfig? = null
@@ -169,6 +174,8 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         textGlobalStrength = view.findViewById(R.id.text_global_strength)
         sliderGrainSize = view.findViewById(R.id.slider_grain_size)
         textGrainSize = view.findViewById(R.id.text_grain_size)
+        rangeSliderTonal = view.findViewById(R.id.range_slider_tonal)
+        textTonalRange = view.findViewById(R.id.text_tonal_range)
         sliderShadowRatio = view.findViewById(R.id.slider_shadow_ratio)
         textShadowRatio = view.findViewById(R.id.text_shadow_ratio)
         sliderHighlightRatio = view.findViewById(R.id.slider_highlight_ratio)
@@ -190,6 +197,13 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         buttonCancel = view.findViewById(R.id.button_cancel)
         buttonImport = view.findViewById(R.id.button_import)
         buttonExport = view.findViewById(R.id.button_export)
+        layoutAdvancedHeader = view.findViewById(R.id.layout_advanced_header)
+        layoutAdvancedContent = view.findViewById(R.id.layout_advanced_content)
+        buttonToggleAdvanced = view.findViewById(R.id.button_toggle_advanced)
+        
+        // 恢复高级参数的折叠状态
+        val isExpanded = preferencesManager.filmGrainAdvancedExpanded
+        updateAdvancedSectionVisibility(isExpanded)
     }
     
     private fun loadCurrentConfig() {
@@ -200,6 +214,13 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         
         sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 3.0f)
         textGrainSize.text = String.format("%.1f", config.grainSize)
+        
+        // 设置影调范围
+        rangeSliderTonal.values = listOf(
+            config.shadowThreshold.toFloat().coerceIn(0f, 255f),
+            config.highlightThreshold.toFloat().coerceIn(0f, 255f)
+        )
+        textTonalRange.text = "${config.shadowThreshold}-${config.highlightThreshold}"
         
         sliderShadowRatio.value = config.shadowGrainRatio.coerceIn(0.2f, 1.0f)
         textShadowRatio.text = String.format("%.2f", config.shadowGrainRatio)
@@ -234,6 +255,16 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         
         sliderGrainSize.addOnChangeListener { _, value, _ ->
             textGrainSize.text = String.format("%.1f", value)
+        }
+        
+        // 影调范围滑块监听器
+        rangeSliderTonal.addOnChangeListener { slider, _, _ ->
+            val values = slider.values
+            if (values.size >= 2) {
+                val shadowThreshold = values[0].toInt()
+                val highlightThreshold = values[1].toInt()
+                textTonalRange.text = "$shadowThreshold-$highlightThreshold"
+            }
         }
         
         sliderShadowRatio.addOnChangeListener { _, value, _ ->
@@ -285,6 +316,11 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
             dismiss()
         }
         
+        // 高级参数折叠/展开
+        layoutAdvancedHeader.setOnClickListener {
+            toggleAdvancedSection()
+        }
+        
         buttonImport.setOnClickListener {
             importConfig()
         }
@@ -295,10 +331,13 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
     }
     
     private fun saveConfig() {
+        val tonalValues = rangeSliderTonal.values
         val config = FilmGrainConfig(
             isEnabled = true,
             globalStrength = sliderGlobalStrength.value / 100f,
             grainSize = sliderGrainSize.value,
+            shadowThreshold = tonalValues[0].toInt(),
+            highlightThreshold = tonalValues[1].toInt(),
             shadowGrainRatio = sliderShadowRatio.value,
             highlightGrainRatio = sliderHighlightRatio.value,
             shadowSizeRatio = sliderShadowSizeRatio.value,
@@ -318,6 +357,10 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         
         sliderGlobalStrength.value = defaultConfig.globalStrength * 100
         sliderGrainSize.value = defaultConfig.grainSize
+        rangeSliderTonal.values = listOf(
+            defaultConfig.shadowThreshold.toFloat(),
+            defaultConfig.highlightThreshold.toFloat()
+        )
         sliderShadowRatio.value = defaultConfig.shadowGrainRatio
         sliderHighlightRatio.value = defaultConfig.highlightGrainRatio
         sliderShadowSizeRatio.value = defaultConfig.shadowSizeRatio
@@ -401,10 +444,13 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
      * 获取当前配置
      */
     private fun getCurrentConfig(): FilmGrainConfig {
+        val tonalValues = rangeSliderTonal.values
         return FilmGrainConfig(
             isEnabled = true,
             globalStrength = sliderGlobalStrength.value / 100f,
             grainSize = sliderGrainSize.value,
+            shadowThreshold = tonalValues[0].toInt(),
+            highlightThreshold = tonalValues[1].toInt(),
             shadowGrainRatio = sliderShadowRatio.value,
             midtoneGrainRatio = 1.0f, // 固定值
             highlightGrainRatio = sliderHighlightRatio.value,
@@ -424,6 +470,10 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
     private fun applyConfig(config: FilmGrainConfig) {
         sliderGlobalStrength.value = (config.globalStrength * 100).coerceIn(0f, 100f)
         sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 3.0f)
+        rangeSliderTonal.values = listOf(
+            config.shadowThreshold.toFloat().coerceIn(0f, 255f),
+            config.highlightThreshold.toFloat().coerceIn(0f, 255f)
+        )
         sliderShadowRatio.value = config.shadowGrainRatio.coerceIn(0.2f, 1.0f)
         sliderHighlightRatio.value = config.highlightGrainRatio.coerceIn(0.1f, 0.8f)
         sliderShadowSizeRatio.value = config.shadowSizeRatio.coerceIn(1.0f, 2.0f)
@@ -442,6 +492,8 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
             put("version", 1)
             put("globalStrength", config.globalStrength)
             put("grainSize", config.grainSize)
+            put("shadowThreshold", config.shadowThreshold)
+            put("highlightThreshold", config.highlightThreshold)
             put("shadowGrainRatio", config.shadowGrainRatio)
             put("midtoneGrainRatio", config.midtoneGrainRatio)
             put("highlightGrainRatio", config.highlightGrainRatio)
@@ -463,6 +515,8 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
             isEnabled = true,
             globalStrength = json.optDouble("globalStrength", 0.5).toFloat(),
             grainSize = json.optDouble("grainSize", 1.0).toFloat(),
+            shadowThreshold = json.optInt("shadowThreshold", 85),
+            highlightThreshold = json.optInt("highlightThreshold", 170),
             shadowGrainRatio = json.optDouble("shadowGrainRatio", 0.6).toFloat(),
             midtoneGrainRatio = json.optDouble("midtoneGrainRatio", 1.0).toFloat(),
             highlightGrainRatio = json.optDouble("highlightGrainRatio", 0.3).toFloat(),
@@ -473,6 +527,26 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
             blueChannelRatio = json.optDouble("blueChannelRatio", 1.2).toFloat(),
             channelCorrelation = json.optDouble("channelCorrelation", 0.9).toFloat(),
             colorPreservation = json.optDouble("colorPreservation", 0.95).toFloat()
+        )
+    }
+    
+    /**
+     * 切换高级参数区域的展开/折叠状态
+     */
+    private fun toggleAdvancedSection() {
+        val isCurrentlyVisible = layoutAdvancedContent.visibility == View.VISIBLE
+        val newVisibility = !isCurrentlyVisible
+        updateAdvancedSectionVisibility(newVisibility)
+        preferencesManager.filmGrainAdvancedExpanded = newVisibility
+    }
+    
+    /**
+     * 更新高级参数区域的可见性
+     */
+    private fun updateAdvancedSectionVisibility(isExpanded: Boolean) {
+        layoutAdvancedContent.visibility = if (isExpanded) View.VISIBLE else View.GONE
+        buttonToggleAdvanced.setImageResource(
+            if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
         )
     }
 }
