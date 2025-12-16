@@ -2,7 +2,7 @@
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
 
-![应用版本](https://img.shields.io/badge/版本-3.1.0-blue)
+![应用版本](https://img.shields.io/badge/版本-3.1.1-blue)
 ![Android](https://img.shields.io/badge/Android-10+-green)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
@@ -70,12 +70,22 @@
    - 点击删除按钮
    - 确认后删除
 
+#### 5. 处理历史
+1. 进入**处理历史**页面
+2. 点击**清空历史**按钮
+    - 清除所有已处理/已跳过项目
+    - 包括仅处理新增文件标记的文件
+3. 点击项目全屏查看已处理图片
+    - 双指放大
+    - 点击返回
+4. 长按项目进入多选分享
+
 **内置 LUT**：
 - 内置富士胶片模拟 LUT，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作（srgb 转 rec2020.flog2）
 - 内置 sRGB 转 rec.709 Lut
 - 内置 Vlog 转 rec.709 Lut
 
-#### 5. 联机拍摄模式
+#### 6. 联机拍摄模式
 1. **准备工作**
    - 使用 USB OTG 线连接相机和手机
    - 确保相机支持 PTP/MTP 模式
