@@ -70,6 +70,11 @@
    - 点击删除按钮
    - 确认后删除
 
+**内置 LUT**：
+- 内置富士胶片模拟 LUT，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作（srgb 转 rec2020.flog2）
+- 内置 sRGB 转 rec.709 Lut
+- 内置 Vlog 转 rec.709 Lut
+
 #### 5. 处理历史
 1. 进入**处理历史**页面
 2. 点击**清空历史**按钮
@@ -79,11 +84,6 @@
     - 双指放大
     - 点击返回
 4. 长按项目进入多选分享
-
-**内置 LUT**：
-- 内置富士胶片模拟 LUT，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作（srgb 转 rec2020.flog2）
-- 内置 sRGB 转 rec.709 Lut
-- 内置 Vlog 转 rec.709 Lut
 
 #### 6. 联机拍摄模式
 1. **准备工作**
