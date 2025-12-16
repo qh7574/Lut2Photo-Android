@@ -27,7 +27,7 @@
             android:id="@+id/overlay_background"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:alpha="0.2"
+            android:alpha="0"
             android:background="@color/material_dynamic_neutral_variant10"
             android:visibility="gone" />
 
@@ -49,7 +49,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="文件名"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:shadowColor="#ff000000"
                 android:shadowDx="0"
                 android:shadowDy="2"
@@ -96,6 +96,17 @@
             android:layout_marginTop="4dp" />
 
         </LinearLayout>
+
+        <!-- 选中状态指示器 - 右下角 -->
+        <ImageView
+            android:id="@+id/image_selection_indicator"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="12dp"
+            android:src="@drawable/ic_check_circle_24"
+            android:contentDescription="已选中"
+            android:visibility="gone" />
 
     </FrameLayout>
 

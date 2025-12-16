@@ -12,7 +12,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="0dp">
 
         <!-- 添加标题 -->
         <com.google.android.material.textview.MaterialTextView

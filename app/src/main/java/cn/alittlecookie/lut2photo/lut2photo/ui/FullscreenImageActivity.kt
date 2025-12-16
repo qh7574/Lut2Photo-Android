@@ -1,5 +1,6 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui
 
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -8,6 +9,7 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ActivityFullscreenImageBinding
@@ -18,46 +20,91 @@ import java.io.File
  * 使用 ZoomImage 库实现图片的缩放、拖动等手势操作
  */
 class FullscreenImageActivity : AppCompatActivity() {
-    
+
     private lateinit var binding: ActivityFullscreenImageBinding
     private var tempImageFile: File? = null
-    
+
     companion object {
         const val EXTRA_IMAGE_URI = "extra_image_uri"
+        const val EXTRA_IS_PROCESSED_IMAGE = "extra_is_processed_image"
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // 设置全屏显示
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        
+
         binding = ActivityFullscreenImageBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
+
         // 隐藏系统 UI
         hideSystemUI()
-        
-        // 显示提示
-        Toast.makeText(this, "非全尺寸预览图，仅供参考", Toast.LENGTH_SHORT).show()
-        
+
+        // 是否是已处理的图片（来自处理历史）
+        val isProcessedImage = intent.getBooleanExtra(EXTRA_IS_PROCESSED_IMAGE, false)
+
+        // 只有非处理后的图片才显示预览提示
+        if (!isProcessedImage) {
+            Toast.makeText(this, "非全尺寸预览图，仅供参考", Toast.LENGTH_SHORT).show()
+        }
+
         // 获取图片 URI
         val imageUriString = intent.getStringExtra(EXTRA_IMAGE_URI)
         if (imageUriString != null) {
-            val imageUri = Uri.parse(imageUriString)
-            tempImageFile = File(imageUri.path ?: "")
-            
-            // 加载图片到 ZoomImageView
-            binding.zoomImageView.apply {
-                setImageURI(imageUri)
-                
-                // 点击退出
-                setOnClickListener {
-                    finish()
-                }
-            }
+            loadImage(imageUriString, isProcessedImage)
         } else {
             Toast.makeText(this, "无法加载图片", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+
+    private fun loadImage(imageUriString: String, isProcessedImage: Boolean) {
+        try {
+            when {
+                // content:// URI
+                imageUriString.startsWith("content://") -> {
+                    val uri = imageUriString.toUri()
+                    // 使用 ContentResolver 加载图片
+                    contentResolver.openInputStream(uri)?.use { inputStream ->
+                        val bitmap = BitmapFactory.decodeStream(inputStream)
+                        if (bitmap != null) {
+                            binding.zoomImageView.setImageBitmap(bitmap)
+                        } else {
+                            Toast.makeText(this, "无法解码图片", Toast.LENGTH_SHORT).show()
+                            finish()
+                            return
+                        }
+                    } ?: run {
+                        Toast.makeText(this, "无法打开图片文件", Toast.LENGTH_SHORT).show()
+                        finish()
+                        return
+                    }
+                }
+                // file:// URI 或文件路径
+                imageUriString.startsWith("file://") || imageUriString.startsWith("/") -> {
+                    val uri = if (imageUriString.startsWith("/")) {
+                        Uri.fromFile(File(imageUriString))
+                    } else {
+                        Uri.parse(imageUriString)
+                    }
+                    tempImageFile = File(uri.path ?: "")
+                    binding.zoomImageView.setImageURI(uri)
+                }
+                // 其他情况尝试作为 URI 解析
+                else -> {
+                    val uri = Uri.parse(imageUriString)
+                    binding.zoomImageView.setImageURI(uri)
+                }
+            }
+
+            // 点击退出
+            binding.zoomImageView.setOnClickListener {
+                finish()
+            }
+
+        } catch (e: Exception) {
+            Toast.makeText(this, "加载图片失败: ${e.message}", Toast.LENGTH_SHORT).show()
             finish()
         }
     }
