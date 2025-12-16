@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 缓存目录：用于预览图片 -->
     <cache-path name="preview_images" path="preview/" />
+    
+    <!-- 外部文件目录：用于分享日志文件 -->
+    <external-files-path name="logcat_files" path="logcat/" />
+    
+    <!-- 外部文件根目录：用于其他文件分享 -->
+    <external-files-path name="external_files" path="." />
 </paths>

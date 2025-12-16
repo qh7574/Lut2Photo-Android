@@ -110,15 +110,32 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 uniform float u_channelCorrelation;
                 uniform float u_colorPreservation;
                 
-                // Random function for dithering
+                // 改进的随机数生成函数（多重哈希）
                 float random(vec2 co) {
-                    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+                    // 使用多个质数和更复杂的哈希函数提高随机性
+                    float a = 12.9898;
+                    float b = 78.233;
+                    float c = 43758.5453;
+                    float dt = dot(co.xy, vec2(a, b));
+                    float sn = mod(dt, 3.14159);
+                    return fract(sin(sn) * c);
                 }
                 
-                // 高斯噪声生成（Box-Muller变换简化版）
+                // 改进的随机数生成（使用多重哈希避免周期性）
+                float randomImproved(vec2 co, float seed) {
+                    vec2 p = co + seed;
+                    // 第一层哈希
+                    float h1 = fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+                    // 第二层哈希
+                    float h2 = fract(sin(dot(p, vec2(269.5, 183.3))) * 43758.5453123);
+                    // 组合两层哈希
+                    return fract(h1 + h2);
+                }
+                
+                // 改进的高斯噪声生成（Box-Muller变换）
                 float gaussianNoise(vec2 uv, float seed) {
-                    float u1 = max(random(uv + seed), 0.0001);
-                    float u2 = random(uv + seed + 0.5);
+                    float u1 = max(randomImproved(uv, seed), 0.0001);
+                    float u2 = randomImproved(uv, seed + 0.5);
                     return sqrt(-2.0 * log(u1)) * cos(6.28318 * u2);
                 }
                 
@@ -166,7 +183,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     }
                 }
                 
-                // 应用胶片颗粒效果
+                // 应用胶片颗粒效果（优化版）
                 vec3 applyFilmGrain(vec3 color, vec2 uv) {
                     // 计算亮度
                     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
@@ -178,11 +195,22 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     // 计算实际噪声强度
                     float noiseStrength = u_grainStrength * strengthRatio * u_grainSize * sizeRatio * 0.1;
                     
+                    // 改进的UV坐标计算：基于纹理分辨率而非固定常数
+                    vec2 texSize = vec2(textureSize(u_inputTexture, 0));
+                    // 使用纹理尺寸的平均值作为基准，确保分辨率无关性
+                    float avgTexSize = (texSize.x + texSize.y) * 0.5;
+                    // 归一化的颗粒频率（每1000像素的颗粒数量）
+                    float normalizedFreq = avgTexSize / 1000.0;
+                    
+                    // 生成基于像素坐标的噪声UV（确保空间连续性）
+                    vec2 pixelCoord = uv * texSize;
+                    vec2 grainUV = pixelCoord / (u_grainSize * sizeRatio * normalizedFreq);
+                    
                     // 生成基础噪声（用于通道相关性）
-                    vec2 grainUV = uv * u_grainSize * sizeRatio * 100.0;
                     float baseNoise = gaussianNoise(grainUV, u_grainSeed);
                     
                     // 生成各通道噪声（考虑通道相关性）
+                    // 使用不同的偏移确保通道间有差异但保持相关性
                     float rNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.1), baseNoise, u_channelCorrelation) * u_redChannelRatio;
                     float gNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.2), baseNoise, u_channelCorrelation) * u_greenChannelRatio;
                     float bNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.3), baseNoise, u_channelCorrelation) * u_blueChannelRatio;
@@ -775,14 +803,18 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     ): Bitmap? {
         Log.d(TAG, "开始GPU处理，图片尺寸: ${bitmap.width}x${bitmap.height}")
         
-        // 检查是否需要 LUT 处理
-        val needsLutProcessing = currentLut != null || currentLut2 != null
+        // 检查是否需要 GPU 处理（LUT 或颗粒效果）
+        val hasLut = currentLut != null || currentLut2 != null
+        val hasGrain = currentGrainConfig?.isEnabled == true && (currentGrainConfig?.globalStrength ?: 0f) > 0f
+        val needsGpuProcessing = hasLut || hasGrain
         
-        if (!needsLutProcessing) {
-            // 跳过 LUT 和抖动处理，只返回原图副本（后续会处理颗粒、水印等）
-            Log.d(TAG, "跳过 LUT 处理：未加载任何 LUT")
+        if (!needsGpuProcessing) {
+            // 既没有 LUT 也没有颗粒效果，直接返回原图副本
+            Log.d(TAG, "跳过 GPU 处理：未加载 LUT 且未启用颗粒效果")
             return bitmap.copy(bitmap.config ?: Bitmap.Config.ARGB_8888, true)
         }
+        
+        Log.d(TAG, "GPU处理需求: hasLut=$hasLut, hasGrain=$hasGrain")
 
         val totalPixels = bitmap.width.toLong() * bitmap.height.toLong()
         Log.d(TAG, "总像素数: $totalPixels, 限制: $MAX_PIXELS_FOR_DIRECT_PROCESSING")
@@ -1456,30 +1488,39 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             }
         }
 
-        // **关键修复：验证LUT纹理是否有效**
-        if (lutTexture == 0) {
-            Log.e(TAG, "LUT纹理无效，尝试重新上传")
-            if (currentLut != null && currentLutSize > 0) {
-                uploadLutToGpu(currentLut!!)
-                Log.d(TAG, "LUT纹理重新创建完成，ID: $lutTexture")
-            } else {
-                throw RuntimeException("LUT纹理无效且没有可用的LUT数据")
+        // **关键修复：验证LUT纹理是否有效（如果需要LUT处理）**
+        val needsLut = currentLut != null || currentLut2 != null
+        if (needsLut) {
+            if (lutTexture == 0) {
+                Log.e(TAG, "LUT纹理无效，尝试重新上传")
+                if (currentLut != null && currentLutSize > 0) {
+                    uploadLutToGpu(currentLut!!)
+                    Log.d(TAG, "LUT纹理重新创建完成，ID: $lutTexture")
+                } else {
+                    throw RuntimeException("LUT纹理无效且没有可用的LUT数据")
+                }
+            }
+
+            // 验证LUT纹理是否真的存在
+            val isValidTexture = GLES30.glIsTexture(lutTexture)
+            if (!isValidTexture) {
+                Log.e(TAG, "LUT纹理ID无效: $lutTexture")
+                if (currentLut != null && currentLutSize > 0) {
+                    uploadLutToGpu(currentLut!!)
+                    Log.d(TAG, "LUT纹理重新创建完成，ID: $lutTexture")
+                } else {
+                    throw RuntimeException("LUT纹理ID无效且没有可用的LUT数据")
+                }
+            }
+
+            Log.d(TAG, "LUT纹理验证通过，ID: $lutTexture")
+        } else {
+            // 没有LUT时，创建一个恒等LUT（identity LUT）用于着色器
+            if (lutTexture == 0) {
+                Log.d(TAG, "没有LUT数据，创建恒等LUT用于颗粒效果处理")
+                createIdentityLut()
             }
         }
-
-        // 验证LUT纹理是否真的存在
-        val isValidTexture = GLES30.glIsTexture(lutTexture)
-        if (!isValidTexture) {
-            Log.e(TAG, "LUT纹理ID无效: $lutTexture")
-            if (currentLut != null && currentLutSize > 0) {
-                uploadLutToGpu(currentLut!!)
-                Log.d(TAG, "LUT纹理重新创建完成，ID: $lutTexture")
-            } else {
-                throw RuntimeException("LUT纹理ID无效且没有可用的LUT数据")
-            }
-        }
-
-        Log.d(TAG, "LUT纹理验证通过，ID: $lutTexture")
 
         // **关键修复：验证第二个LUT纹理是否有效**
         if (currentLut2 != null && currentLut2Size > 0) {
@@ -2402,5 +2443,30 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
      */
     fun getFilmGrainConfig(): cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? {
         return currentGrainConfig
+    }
+    
+    /**
+     * 创建恒等LUT（identity LUT）
+     * 当没有加载LUT但需要使用颗粒效果时使用
+     */
+    private fun createIdentityLut() {
+        val identitySize = 16 // 使用较小的尺寸以节省内存
+        val identityLut = Array(identitySize) { r ->
+            Array(identitySize) { g ->
+                Array(identitySize) { b ->
+                    floatArrayOf(
+                        r.toFloat() / (identitySize - 1),
+                        g.toFloat() / (identitySize - 1),
+                        b.toFloat() / (identitySize - 1)
+                    )
+                }
+            }
+        }
+        
+        currentLut = identityLut
+        currentLutSize = identitySize
+        uploadLutToGpu(identityLut)
+        
+        Log.d(TAG, "恒等LUT创建完成，尺寸: $identitySize, 纹理ID: $lutTexture")
     }
 }
