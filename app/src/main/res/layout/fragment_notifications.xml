@@ -361,7 +361,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="捐赠作者"
+                    android:text="捐赠作者（点击放大）"
                     android:textAppearance="?attr/textAppearanceHeadline6"
                     android:textStyle="bold" />
 

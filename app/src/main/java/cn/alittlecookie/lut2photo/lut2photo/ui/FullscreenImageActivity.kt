@@ -27,6 +27,7 @@ class FullscreenImageActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_IMAGE_URI = "extra_image_uri"
         const val EXTRA_IS_PROCESSED_IMAGE = "extra_is_processed_image"
+        const val EXTRA_DRAWABLE_RES_ID = "extra_drawable_res_id"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,13 +50,19 @@ class FullscreenImageActivity : AppCompatActivity() {
             Toast.makeText(this, "非全尺寸预览图，仅供参考", Toast.LENGTH_SHORT).show()
         }
 
-        // 获取图片 URI
-        val imageUriString = intent.getStringExtra(EXTRA_IMAGE_URI)
-        if (imageUriString != null) {
-            loadImage(imageUriString, isProcessedImage)
+        // 检查是否从 Drawable 资源加载
+        val drawableResId = intent.getIntExtra(EXTRA_DRAWABLE_RES_ID, 0)
+        if (drawableResId != 0) {
+            loadImageFromDrawable(drawableResId)
         } else {
-            Toast.makeText(this, "无法加载图片", Toast.LENGTH_SHORT).show()
-            finish()
+            // 获取图片 URI
+            val imageUriString = intent.getStringExtra(EXTRA_IMAGE_URI)
+            if (imageUriString != null) {
+                loadImage(imageUriString, isProcessedImage)
+            } else {
+                Toast.makeText(this, "无法加载图片", Toast.LENGTH_SHORT).show()
+                finish()
+            }
         }
     }
 
@@ -103,6 +110,26 @@ class FullscreenImageActivity : AppCompatActivity() {
                 finish()
             }
 
+        } catch (e: Exception) {
+            Toast.makeText(this, "加载图片失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+
+    private fun loadImageFromDrawable(drawableResId: Int) {
+        try {
+            val bitmap = BitmapFactory.decodeResource(resources, drawableResId)
+            if (bitmap != null) {
+                binding.zoomImageView.setImageBitmap(bitmap)
+                
+                // 点击退出
+                binding.zoomImageView.setOnClickListener {
+                    finish()
+                }
+            } else {
+                Toast.makeText(this, "无法加载图片资源", Toast.LENGTH_SHORT).show()
+                finish()
+            }
         } catch (e: Exception) {
             Toast.makeText(this, "加载图片失败: ${e.message}", Toast.LENGTH_SHORT).show()
             finish()

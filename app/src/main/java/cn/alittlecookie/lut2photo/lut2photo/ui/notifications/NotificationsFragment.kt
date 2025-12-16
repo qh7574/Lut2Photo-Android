@@ -23,6 +23,7 @@ import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.ThemeManager
 import cn.alittlecookie.lut2photo.lut2photo.MyApplication
 import androidx.core.content.FileProvider
+import cn.alittlecookie.lut2photo.lut2photo.ui.FullscreenImageActivity
 
 class NotificationsFragment : Fragment() {
 
@@ -85,6 +86,16 @@ class NotificationsFragment : Fragment() {
             // 项目地址按钮
             buttonGithub.setOnClickListener {
                 openGithubPage()
+            }
+            
+            // 支付宝二维码点击事件
+            imageView.setOnClickListener {
+                openImageFullscreen(R.drawable.alipaycode)
+            }
+            
+            // 微信二维码点击事件
+            imageView2.setOnClickListener {
+                openImageFullscreen(R.drawable.wechatcode)
             }
         }
     }
@@ -292,6 +303,20 @@ class NotificationsFragment : Fragment() {
             startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * 打开全屏图片查看
+     */
+    private fun openImageFullscreen(drawableResId: Int) {
+        try {
+            val intent = Intent(requireContext(), FullscreenImageActivity::class.java)
+            intent.putExtra(FullscreenImageActivity.EXTRA_DRAWABLE_RES_ID, drawableResId)
+            intent.putExtra(FullscreenImageActivity.EXTRA_IS_PROCESSED_IMAGE, true)
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "无法打开图片", Toast.LENGTH_SHORT).show()
         }
     }
     
