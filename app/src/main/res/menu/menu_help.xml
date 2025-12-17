@@ -2,11 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/menu_app_guide"
-        android:title="@string/app_guide" />
+        android:title="@string/app_guide"
+        android:icon="@drawable/outline_auto_stories_24_shifted"/>
     <item
         android:id="@+id/menu_watermark_help"
-        android:title="@string/watermark_help" />
+        android:title="@string/watermark_help"
+        android:icon="@drawable/outline_ink_marker_24_shifted"/>
     <item
         android:id="@+id/menu_grain_help"
-        android:title="@string/grain_help" />
+        android:title="@string/grain_help"
+        android:icon="@drawable/outline_grain_24_shifted"/>
 </menu>

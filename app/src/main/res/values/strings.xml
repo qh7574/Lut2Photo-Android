@@ -245,7 +245,7 @@
     <string name="selected_count">已选择 %d 张</string>
     
     <!-- 胶片颗粒设置 -->
-    <string name="film_grain_settings_title">胶片颗粒设置</string>
+    <string name="film_grain_settings_title">颗粒设置</string>
     <string name="film_grain_basic_params">基础参数</string>
     <string name="film_grain_basic_params_title">基础参数</string>
     <string name="film_grain_advanced_params_title">高级参数</string>

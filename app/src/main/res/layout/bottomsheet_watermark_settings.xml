@@ -20,8 +20,8 @@
             android:layout_width="40dp"
             android:layout_height="4dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="0dp"
             android:alpha="0.4"
             android:background="?attr/colorOnSurfaceVariant" />
 
@@ -31,6 +31,12 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/outline_ink_marker_24"
+                android:layout_marginRight="8dp"/>
 
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="0dp"
@@ -355,7 +361,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="可用变量：{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}{LUT1}{LUT2}{LUT1_STRENGTH}{LUT2_STRENGTH}"
+                        android:textIsSelectable="true"
+                        android:text="可用变量（长按复制，↩︎换行）：\n{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}{LUT1}{LUT2}{LUT1_STRENGTH}{LUT2_STRENGTH}"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                     <!-- 文字内容 -->

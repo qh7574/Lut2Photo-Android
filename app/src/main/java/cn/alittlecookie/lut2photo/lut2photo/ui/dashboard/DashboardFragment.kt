@@ -1153,7 +1153,7 @@ class DashboardFragment : Fragment() {
     private fun showHelpMenu(view: View) {
         val popup = androidx.appcompat.widget.PopupMenu(requireContext(), view)
         popup.menuInflater.inflate(R.menu.menu_help, popup.menu)
-        
+        popup.setForceShowIcon(true)
         popup.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.menu_app_guide -> {
