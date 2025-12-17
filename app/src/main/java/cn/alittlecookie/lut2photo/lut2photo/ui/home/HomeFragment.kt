@@ -1434,15 +1434,11 @@ class HomeFragment : Fragment() {
                                         // 设置颗粒配置（如果启用）
                                         if (binding.switchGrain.isChecked) {
                                             val originalConfig = preferencesManager.getFilmGrainConfig()
-                                            // 为预览缩放颗粒参数，确保视觉观感一致
-                                            val previewConfig = originalConfig.scaleForPreview(
-                                                previewWidth = processedBitmap.width,
-                                                previewHeight = processedBitmap.height,
-                                                originalWidth = originalWidth,
-                                                originalHeight = originalHeight
-                                            ).copy(isEnabled = true)
+                                            // 预览图直接使用原始配置，不进行缩放
+                                            // 这样预览效果会更接近实际输出（实际输出也使用原始配置）
+                                            val previewConfig = originalConfig.copy(isEnabled = true)
                                             threadManager.setFilmGrainConfig(previewConfig)
-                                            Log.d("HomeFragment", "预览颗粒配置: 原图${originalWidth}x${originalHeight} -> 预览${processedBitmap.width}x${processedBitmap.height}, grainSize: ${originalConfig.grainSize} -> ${previewConfig.grainSize}")
+                                            Log.d("HomeFragment", "预览颗粒配置: 使用原始配置（不缩放），grainSize: ${originalConfig.grainSize}, 强度: ${originalConfig.globalStrength}")
                                         } else {
                                             threadManager.setFilmGrainConfig(null)
                                         }
