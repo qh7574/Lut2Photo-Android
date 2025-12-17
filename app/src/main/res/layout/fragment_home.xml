@@ -314,7 +314,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="12dp">
 
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/text_input_folder"
@@ -423,13 +423,13 @@
                         android:layout_height="wrap_content"
                         android:text="LUT1 效果强度"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="0dp" />
 
                     <!-- 在强度滑块后添加显示值的TextView -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -460,14 +460,14 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="0dp"
                         android:text="LUT2 效果强度"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -500,12 +500,12 @@
                         android:layout_height="wrap_content"
                         android:text="@string/output_quality"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="0dp" />
                     <!-- 在质量滑块后添加显示值的TextView -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -537,7 +537,7 @@
                         android:layout_height="wrap_content"
                         android:text="抖动类型"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="0dp" />
 
                     <com.google.android.material.button.MaterialButtonToggleGroup
                         android:id="@+id/toggle_group_dither"

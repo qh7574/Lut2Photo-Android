@@ -333,7 +333,7 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
+                            android:layout_marginBottom="0dp"
                             android:text="LUT1 效果强度"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
@@ -347,7 +347,7 @@
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="16dp"
+                                android:layout_marginBottom="8dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
@@ -378,14 +378,14 @@
                             <com.google.android.material.textview.MaterialTextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
+                                android:layout_marginBottom="0dp"
                                 android:text="LUT2 效果强度"
                                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="16dp"
+                                android:layout_marginBottom="8dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
@@ -415,7 +415,7 @@
                             <com.google.android.material.textview.MaterialTextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
+                                android:layout_marginBottom="0dp"
                                 android:text="输出质量"
                                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
@@ -423,7 +423,7 @@
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="16dp"
+                                android:layout_marginBottom="8dp"
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
 
@@ -454,7 +454,7 @@
                             <com.google.android.material.textview.MaterialTextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginBottom="8dp"
+                                android:layout_marginBottom="0dp"
                                 android:text="@string/dither_type"
                                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
