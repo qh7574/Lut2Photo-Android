@@ -31,13 +31,13 @@ import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ThreadManager
 import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentDashboardBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
+import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.FilmGrainSettingsBottomSheet
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutUtils
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkUtils
 import cn.alittlecookie.lut2photo.lut2photo.utils.WrapContentGridLayoutManager
 import cn.alittlecookie.lut2photo.ui.bottomsheet.WatermarkSettingsBottomSheet
-import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.FilmGrainSettingsBottomSheet
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.target.CustomTarget
@@ -45,8 +45,8 @@ import com.bumptech.glide.request.transition.Transition
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.coroutines.resume
 
@@ -628,8 +628,9 @@ class DashboardFragment : Fragment() {
             placeholderText?.visibility = View.GONE
             iv.visibility = View.VISIBLE
 
-            // 如果没有选择LUT且没有开启水印，直接显示原图
-            if (selectedLutItem == null && selectedLut2Item == null && !binding.switchWatermark.isChecked) {
+            // 如果没有选择LUT、没有开启水印、也没有开启颗粒，直接显示原图
+            if (selectedLutItem == null && selectedLut2Item == null && 
+                !binding.switchWatermark.isChecked && !binding.switchGrain.isChecked) {
                 Glide.with(this)
                     .load(uri)
                     .into(iv)
@@ -676,9 +677,9 @@ class DashboardFragment : Fragment() {
                                 val strength1 = preferencesManager.dashboardStrength
                                 val strength2 = preferencesManager.dashboardLut2Strength
 
-                                // 如果有任何LUT需要应用
-                                if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty()) {
-                                    Log.d("DashboardFragment", "开始使用ThreadManager处理预览")
+                                // 如果有任何LUT需要应用，或者开启了颗粒效果
+                                if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty() || binding.switchGrain.isChecked) {
+                                    Log.d("DashboardFragment", "开始使用ThreadManager处理预览 (LUT=${!lutPath.isNullOrEmpty()}, LUT2=${!lut2Path.isNullOrEmpty()}, 颗粒=${binding.switchGrain.isChecked})")
                                     
                                     // 设置颗粒配置（如果启用）
                                     if (binding.switchGrain.isChecked) {
@@ -696,7 +697,7 @@ class DashboardFragment : Fragment() {
                                         threadManager.setFilmGrainConfig(null)
                                     }
                                     
-                                    // 加载LUT到ThreadManager
+                                    // 加载LUT到ThreadManager（如果有）
                                     if (!lutPath.isNullOrEmpty()) {
                                         val lutFile = File(lutPath)
                                         if (lutFile.exists()) {
@@ -720,7 +721,7 @@ class DashboardFragment : Fragment() {
                                         ditherType = ILutProcessor.DitherType.NONE
                                     )
                                     
-                                    // 使用ThreadManager处理（GPU会在着色器中处理LUT+颗粒）
+                                    // 使用ThreadManager处理（GPU会在着色器中处理LUT+颗粒，CPU会返回原图副本+单独处理颗粒）
                                     val lutAndGrainResult = suspendCancellableCoroutine<Bitmap?> { continuation ->
                                         threadManager.submitTask(
                                             bitmap = processedBitmap,

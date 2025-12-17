@@ -1320,8 +1320,9 @@ class HomeFragment : Fragment() {
                 placeholderText?.visibility = View.GONE
                 iv.visibility = View.VISIBLE
 
-                // 如果没有选择LUT且没有开启水印，直接显示原图
-                if (selectedLutItem == null && selectedLut2Item == null && !binding.switchWatermark.isChecked) {
+                // 如果没有选择LUT、没有开启水印、也没有开启颗粒，直接显示原图
+                if (selectedLutItem == null && selectedLut2Item == null && 
+                    !binding.switchWatermark.isChecked && !binding.switchGrain.isChecked) {
                     Glide.with(this)
                         .load(imageUri)
                         .into(iv)
@@ -1382,12 +1383,13 @@ class HomeFragment : Fragment() {
                                     val lutPath = selectedLutItem?.let { lutManager.getLutFilePath(it) }
                                     val lut2Path = selectedLut2Item?.let { lutManager.getLutFilePath(it) }
 
-                                    if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty()) {
+                                    // 如果有任何LUT需要应用，或者开启了颗粒效果
+                                    if (!lutPath.isNullOrEmpty() || !lut2Path.isNullOrEmpty() || binding.switchGrain.isChecked) {
                                         // 使用固定的强度值，确保一致性
                                         val strength1 = currentStrength1 / 100f
                                         val strength2 = currentStrength2 / 100f
 
-                                        Log.d("HomeFragment", "开始使用ThreadManager处理预览")
+                                        Log.d("HomeFragment", "开始使用ThreadManager处理预览 (LUT=${!lutPath.isNullOrEmpty()}, LUT2=${!lut2Path.isNullOrEmpty()}, 颗粒=${binding.switchGrain.isChecked})")
                                         
                                         // 设置颗粒配置（如果启用）
                                         if (binding.switchGrain.isChecked) {
@@ -1405,7 +1407,7 @@ class HomeFragment : Fragment() {
                                             threadManager.setFilmGrainConfig(null)
                                         }
                                         
-                                        // 加载LUT到ThreadManager
+                                        // 加载LUT到ThreadManager（如果有）
                                         if (!lutPath.isNullOrEmpty()) {
                                             val lutFile = File(lutPath)
                                             if (lutFile.exists()) {
@@ -1429,7 +1431,7 @@ class HomeFragment : Fragment() {
                                             ditherType = ILutProcessor.DitherType.NONE
                                         )
                                         
-                                        // 使用ThreadManager处理（GPU会在着色器中处理LUT+颗粒）
+                                        // 使用ThreadManager处理（GPU会在着色器中处理LUT+颗粒，CPU会返回原图副本+单独处理颗粒）
                                         val lutAndGrainResult = suspendCancellableCoroutine<Bitmap?> { continuation ->
                                             threadManager.submitTask(
                                                 bitmap = processedBitmap,
