@@ -431,40 +431,47 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 _processedCount.postValue(0)
                 _statusMessage.postValue(getApplication<Application>().getString(R.string.status_processing))
 
-                // 加载第一个LUT（如果提供）
-                lutItem?.let { lut1 ->
-                    val lutFilePath = lutManager.getLutFilePath(lut1)
+                // 加载或清除第一个LUT
+                if (lutItem != null) {
+                    val lutFilePath = lutManager.getLutFilePath(lutItem)
                     val lutFile = File(lutFilePath)
                     if (!lutFile.exists()) {
-                        throw Exception("LUT文件不存在: ${lut1.name}")
+                        throw Exception("LUT文件不存在: ${lutItem.name}")
                     }
 
                     threadManager.loadLut(lutFile.inputStream())
-                    Log.d("DashboardViewModel", "LUT加载成功: ${lut1.name}")
+                    Log.d("DashboardViewModel", "LUT加载成功: ${lutItem.name}")
+                } else {
+                    // 用户未选择LUT，清除之前的LUT数据
+                    threadManager.clearMainLut()
+                    Log.d("DashboardViewModel", "主LUT已清除（用户未选择）")
                 }
-                // 注意：如果lutItem为null，不需要清空LUT，因为处理器会检查
 
-                // 加载第二个LUT（如果提供）
-                lut2Item?.let { lut2 ->
-                    val lut2FilePath = lutManager.getLutFilePath(lut2)
+                // 加载或清除第二个LUT
+                if (lut2Item != null) {
+                    val lut2FilePath = lutManager.getLutFilePath(lut2Item)
                     val lut2File = File(lut2FilePath)
                     if (lut2File.exists()) {
                         Log.d(
                             "DashboardViewModel",
-                            "开始加载第二个LUT文件: ${lut2.name}, 路径: $lut2FilePath"
+                            "开始加载第二个LUT文件: ${lut2Item.name}, 路径: $lut2FilePath"
                         )
                         val loadResult = threadManager.loadSecondLut(lut2File.inputStream())
                         if (loadResult) {
-                            Log.d("DashboardViewModel", "第二个LUT加载成功: ${lut2.name}")
+                            Log.d("DashboardViewModel", "第二个LUT加载成功: ${lut2Item.name}")
                         } else {
-                            Log.e("DashboardViewModel", "第二个LUT加载失败: ${lut2.name}")
+                            Log.e("DashboardViewModel", "第二个LUT加载失败: ${lut2Item.name}")
                         }
                     } else {
                         Log.w(
                             "DashboardViewModel",
-                            "第二个LUT文件不存在: ${lut2.name}, 路径: $lut2FilePath"
+                            "第二个LUT文件不存在: ${lut2Item.name}, 路径: $lut2FilePath"
                         )
                     }
+                } else {
+                    // 用户未选择第二个LUT，清除之前的LUT2数据
+                    threadManager.clearSecondLut()
+                    Log.d("DashboardViewModel", "第二个LUT已清除（用户未选择）")
                 }
 
                 // 设置颗粒配置到处理器（GPU处理器会在同一pass中处理LUT+颗粒）
@@ -614,7 +621,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                     inputPath = imageItem.uri.toString(),
                                     outputPath = outputPath,
                                     status = "成功",
-                                    lutFileName = lutItem?.name ?: "",  // 使用安全调用
+                                    lutFileName = lutItem?.name ?: "无LUT",  // 未选择时显示"无LUT"
                                     lut2FileName = lut2Item?.name ?: "", // 第二个LUT文件名
                                     strength = params.strength,
                                     lut2Strength = params.lut2Strength, // 第二个LUT强度
@@ -818,7 +825,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             inputPath = imageItem.uri.toString(),
             outputPath = "",
             status = "失败: ${error.message}",
-            lutFileName = lutItem?.name ?: "",  // 使用安全调用
+            lutFileName = lutItem?.name ?: "无LUT",  // 未选择时显示"无LUT"
             lut2FileName = lut2Item?.name ?: "", // 第二个LUT文件名
             strength = params.strength,
             lut2Strength = params.lut2Strength, // 第二个LUT强度

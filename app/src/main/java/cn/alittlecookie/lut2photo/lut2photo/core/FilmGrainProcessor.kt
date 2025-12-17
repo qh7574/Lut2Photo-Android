@@ -265,11 +265,10 @@ class FilmGrainProcessor {
         totalHeight: Int,
         offsetY: Int
     ) {
-        // 计算归一化频率（与GPU着色器一致）
-        // GPU: float avgTexSize = (texSize.x + texSize.y) * 0.5;
-        // GPU: float normalizedFreq = avgTexSize / 1000.0;
-        val avgTexSize = (totalWidth + totalHeight) * 0.5f
-        val normalizedFreq = avgTexSize / 1000f
+        // 使用固定的归一化频率，让 scaleForPreview 负责缩放
+        // grainSize 已经在调用层通过 scaleForPreview 调整过了
+        val STANDARD_DENSITY = 1000f
+        val normalizedFreq = STANDARD_DENSITY / 1000f  // = 1.0
         
         for (y in 0 until blockHeight) {
             for (x in 0 until blockWidth) {

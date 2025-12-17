@@ -1286,6 +1286,7 @@ class HomeFragment : Fragment() {
     
     /**
      * 获取图片的原始尺寸（不加载完整图片）
+     * 改进版：增加重试机制和更好的错误处理
      */
     private fun getImageDimensions(uri: Uri): Pair<Int, Int> {
         return try {
@@ -1295,12 +1296,51 @@ class HomeFragment : Fragment() {
             requireContext().contentResolver.openInputStream(uri)?.use { inputStream ->
                 android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
             }
-            Pair(options.outWidth, options.outHeight)
+            
+            // 验证尺寸是否有效
+            if (options.outWidth > 0 && options.outHeight > 0) {
+                Log.d("HomeFragment", "成功获取图片尺寸: ${options.outWidth}x${options.outHeight}")
+                Pair(options.outWidth, options.outHeight)
+            } else {
+                Log.w("HomeFragment", "图片尺寸无效，尝试从 ContentResolver 获取")
+                getImageDimensionsFromContentResolver(uri)
+            }
         } catch (e: Exception) {
             Log.e("HomeFragment", "获取图片尺寸失败", e)
-            // 返回默认假设尺寸
-            Pair(4000, 6000)
+            getImageDimensionsFromContentResolver(uri)
         }
+    }
+    
+    /**
+     * 从 ContentResolver 获取图片尺寸（备用方法）
+     */
+    private fun getImageDimensionsFromContentResolver(uri: Uri): Pair<Int, Int> {
+        try {
+            val cursor = requireContext().contentResolver.query(
+                uri,
+                arrayOf(android.provider.MediaStore.Images.Media.WIDTH, android.provider.MediaStore.Images.Media.HEIGHT),
+                null, null, null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val widthIndex = it.getColumnIndex(android.provider.MediaStore.Images.Media.WIDTH)
+                    val heightIndex = it.getColumnIndex(android.provider.MediaStore.Images.Media.HEIGHT)
+                    if (widthIndex >= 0 && heightIndex >= 0) {
+                        val width = it.getInt(widthIndex)
+                        val height = it.getInt(heightIndex)
+                        if (width > 0 && height > 0) {
+                            Log.d("HomeFragment", "从 ContentResolver 获取图片尺寸: ${width}x${height}")
+                            return Pair(width, height)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "从 ContentResolver 获取尺寸也失败", e)
+        }
+        // 最后的默认值
+        Log.w("HomeFragment", "使用默认图片尺寸: 4000x6000")
+        return Pair(4000, 6000)
     }
     
     /**
@@ -1394,15 +1434,15 @@ class HomeFragment : Fragment() {
                                         // 设置颗粒配置（如果启用）
                                         if (binding.switchGrain.isChecked) {
                                             val originalConfig = preferencesManager.getFilmGrainConfig()
-                                            // 为预览缩放颗粒参数，使用真实的原图尺寸
+                                            // 为预览缩放颗粒参数，确保视觉观感一致
                                             val previewConfig = originalConfig.scaleForPreview(
                                                 previewWidth = processedBitmap.width,
                                                 previewHeight = processedBitmap.height,
-                                                originalWidth = originalWidth,  // 使用真实的原图尺寸
+                                                originalWidth = originalWidth,
                                                 originalHeight = originalHeight
                                             ).copy(isEnabled = true)
                                             threadManager.setFilmGrainConfig(previewConfig)
-                                            Log.d("HomeFragment", "预览颗粒配置已设置并缩放: 原图${originalWidth}x${originalHeight} -> 预览${processedBitmap.width}x${processedBitmap.height}, grainSize: ${originalConfig.grainSize} -> ${previewConfig.grainSize}")
+                                            Log.d("HomeFragment", "预览颗粒配置: 原图${originalWidth}x${originalHeight} -> 预览${processedBitmap.width}x${processedBitmap.height}, grainSize: ${originalConfig.grainSize} -> ${previewConfig.grainSize}")
                                         } else {
                                             threadManager.setFilmGrainConfig(null)
                                         }

@@ -118,8 +118,15 @@ data class FilmGrainConfig(
     }
     
     /**
-     * 为预览图缩放颗粒参数
-     * 根据预览图和原图的分辨率比例，动态调整颗粒大小，确保预览效果与实际输出一致
+     * 为预览图缩放颗粒参数（基于像素密度归一化）
+     * 
+     * 核心思想：定义一个"标准像素密度"（1000 像素/单位长度）
+     * 然后根据实际图片的像素密度进行缩放
+     * 
+     * 这个方法最接近真实胶片的物理特性：
+     * - 胶片颗粒的物理大小是固定的
+     * - 扫描分辨率越高，每个颗粒占据的像素越多
+     * - 无论原图分辨率如何，相同的 grainSize 参数产生相同密度的颗粒
      * 
      * @param previewWidth 预览图宽度
      * @param previewHeight 预览图高度
@@ -133,16 +140,35 @@ data class FilmGrainConfig(
         originalWidth: Int,
         originalHeight: Int
     ): FilmGrainConfig {
-        val previewPixels = previewWidth * previewHeight
-        val originalPixels = originalWidth * originalHeight
+        // 定义标准像素密度（每1000像素为一个单位）
+        // 这个值与 GPU 着色器和 CPU 处理器中的归一化基准保持一致
+        val STANDARD_DENSITY = 1000f
         
-        // 计算分辨率缩放比例（使用平方根，因为颗粒大小是线性的）
-        val scale = kotlin.math.sqrt(previewPixels.toFloat() / originalPixels.toFloat())
+        // 计算原图和预览图的"有效尺寸"（几何平均值）
+        // 使用几何平均值而不是算术平均值，因为它对宽高比变化更稳定
+        // 几何平均值 = sqrt(width * height)，代表图片的"等效边长"
+        val originalEffectiveSize = kotlin.math.sqrt(originalWidth.toFloat() * originalHeight.toFloat())
+        val previewEffectiveSize = kotlin.math.sqrt(previewWidth.toFloat() * previewHeight.toFloat())
         
-        // 只缩放颗粒大小，保持其他参数不变
-        return this.copy(
-            grainSize = (grainSize * scale).coerceAtLeast(0.1f)  // 确保最小值为0.1
-        )
+        // 计算相对于标准密度的缩放比例
+        val originalDensityScale = originalEffectiveSize / STANDARD_DENSITY
+        val previewDensityScale = previewEffectiveSize / STANDARD_DENSITY
+        
+        // 预览相对于原图的缩放比例
+        val scale = previewDensityScale / originalDensityScale
+        
+        // 计算缩放后的颗粒大小
+        val scaledGrainSize = (grainSize * scale).coerceAtLeast(0.1f)
+        
+        android.util.Log.d("FilmGrainConfig", """
+            颗粒缩放计算（基于像素密度）:
+            - 原图: ${originalWidth}x${originalHeight}, 有效尺寸=${originalEffectiveSize.toInt()}, 密度比例=${"%.4f".format(originalDensityScale)}
+            - 预览: ${previewWidth}x${previewHeight}, 有效尺寸=${previewEffectiveSize.toInt()}, 密度比例=${"%.4f".format(previewDensityScale)}
+            - 相对缩放: ${"%.4f".format(scale)}
+            - grainSize: $grainSize -> $scaledGrainSize
+        """.trimIndent())
+        
+        return this.copy(grainSize = scaledGrainSize)
     }
     
     companion object {

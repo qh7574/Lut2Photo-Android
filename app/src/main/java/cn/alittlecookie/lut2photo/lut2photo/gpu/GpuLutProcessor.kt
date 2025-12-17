@@ -183,7 +183,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     }
                 }
                 
-                // 应用胶片颗粒效果（优化版）
+                // 应用胶片颗粒效果（配合 scaleForPreview 使用）
                 vec3 applyFilmGrain(vec3 color, vec2 uv) {
                     // 计算亮度
                     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
@@ -195,12 +195,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     // 计算实际噪声强度
                     float noiseStrength = u_grainStrength * strengthRatio * u_grainSize * sizeRatio * 0.1;
                     
-                    // 改进的UV坐标计算：基于纹理分辨率而非固定常数
+                    // 使用固定的归一化频率，让 scaleForPreview 负责缩放
+                    // grainSize 已经在 Kotlin 层通过 scaleForPreview 调整过了
                     vec2 texSize = vec2(textureSize(u_inputTexture, 0));
-                    // 使用纹理尺寸的平均值作为基准，确保分辨率无关性
-                    float avgTexSize = (texSize.x + texSize.y) * 0.5;
-                    // 归一化的颗粒频率（每1000像素的颗粒数量）
-                    float normalizedFreq = avgTexSize / 1000.0;
+                    float STANDARD_DENSITY = 1000.0;
+                    // 固定使用标准密度，不根据实际图片尺寸调整
+                    float normalizedFreq = STANDARD_DENSITY / 1000.0;  // = 1.0
                     
                     // 生成基于像素坐标的噪声UV（确保空间连续性）
                     vec2 pixelCoord = uv * texSize;
