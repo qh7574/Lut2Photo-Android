@@ -1524,6 +1524,11 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 if (currentLut != null && currentLutSize > 0) {
                     uploadLutToGpu(currentLut!!)
                     Log.d(TAG, "LUT纹理重新创建完成，ID: $lutTexture")
+                } else if (currentLut2 != null && currentLut2Size > 0) {
+                    // 只有 LUT2 没有 LUT1 的情况，创建恒等 LUT 作为主 LUT
+                    Log.d(TAG, "只有LUT2没有LUT1，创建恒等LUT作为主LUT")
+                    createIdentityLut()
+                    Log.d(TAG, "恒等LUT创建完成，纹理ID: $lutTexture")
                 } else {
                     throw RuntimeException("LUT纹理无效且没有可用的LUT数据")
                 }
@@ -1536,6 +1541,11 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 if (currentLut != null && currentLutSize > 0) {
                     uploadLutToGpu(currentLut!!)
                     Log.d(TAG, "LUT纹理重新创建完成，ID: $lutTexture")
+                } else if (currentLut2 != null && currentLut2Size > 0) {
+                    // 只有 LUT2 没有 LUT1 的情况，创建恒等 LUT 作为主 LUT
+                    Log.d(TAG, "只有LUT2没有LUT1（纹理ID无效），创建恒等LUT作为主LUT")
+                    createIdentityLut()
+                    Log.d(TAG, "恒等LUT创建完成，纹理ID: $lutTexture")
                 } else {
                     throw RuntimeException("LUT纹理ID无效且没有可用的LUT数据")
                 }

@@ -374,8 +374,9 @@ class CpuLutProcessor : ILutProcessor {
             "开始CPU直接处理，LUT1数据: ${if (lut != null) "已加载(${lutSize}x${lutSize}x${lutSize})" else "未加载"}，LUT2数据: ${if (lut2 != null) "已加载(${lut2Size}x${lut2Size}x${lut2Size})" else "未加载"}，强度: ${params.strength}, LUT2强度: ${params.lut2Strength}"
         )
 
-        if (lut == null) {
-            Log.e("CpuLutProcessor", "LUT数据为空，无法处理")
+        // 检查是否至少有一个 LUT
+        if (lut == null && lut2 == null) {
+            Log.e("CpuLutProcessor", "LUT1和LUT2数据都为空，无法处理")
             return null
         }
 
@@ -394,12 +395,14 @@ class CpuLutProcessor : ILutProcessor {
             var b = Color.blue(pixel) / 255f
             val a = Color.alpha(pixel)
 
-            // 步骤1：应用第一个LUT
-            val lut1Result = trilinearInterpolation(r, g, b, lut!!, lutSize)
-            val strength1 = params.strength.coerceIn(0f, 1f)
-            r = (r * (1 - strength1) + lut1Result[0] * strength1).coerceIn(0f, 1f)
-            g = (g * (1 - strength1) + lut1Result[1] * strength1).coerceIn(0f, 1f)
-            b = (b * (1 - strength1) + lut1Result[2] * strength1).coerceIn(0f, 1f)
+            // 步骤1：应用第一个LUT（如果存在）
+            if (lut != null) {
+                val lut1Result = trilinearInterpolation(r, g, b, lut!!, lutSize)
+                val strength1 = params.strength.coerceIn(0f, 1f)
+                r = (r * (1 - strength1) + lut1Result[0] * strength1).coerceIn(0f, 1f)
+                g = (g * (1 - strength1) + lut1Result[1] * strength1).coerceIn(0f, 1f)
+                b = (b * (1 - strength1) + lut1Result[2] * strength1).coerceIn(0f, 1f)
+            }
 
             // 步骤2：应用第二个LUT（如果存在且强度大于0）
             if (lut2 != null && params.lut2Strength > 0f) {
@@ -409,7 +412,6 @@ class CpuLutProcessor : ILutProcessor {
                 r = (r * (1 - strength2) + lut2Result[0] * strength2).coerceIn(0f, 1f)
                 g = (g * (1 - strength2) + lut2Result[1] * strength2).coerceIn(0f, 1f)
                 b = (b * (1 - strength2) + lut2Result[2] * strength2).coerceIn(0f, 1f)
-                Log.v("CpuLutProcessor", "第二个LUT应用完成，新RGB值: ($r, $g, $b)")
             } else if (params.lut2Strength > 0f && !hasLoggedLut2Warning) {
                 // 只打印一次警告，避免日志泛滥
                 Log.d("CpuLutProcessor", "第二个LUT强度大于0但LUT数据为空，跳过应用")
@@ -481,12 +483,14 @@ class CpuLutProcessor : ILutProcessor {
                 var b = Color.blue(pixel) / 255f
                 val a = Color.alpha(pixel)
 
-                // 步骤1：应用第一个LUT
-                val lut1Result = trilinearInterpolation(r, g, b, lut!!, lutSize)
-                val strength1 = params.strength.coerceIn(0f, 1f)
-                r = (r * (1 - strength1) + lut1Result[0] * strength1).coerceIn(0f, 1f)
-                g = (g * (1 - strength1) + lut1Result[1] * strength1).coerceIn(0f, 1f)
-                b = (b * (1 - strength1) + lut1Result[2] * strength1).coerceIn(0f, 1f)
+                // 步骤1：应用第一个LUT（如果存在）
+                if (lut != null) {
+                    val lut1Result = trilinearInterpolation(r, g, b, lut!!, lutSize)
+                    val strength1 = params.strength.coerceIn(0f, 1f)
+                    r = (r * (1 - strength1) + lut1Result[0] * strength1).coerceIn(0f, 1f)
+                    g = (g * (1 - strength1) + lut1Result[1] * strength1).coerceIn(0f, 1f)
+                    b = (b * (1 - strength1) + lut1Result[2] * strength1).coerceIn(0f, 1f)
+                }
 
                 // 步骤2：应用第二个LUT（如果存在且强度大于0）
                 if (lut2 != null && params.lut2Strength > 0f) {
