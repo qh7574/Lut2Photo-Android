@@ -295,16 +295,33 @@ class HomeFragment : Fragment() {
             preferencesManager.processNewFilesOnly = isChecked
             Log.d("HomeFragment", "仅处理新增文件开关状态改变: $isChecked")
             
-            // 如果关闭开关，清除所有已跳过的记录
+            // 如果关闭开关，清除所有已跳过的记录和缓存
             if (!isChecked) {
+                Log.d("HomeFragment", "========== 开始清除所有缓存和记录 ==========")
+                
+                // 1. 清除处理历史记录（SharedPreferences）
                 preferencesManager.clearSkippedRecords(requireContext())
-                Log.d("HomeFragment", "已清除所有已跳过记录")
+                Log.d("HomeFragment", "✓ 已清除处理历史记录")
                 
-                // 发送广播通知历史页面更新
-                val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
-                requireContext().sendBroadcast(intent)
+                // 2. 清除 FileTracker 的持久化存储
+                clearFileTrackerCache()
+                Log.d("HomeFragment", "✓ 已清除 FileTracker 缓存")
                 
-                showToast("已清除所有已跳过记录")
+                // 3. 如果服务正在运行，通知服务清除内存缓存
+                if (preferencesManager.isMonitoring) {
+                    val intent = Intent(requireContext(), FolderMonitorService::class.java).apply {
+                        action = "cn.alittlecookie.lut2photo.CLEAR_CACHES"
+                    }
+                    requireContext().startService(intent)
+                    Log.d("HomeFragment", "✓ 已通知服务清除内存缓存")
+                }
+                
+                // 4. 发送广播通知历史页面更新
+                val updateIntent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+                requireContext().sendBroadcast(updateIntent)
+                
+                Log.d("HomeFragment", "========== 缓存和记录清除完成 ==========")
+                showToast("已清除所有缓存，现有文件将被重新处理")
             }
         }
     
@@ -448,12 +465,24 @@ class HomeFragment : Fragment() {
                         preferencesManager.homeLutUri = it.filePath
                     } ?: run {
                         preferencesManager.homeLutUri = ""
+                        // 修复：LUT1 变为 null 时，清除 ThreadManager 中已加载的主 LUT
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                threadManager.clearMainLut()
+                                Log.d("HomeFragment", "已清除 ThreadManager 中的主 LUT")
+                            } catch (e: Exception) {
+                                Log.e("HomeFragment", "清除主 LUT 失败", e)
+                            }
+                        }
                     }
                     updateLutStrengthSliderState()  // 新增：更新滑块状态
                     updateMonitoringButtonState()
 
                     // 发送LUT配置变化广播
                     sendLutConfigChangesBroadcast()
+                    
+                    // 修复：触发预览更新，确保预览图正确显示
+                    schedulePreviewUpdate()
 
                     Log.d(
                         "HomeFragment",
@@ -469,11 +498,23 @@ class HomeFragment : Fragment() {
                         preferencesManager.homeLut2Uri = it.filePath
                     } ?: run {
                         preferencesManager.homeLut2Uri = ""
+                        // 修复：LUT2 变为 null 时，清除 ThreadManager 中已加载的第二个 LUT
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                threadManager.clearSecondLut()
+                                Log.d("HomeFragment", "已清除 ThreadManager 中的第二个 LUT")
+                            } catch (e: Exception) {
+                                Log.e("HomeFragment", "清除第二个 LUT 失败", e)
+                            }
+                        }
                     }
                     updateLut2StrengthSliderState()  // 新增：更新滑块状态
 
                     // 发送LUT配置变化广播
                     sendLutConfigChangesBroadcast()
+                    
+                    // 修复：触发预览更新，确保预览图正确显示
+                    schedulePreviewUpdate()
 
                     Log.d(
                         "HomeFragment",
@@ -1826,6 +1867,28 @@ class HomeFragment : Fragment() {
             }
         } else {
             Toast.makeText(requireContext(), "请先生成预览图", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    /**
+     * 清除 FileTracker 的持久化缓存
+     * 删除 FileTracker 的 SharedPreferences 文件
+     */
+    private fun clearFileTrackerCache() {
+        try {
+            // FileTracker 使用的 SharedPreferences 名称是 "file_tracker_${folderUri的hash}"
+            // 我们需要清除所有 file_tracker_ 开头的 SharedPreferences
+            val prefsDir = File(requireContext().applicationInfo.dataDir, "shared_prefs")
+            if (prefsDir.exists() && prefsDir.isDirectory) {
+                prefsDir.listFiles()?.forEach { file ->
+                    if (file.name.startsWith("file_tracker_") && file.name.endsWith(".xml")) {
+                        val deleted = file.delete()
+                        Log.d("HomeFragment", "删除 FileTracker 缓存文件: ${file.name}, 结果: $deleted")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "清除 FileTracker 缓存失败", e)
         }
     }
 }

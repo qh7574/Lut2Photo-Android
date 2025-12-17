@@ -57,6 +57,7 @@ class FolderMonitorService : Service() {
         const val ACTION_START_MONITORING = "start_monitoring"
         const val ACTION_STOP_MONITORING = "stop_monitoring"
         const val ACTION_UPDATE_LUT_CONFIG = "update_lut_config"
+        const val ACTION_CLEAR_CACHES = "cn.alittlecookie.lut2photo.CLEAR_CACHES"
         const val EXTRA_INPUT_FOLDER = "input_folder"
         const val EXTRA_OUTPUT_FOLDER = "output_folder"
         const val EXTRA_LUT_FILE_PATH = "lut_file_path"
@@ -269,6 +270,11 @@ class FolderMonitorService : Service() {
                 // 直接使用维护的状态消息，准确反映实时状态（扫描、标记、监控中等）
                 broadcastMonitoringStatus(currentStatusMessage)
                 // 不需要启动前台服务，只是响应查询
+            }
+            ACTION_CLEAR_CACHES -> {
+                // 清除所有缓存（处理历史缓存、FileTracker缓存等）
+                Log.d(TAG, "收到清除缓存请求")
+                clearAllCaches()
             }
             else -> {
                 // 修复：如果没有明确的action，不显示启动通知
@@ -527,6 +533,12 @@ class FolderMonitorService : Service() {
             batchSize = 500
         )
         
+        // 检查监控状态，如果已停止则不继续
+        if (!isMonitoring) {
+            Log.d(TAG, "监控已停止，取消启动FileTracker监控")
+            return
+        }
+        
         // 显示监控开始通知
         val notification = createNotification("文件夹监控服务", "正在扫描现有文件...")
         startForeground(NOTIFICATION_ID, notification)
@@ -604,6 +616,12 @@ class FolderMonitorService : Service() {
                 }
             }
             
+            // 检查监控状态，如果已停止则不继续
+            if (!isMonitoring) {
+                Log.d(TAG, "冷扫描完成时监控已停止，取消后续流程")
+                return
+            }
+            
             // 更新通知为监控状态
             val monitoringNotification = createNotification(
                 "文件夹监控服务",
@@ -631,9 +649,17 @@ class FolderMonitorService : Service() {
             
         } catch (e: Exception) {
             Log.e(TAG, "FileTracker监控出错", e)
-            // 降级到原有的轮询方式
-            Log.w(TAG, "降级到轮询监控模式")
-            startContinuousMonitoring()
+            // 只有在监控仍在运行时才降级到轮询方式
+            if (isMonitoring) {
+                Log.w(TAG, "降级到轮询监控模式")
+                startContinuousMonitoring()
+            } else {
+                Log.d(TAG, "监控已停止，不启动轮询监控")
+                // 发送"监控已停止"广播，清除"正在扫描现有文件..."状态
+                val notification = createNotification("监控已停止")
+                startForeground(NOTIFICATION_ID, notification)
+                broadcastMonitoringStatus("监控已停止")
+            }
         }
     }
     
@@ -748,6 +774,30 @@ class FolderMonitorService : Service() {
     private fun clearProcessedFilesCache() {
         processedFilesCache.clear()
         Log.d(TAG, "处理状态缓存已清空")
+    }
+    
+    /**
+     * 清除所有缓存（响应用户关闭"仅处理新增文件"开关）
+     * 包括：内存缓存、FileTracker缓存
+     */
+    private fun clearAllCaches() {
+        Log.d(TAG, "========== 开始清除所有缓存 ==========")
+        
+        // 1. 清除内存缓存
+        clearProcessedFilesCache()
+        completedFiles.clear()
+        processingFiles.clear()
+        incompleteFiles.clear()
+        fileRetryCount.clear()
+        Log.d(TAG, "✓ 内存缓存已清除")
+        
+        // 2. 停止并重置 FileTracker（这会清除其内部状态）
+        fileTrackerManager?.stop()
+        fileTrackerManager?.release()
+        fileTrackerManager = null
+        Log.d(TAG, "✓ FileTracker 已重置")
+        
+        Log.d(TAG, "========== 所有缓存清除完成 ==========")
     }
 
     /**
@@ -876,8 +926,32 @@ class FolderMonitorService : Service() {
             val avgTime = if (filesToAdd.isNotEmpty()) duration.toFloat() / filesToAdd.size else 0f
             Log.d(TAG, "标记完成，耗时: ${duration}ms，平均: ${"%.2f".format(avgTime)}ms/文件")
             
+            // 标记完成后，只有在监控仍在运行时才发送最终状态广播
+            if (isMonitoring) {
+                val finalNotification = createNotification(
+                    "文件夹监控服务",
+                    "监控中... 已处理 $processedCount 个文件"
+                )
+                startForeground(NOTIFICATION_ID, finalNotification)
+                broadcastMonitoringStatus("监控中... 已处理 $processedCount 个文件")
+                Log.d(TAG, "存量文件标记完成，已恢复监控状态")
+            } else {
+                Log.d(TAG, "标记完成时监控已停止，跳过状态广播")
+            }
+            
         } catch (e: Exception) {
             Log.e(TAG, "标记存量文件到处理历史失败", e)
+            // 即使失败，也只在监控仍在运行时才恢复监控状态
+            if (isMonitoring) {
+                val errorNotification = createNotification(
+                    "文件夹监控服务",
+                    "监控中... 已处理 $processedCount 个文件"
+                )
+                startForeground(NOTIFICATION_ID, errorNotification)
+                broadcastMonitoringStatus("监控中... 已处理 $processedCount 个文件")
+            } else {
+                Log.d(TAG, "标记失败时监控已停止，跳过状态广播")
+            }
         }
     }
 
@@ -1138,6 +1212,12 @@ class FolderMonitorService : Service() {
             return
         }
 
+        // 检查监控状态，如果已停止则不继续
+        if (!isMonitoring) {
+            Log.d(TAG, "监控已停止，取消启动轮询监控")
+            return
+        }
+
         // 立即显示监控开始通知
         val initialStatus = "监控已启动，等待新文件..."
         val notification = createNotification("文件夹监控服务", initialStatus)
@@ -1383,15 +1463,21 @@ class FolderMonitorService : Service() {
         processingFiles.remove(fileName)
         completedFiles.add(fileName)
         processedCount++
-        val status = "已处理 $processedCount 个文件，监控中..."
-        val notification = createNotification(
-            "文件夹监控服务",
-            status,
-            processedCount,
-            processedCount + processingFiles.size
-        )
-        startForeground(NOTIFICATION_ID, notification)
-        broadcastMonitoringStatus(status)
+        
+        // 只有在监控仍在运行时才发送状态更新
+        if (isMonitoring) {
+            val status = "已处理 $processedCount 个文件，监控中..."
+            val notification = createNotification(
+                "文件夹监控服务",
+                status,
+                processedCount,
+                processedCount + processingFiles.size
+            )
+            startForeground(NOTIFICATION_ID, notification)
+            broadcastMonitoringStatus(status)
+        } else {
+            Log.d(TAG, "文件处理完成但监控已停止，跳过状态广播: $fileName")
+        }
     }
 
     // 在服务停止时清理状态

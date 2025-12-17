@@ -738,4 +738,23 @@ class CpuLutProcessor : ILutProcessor {
     fun getSecondLutData(): Array<Array<Array<FloatArray>>>? {
         return lut2
     }
+    
+    /**
+     * 清除主 LUT 数据
+     */
+    fun clearMainLut() {
+        lut = null
+        lutSize = 0
+        Log.d("CpuLutProcessor", "主 LUT 数据已清除")
+    }
+    
+    /**
+     * 清除第二个 LUT 数据
+     */
+    fun clearSecondLut() {
+        lut2 = null
+        lut2Size = 0
+        hasLoggedLut2Warning = false
+        Log.d("CpuLutProcessor", "第二个 LUT 数据已清除")
+    }
 }

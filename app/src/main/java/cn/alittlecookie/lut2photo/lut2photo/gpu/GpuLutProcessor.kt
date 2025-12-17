@@ -950,6 +950,34 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     // 删除calculateRequiredMemory、getDeviceMemoryClass、getAvailableMemory等内存预检查方法
     // 这些方法会导致不必要的CPU回退，现在只在真正OOM时才回退
 
+    /**
+     * 清除主 LUT 纹理和数据
+     */
+    fun clearMainLut() {
+        if (lutTexture != 0) {
+            GLES30.glDeleteTextures(1, intArrayOf(lutTexture), 0)
+            lutTexture = 0
+            Log.d(TAG, "主 LUT 纹理已删除")
+        }
+        currentLut = null
+        currentLutSize = 0
+        Log.d(TAG, "主 LUT 数据已清除")
+    }
+    
+    /**
+     * 清除第二个 LUT 纹理和数据
+     */
+    fun clearSecondLut() {
+        if (lut2Texture != 0) {
+            GLES30.glDeleteTextures(1, intArrayOf(lut2Texture), 0)
+            lut2Texture = 0
+            Log.d(TAG, "第二个 LUT 纹理已删除")
+        }
+        currentLut2 = null
+        currentLut2Size = 0
+        Log.d(TAG, "第二个 LUT 数据已清除")
+    }
+
     // 添加 release 方法
     override suspend fun release() {
         withContext(Dispatchers.Main) {

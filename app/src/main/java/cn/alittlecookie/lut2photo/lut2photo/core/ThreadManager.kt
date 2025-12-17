@@ -481,6 +481,46 @@ class ThreadManager(context: Context) {
     }
 
     /**
+     * 清除主 LUT（当用户选择"未选择"时调用）
+     */
+    suspend fun clearMainLut() = withContext(Dispatchers.IO) {
+        try {
+            // 清除 CPU 处理器的主 LUT
+            cpuProcessor.clearMainLut()
+            
+            // 清除 GPU 处理器的主 LUT
+            if (isGpuAvailable) {
+                gpuProcessor.clearMainLut()
+            }
+            
+            Log.d(TAG, "主 LUT 已清除")
+        } catch (e: Exception) {
+            Log.e(TAG, "清除主 LUT 失败", e)
+            throw e
+        }
+    }
+    
+    /**
+     * 清除第二个 LUT（当用户选择"未选择"时调用）
+     */
+    suspend fun clearSecondLut() = withContext(Dispatchers.IO) {
+        try {
+            // 清除 CPU 处理器的第二个 LUT
+            cpuProcessor.clearSecondLut()
+            
+            // 清除 GPU 处理器的第二个 LUT
+            if (isGpuAvailable) {
+                gpuProcessor.clearSecondLut()
+            }
+            
+            Log.d(TAG, "第二个 LUT 已清除")
+        } catch (e: Exception) {
+            Log.e(TAG, "清除第二个 LUT 失败", e)
+            throw e
+        }
+    }
+
+    /**
      * Release all resources
      */
     suspend fun release() {

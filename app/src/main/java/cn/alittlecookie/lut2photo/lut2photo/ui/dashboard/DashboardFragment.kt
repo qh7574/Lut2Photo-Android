@@ -312,6 +312,15 @@ class DashboardFragment : Fragment() {
                         preferencesManager.dashboardLutUri = it.filePath
                     } ?: run {
                         preferencesManager.dashboardLutUri = ""
+                        // 修复：LUT1 变为 null 时，清除 ThreadManager 中已加载的主 LUT
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                threadManager.clearMainLut()
+                                Log.d("DashboardFragment", "已清除 ThreadManager 中的主 LUT")
+                            } catch (e: Exception) {
+                                Log.e("DashboardFragment", "清除主 LUT 失败", e)
+                            }
+                        }
                     }
                     updateLutStrengthSliderState()  // 新增：更新滑块状态
                     updateProcessButtonState()
@@ -326,6 +335,15 @@ class DashboardFragment : Fragment() {
                         preferencesManager.dashboardLut2Uri = it.filePath
                     } ?: run {
                         preferencesManager.dashboardLut2Uri = ""
+                        // 修复：LUT2 变为 null 时，清除 ThreadManager 中已加载的第二个 LUT
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                threadManager.clearSecondLut()
+                                Log.d("DashboardFragment", "已清除 ThreadManager 中的第二个 LUT")
+                            } catch (e: Exception) {
+                                Log.e("DashboardFragment", "清除第二个 LUT 失败", e)
+                            }
+                        }
                     }
                     updateLut2StrengthSliderState()  // 新增：更新滑块状态
                     updatePreview()
