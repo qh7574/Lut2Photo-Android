@@ -34,13 +34,13 @@ import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentHomeBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.service.FolderMonitorService
 import cn.alittlecookie.lut2photo.lut2photo.service.TetheredShootingService
+import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.FilmGrainSettingsBottomSheet
 import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.TetheredModeBottomSheet
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutUtils
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.WatermarkUtils
 import cn.alittlecookie.lut2photo.ui.bottomsheet.WatermarkSettingsBottomSheet
-import cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet.FilmGrainSettingsBottomSheet
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DecodeFormat
 import com.bumptech.glide.load.engine.DiskCacheStrategy
@@ -50,8 +50,8 @@ import com.bumptech.glide.signature.ObjectKey
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.coroutines.resume
 
@@ -270,6 +270,9 @@ class HomeFragment : Fragment() {
             // 修复：使用防抖机制，避免重复处理
             schedulePreviewUpdate()
             Log.d("HomeFragment", "文件夹监控水印开关状态改变: $isChecked")
+            
+            // 水印配置不需要发送广播，因为每次处理图片时都会实时读取配置
+            // 水印是在图片处理的最后阶段添加的，不影响 LUT 处理流程
         }
 
         // 添加颗粒开关监听器
@@ -278,6 +281,14 @@ class HomeFragment : Fragment() {
             binding.buttonGrainSettings.isEnabled = isChecked
             schedulePreviewUpdate()
             Log.d("HomeFragment", "文件夹监控颗粒开关状态改变: $isChecked")
+            
+            // 如果监控正在运行，发送广播通知服务更新颗粒配置
+            if (preferencesManager.isMonitoring) {
+                val intent = Intent("cn.alittlecookie.lut2photo.GRAIN_CONFIG_CHANGED")
+                intent.setPackage(requireContext().packageName)
+                requireContext().sendBroadcast(intent)
+                Log.d("HomeFragment", "已发送颗粒配置变化广播")
+            }
         }
 
         // 颗粒设置按钮

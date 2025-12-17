@@ -1,6 +1,5 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui.bottomsheet
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,19 +7,18 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import cn.alittlecookie.lut2photo.lut2photo.R
+import cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig
+import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.slider.Slider
-import cn.alittlecookie.lut2photo.lut2photo.R
-import cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig
-import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -350,6 +348,14 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         
         preferencesManager.saveFilmGrainConfig(config)
         onConfigChanged?.invoke(config)
+        
+        // 如果文件夹监控正在运行且颗粒已启用，发送广播通知服务更新配置
+        if (preferencesManager.isMonitoring && preferencesManager.folderMonitorGrainEnabled) {
+            val intent = android.content.Intent("cn.alittlecookie.lut2photo.GRAIN_CONFIG_CHANGED")
+            intent.setPackage(requireContext().packageName)
+            requireContext().sendBroadcast(intent)
+            Log.d("FilmGrainSettings", "颗粒配置已保存，已发送广播通知文件夹监控服务")
+        }
     }
     
     private fun resetToDefault() {

@@ -1,9 +1,5 @@
 package cn.alittlecookie.lut2photo.lut2photo.core
 
-import cn.alittlecookie.lut2photo.lut2photo.core.NativeLutProcessor
-import cn.alittlecookie.lut2photo.lut2photo.core.EnhancedLutProcessor
-import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
@@ -145,72 +141,80 @@ class ThreadManager(context: Context) {
         try {
             // 将设置值转换为大写以确保兼容性
             val processorTypeSetting = preferencesManager.processorType.uppercase()
+            
+            Log.d(TAG, "配置处理器: 用户设置=$processorTypeSetting, GPU可用=$isGpuAvailable")
 
             val userProcessorType = when (processorTypeSetting) {
                 "GPU" -> {
                     if (isGpuAvailable) {
+                        Log.d(TAG, "用户选择 GPU 且 GPU 可用，使用 GPU 处理器")
                         ILutProcessor.ProcessorType.GPU
                     } else {
-                        Log.w(TAG, "User selected GPU but GPU not available, falling back to CPU")
+                        Log.w(TAG, "用户选择 GPU 但 GPU 不可用，回退到 CPU 处理器")
                         ILutProcessor.ProcessorType.CPU
                     }
                 }
 
-                "CPU" -> ILutProcessor.ProcessorType.CPU
+                "CPU" -> {
+                    Log.d(TAG, "用户选择 CPU，使用 CPU 处理器")
+                    ILutProcessor.ProcessorType.CPU
+                }
+                
                 "AUTO" -> {
                     // 自动模式：如果GPU可用则使用GPU，否则使用CPU
-                    if (isGpuAvailable) ILutProcessor.ProcessorType.GPU else ILutProcessor.ProcessorType.CPU
+                    val selected = if (isGpuAvailable) ILutProcessor.ProcessorType.GPU else ILutProcessor.ProcessorType.CPU
+                    Log.d(TAG, "自动模式: GPU可用=$isGpuAvailable, 选择=$selected")
+                    selected
                 }
 
                 else -> {
-                    Log.w(
-                        TAG,
-                        "Unknown processor type: ${preferencesManager.processorType}, using CPU"
-                    )
+                    Log.w(TAG, "未知的处理器类型: ${preferencesManager.processorType}, 使用 CPU")
                     ILutProcessor.ProcessorType.CPU
                 }
             }
 
             preferredProcessor = userProcessorType
-            Log.d(
-                TAG,
-                "Processor configured from settings: $userProcessorType (user setting: ${preferencesManager.processorType})"
-            )
+            Log.d(TAG, "✓ 处理器配置完成: $userProcessorType (用户设置: ${preferencesManager.processorType})")
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to read processor settings, using CPU as default", e)
+            Log.e(TAG, "读取处理器设置失败，使用 CPU 作为默认值", e)
             preferredProcessor = ILutProcessor.ProcessorType.CPU
         }
     }
 
     /**
      * 更新处理器设置（用于响应设置变化）
+     * 注意：这个方法会立即更新 preferredProcessor，但如果需要重新检查 GPU，会在后台异步进行
      */
     fun updateProcessorFromSettings() {
-        Log.d(TAG, "Updating processor settings...")
+        Log.d(TAG, "========== 更新处理器设置 ==========")
+        Log.d(TAG, "当前用户设置: ${preferencesManager.processorType}")
+        Log.d(TAG, "当前 GPU 可用性: $isGpuAvailable")
+        Log.d(TAG, "当前首选处理器: $preferredProcessor")
 
         // 如果用户选择GPU但当前不可用，重新检查GPU可用性
         if (preferencesManager.processorType.uppercase() == "GPU" && !isGpuAvailable) {
-            Log.d(
-                TAG,
-                "User selected GPU but currently unavailable, rechecking GPU availability..."
-            )
+            Log.d(TAG, "用户选择 GPU 但当前不可用，重新检查 GPU 可用性...")
             managerScope.launch {
                 try {
                     val gpuAvailable = gpuProcessor.isAvailable()
-                    Log.d(TAG, "GPU重新检查结果: $gpuAvailable")
+                    Log.d(TAG, "GPU 重新检查结果: $gpuAvailable")
                     isGpuAvailable = gpuAvailable
 
                     // 重新配置处理器
                     configureProcessorFromSettings()
+                    Log.d(TAG, "GPU 重新检查后，首选处理器已更新为: $preferredProcessor")
                 } catch (e: Exception) {
-                    Log.e(TAG, "GPU重新检查失败", e)
+                    Log.e(TAG, "GPU 重新检查失败", e)
                     configureProcessorFromSettings()
                 }
             }
         } else {
-            // 直接配置
+            // 直接配置（同步执行）
             configureProcessorFromSettings()
+            Log.d(TAG, "处理器配置已更新，首选处理器: $preferredProcessor")
         }
+        
+        Log.d(TAG, "========================================")
     }
 
     private fun startGpuProcessingLoop() {
@@ -344,16 +348,14 @@ class ThreadManager(context: Context) {
         val processorType = forceProcessor ?: preferredProcessor
 
         // 增强日志记录
-        Log.d(TAG, "提交任务 $taskId:")
-        Log.d(TAG, "  - 强制处理器: $forceProcessor")
-        Log.d(TAG, "  - 首选处理器: $preferredProcessor")
-        Log.d(TAG, "  - 实际使用: $processorType")
-        Log.d(TAG, "  - GPU可用: $isGpuAvailable")
-        Log.d(TAG, "  - 用户设置: ${preferencesManager.processorType}")
-        Log.d(
-            TAG,
-            "  - 处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}"
-        )
+        Log.d(TAG, "========== 提交任务 $taskId ==========")
+        Log.d(TAG, "强制处理器: $forceProcessor")
+        Log.d(TAG, "首选处理器: $preferredProcessor")
+        Log.d(TAG, "实际使用: $processorType")
+        Log.d(TAG, "GPU可用: $isGpuAvailable")
+        Log.d(TAG, "用户设置: ${preferencesManager.processorType}")
+        Log.d(TAG, "处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}")
+        Log.d(TAG, "========================================")
         
         val job = when (processorType) {
             ILutProcessor.ProcessorType.GPU -> {

@@ -144,9 +144,16 @@ class FolderMonitorService : Service() {
             when (intent?.action) {
                 "cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED" -> {
                     val processorType = intent.getStringExtra("processorType")
-                    Log.d(TAG, "Received processor setting change: $processorType")
+                    Log.d(TAG, "========== 收到处理器设置变化广播 ==========")
+                    Log.d(TAG, "新的处理器类型: $processorType")
                     threadManager.updateProcessorFromSettings()
-                    Log.d(TAG, "ThreadManager processor setting updated")
+                    
+                    // 记录更新后的处理器信息
+                    val processorInfo = threadManager.getProcessorInfo()
+                    Log.d(TAG, "处理器设置已更新:")
+                    Log.d(TAG, "  - 首选处理器: ${processorInfo.preferredProcessor}")
+                    Log.d(TAG, "  - GPU 可用: ${processorInfo.isGpuAvailable}")
+                    Log.d(TAG, "============================================")
                 }
 
                 "cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED" -> {
@@ -159,6 +166,24 @@ class FolderMonitorService : Service() {
                         Log.d(TAG, "配置重新加载协程执行完成")
                         Log.d(TAG, "新配置: strength=${processingParams?.strength}, quality=${processingParams?.quality}")
                     }
+                }
+                
+                "cn.alittlecookie.lut2photo.GRAIN_CONFIG_CHANGED" -> {
+                    Log.d(TAG, "========== 接收到颗粒配置变化广播 ==========")
+                    Log.d(TAG, "当前监控状态: isMonitoring=$isMonitoring")
+                    
+                    if (isMonitoring) {
+                        // 更新颗粒配置到处理器
+                        if (preferencesManager.folderMonitorGrainEnabled) {
+                            val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
+                            threadManager.setFilmGrainConfig(grainConfig)
+                            Log.d(TAG, "颗粒效果已启用: 强度=${grainConfig.globalStrength}")
+                        } else {
+                            threadManager.setFilmGrainConfig(null)
+                            Log.d(TAG, "颗粒效果已禁用")
+                        }
+                    }
+                    Log.d(TAG, "============================================")
                 }
             }
         }
@@ -181,6 +206,7 @@ class FolderMonitorService : Service() {
         val intentFilter = IntentFilter().apply {
             addAction("cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED")
             addAction("cn.alittlecookie.lut2photo.LUT_CONFIG_CHANGED")
+            addAction("cn.alittlecookie.lut2photo.GRAIN_CONFIG_CHANGED")
         }
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -197,7 +223,12 @@ class FolderMonitorService : Service() {
         }
 
         // 添加：启动时同步处理器设置
+        Log.d(TAG, "FolderMonitorService onCreate: 更新处理器设置")
         threadManager.updateProcessorFromSettings()
+        
+        // 记录当前处理器信息
+        val processorInfo = threadManager.getProcessorInfo()
+        Log.d(TAG, "当前处理器配置: 首选=${processorInfo.preferredProcessor}, GPU可用=${processorInfo.isGpuAvailable}")
 
         // 获取WakeLock以防止系统休眠
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
@@ -412,8 +443,17 @@ class FolderMonitorService : Service() {
         }
 
         // 添加：每次开始监控时都更新处理器设置
-        Log.d(TAG, "开始监控前更新处理器设置")
+        Log.d(TAG, "========== 开始监控前更新处理器设置 ==========")
         threadManager.updateProcessorFromSettings()
+        
+        // 记录当前处理器信息
+        val processorInfo = threadManager.getProcessorInfo()
+        Log.d(TAG, "监控开始时的处理器配置:")
+        Log.d(TAG, "  - 首选处理器: ${processorInfo.preferredProcessor}")
+        Log.d(TAG, "  - GPU 可用: ${processorInfo.isGpuAvailable}")
+        Log.d(TAG, "  - CPU 信息: ${processorInfo.cpuInfo}")
+        Log.d(TAG, "  - GPU 信息: ${processorInfo.gpuInfo}")
+        Log.d(TAG, "==============================================")
 
         // 保存参数
         this.inputFolderUri = inputFolder
@@ -470,9 +510,13 @@ class FolderMonitorService : Service() {
                 Log.d(TAG, "开始监控文件夹: $inputFolder")
 
                 // 加载主要LUT文件
-                if (lutFile.exists()) {
+                if (lutFilePath.isNotEmpty() && lutFile.exists()) {
                     threadManager.loadLut(lutFile.inputStream())
                     Log.d(TAG, "LUT文件加载成功: $currentLutName")
+                } else if (lutFilePath.isEmpty()) {
+                    // 未选择LUT文件，使用恒等LUT（与手动处理逻辑相同）
+                    Log.d(TAG, "未选择LUT文件，将使用恒等LUT进行后续处理")
+                    currentLutName = "无LUT"
                 } else {
                     Log.e(TAG, "LUT文件不存在: $lutFilePath")
                     return@launch
@@ -985,7 +1029,11 @@ class FolderMonitorService : Service() {
 
             // 获取LUT文件的完整路径
             val lutDirectory = File(getExternalFilesDir(null), "android_data/luts")
-            val lutFilePath = File(lutDirectory, lutFileName).absolutePath
+            val lutFilePath = if (lutFileName.isNotEmpty()) {
+                File(lutDirectory, lutFileName).absolutePath
+            } else {
+                ""
+            }
             val lut2FilePath = if (lut2FileName.isNotEmpty()) {
                 File(lutDirectory, lut2FileName).absolutePath
             } else {
@@ -1001,14 +1049,20 @@ class FolderMonitorService : Service() {
             this.lut2FilePath = lut2FilePath
 
             // 加载主要LUT文件
-            val lutFile = File(lutFilePath)
-            if (lutFile.exists()) {
-                threadManager.loadLut(lutFile.inputStream())
-                currentLutName = lutFile.nameWithoutExtension
-                Log.d(TAG, "重新加载主LUT成功: $currentLutName")
+            if (lutFilePath.isNotEmpty()) {
+                val lutFile = File(lutFilePath)
+                if (lutFile.exists()) {
+                    threadManager.loadLut(lutFile.inputStream())
+                    currentLutName = lutFile.nameWithoutExtension
+                    Log.d(TAG, "重新加载主LUT成功: $currentLutName")
+                } else {
+                    Log.e(TAG, "主LUT文件不存在: $lutFilePath")
+                    return
+                }
             } else {
-                Log.e(TAG, "主LUT文件不存在: $lutFilePath")
-                return
+                // 未选择LUT文件，使用恒等LUT
+                Log.d(TAG, "未选择LUT文件，将使用恒等LUT进行后续处理")
+                currentLutName = "无LUT"
             }
 
             // 加载第二个LUT文件（如果提供）
