@@ -41,6 +41,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
@@ -570,14 +571,36 @@ class FolderMonitorService : Service() {
                     }
                 }
             } else {
-                // 仅处理新增文件模式：将存量文件标记为已处理
-                Log.d(TAG, "仅处理新增文件模式：开始标记存量文件")
-                val existingFiles = fileTrackerManager!!.consumeExisting()
-                Log.d(TAG, "存量文件数量: ${existingFiles.size}个，将标记为SKIPPED状态")
+                // 仅处理新增文件模式：将冷扫描期间的所有文件（存量+增量）标记为已处理
+                Log.d(TAG, "仅处理新增文件模式：开始标记冷扫描期间的所有文件")
                 
-                // 异步标记存量文件，避免阻塞监控流程
+                // 获取存量文件
+                val existingFiles = fileTrackerManager!!.consumeExisting()
+                Log.d(TAG, "存量文件数量: ${existingFiles.size}个")
+                
+                // 计算冷扫描期间的增量文件数量
+                val coldScanIncrementalCount = existingCount - existingFiles.size
+                Log.d(TAG, "冷扫描期间的增量文件数量: ${coldScanIncrementalCount}个")
+                
+                // 收集冷扫描期间的增量文件（这些是服务启动前就存在的文件，需要跳过）
+                val coldScanIncrementalFiles = mutableListOf<FileRecord>()
+                if (coldScanIncrementalCount > 0) {
+                    // 使用 take 操作符只收集指定数量的文件
+                    fileTrackerManager!!.consumeIncremental()
+                        .take(coldScanIncrementalCount)
+                        .collect { fileRecord ->
+                            coldScanIncrementalFiles.add(fileRecord)
+                            Log.d(TAG, "收集到冷扫描增量文件: ${fileRecord.fileName} (${coldScanIncrementalFiles.size}/${coldScanIncrementalCount})")
+                        }
+                }
+                
+                // 合并所有需要标记的文件
+                val allFilesToMark = existingFiles + coldScanIncrementalFiles
+                Log.d(TAG, "总共需要标记: ${allFilesToMark.size}个文件为SKIPPED状态")
+                
+                // 异步标记所有文件，避免阻塞监控流程
                 serviceScope.launch {
-                    markExistingFilesInHistory(existingFiles)
+                    markExistingFilesInHistory(allFilesToMark)
                 }
             }
             
