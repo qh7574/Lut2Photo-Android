@@ -374,11 +374,7 @@ class HomeFragment : Fragment() {
                     startMonitoring()
                 } else {
                     Log.w("HomeFragment", "条件不满足，重置开关状态")
-                    if (!hasLutFile && availableLuts.isNotEmpty()) {
-                        showToast("请选择Lut文件")
-                    } else {
-                        showToast("请确保设置了所有设置项")
-                    }
+                    showToast("请设置输入和输出文件夹")
 
                     // 临时移除监听器，重置状态，然后恢复监听器
                     binding.switchMonitoring.setOnCheckedChangeListener(null)
@@ -948,8 +944,8 @@ class HomeFragment : Fragment() {
     private fun canStartMonitoring(): Boolean {
         val hasInputFolder = preferencesManager.homeInputFolder.isNotEmpty()
         val hasOutputFolder = preferencesManager.homeOutputFolder.isNotEmpty()
-        val hasLutFile = selectedLutItem != null
-        return hasInputFolder && hasOutputFolder && hasLutFile
+        // 不再要求必须选择 LUT，可以只进行颗粒、水印等处理
+        return hasInputFolder && hasOutputFolder
     }
 
     private fun startMonitoring() {
