@@ -66,7 +66,7 @@
         android:id="@+id/watermark_preview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="0dp" />
 
     <!-- 主要内容区域 -->
     <ScrollView
@@ -80,7 +80,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="16dp">
 
             <!-- 水印类型选择 -->
             <com.google.android.material.textview.MaterialTextView
@@ -94,7 +94,7 @@
                 android:id="@+id/toggle_group_watermark_type"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="8dp"
                 app:selectionRequired="false"
                 app:singleSelection="false">
 
@@ -150,12 +150,31 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.textview.MaterialTextView
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="水印图片"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                            android:layout_marginBottom="0dp"
+                            android:layout_weight="3"
+                            android:gravity="left|center_vertical"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="2dp"
+                                android:text="水印图片"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/text_image_path"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="0dp"
+                                android:text="未选择水印图片"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_select_image"
@@ -163,16 +182,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="选择图片" />
+
                     </LinearLayout>
 
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_image_path"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
-                        android:text="未选择水印图片"
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
 
                     <!-- 图片大小设置 -->
                     <com.google.android.material.textview.MaterialTextView
@@ -185,7 +197,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -221,7 +233,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -257,7 +269,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -337,14 +349,14 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:text="文字水印设置"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:text="可用变量：{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}{LUT1}{LUT2}{LUT1_STRENGTH}{LUT2_STRENGTH}"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
@@ -353,7 +365,7 @@
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:hint="水印文字内容">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -371,7 +383,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -430,7 +442,7 @@
                         android:id="@+id/text_font_path"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:text="未选择字体文件，使用默认字体"
                         android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
@@ -446,7 +458,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -482,7 +494,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -518,7 +530,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -555,7 +567,7 @@
                         android:id="@+id/toggle_group_text_alignment"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         app:checkedButton="@id/button_text_align_center"
                         app:selectionRequired="true"
                         app:singleSelection="true">
@@ -627,7 +639,7 @@
                         android:id="@+id/toggle_group_text_follow_direction"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:visibility="gone"
                         app:checkedButton="@id/button_follow_bottom"
                         app:selectionRequired="true"
@@ -693,7 +705,7 @@
                         android:id="@+id/layout_text_image_spacing"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:visibility="gone">
@@ -732,7 +744,7 @@
                         android:id="@+id/layout_text_position_x"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -770,7 +782,7 @@
                         android:id="@+id/layout_text_position_y"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -849,7 +861,7 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:text="边框设置（图片短边百分比）"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
@@ -864,7 +876,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -900,7 +912,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -936,7 +948,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -972,7 +984,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
@@ -1009,7 +1021,7 @@
                         android:id="@+id/toggle_border_color_mode"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         app:selectionRequired="true"
                         app:singleSelection="true">
 
@@ -1043,7 +1055,7 @@
                         android:id="@+id/layout_manual_color"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         android:visibility="visible">
@@ -1070,7 +1082,7 @@
                         android:id="@+id/layout_auto_color"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:orientation="vertical"
                         android:visibility="gone">
 
@@ -1151,7 +1163,7 @@
                         android:id="@+id/layout_material_color"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:orientation="vertical"
                         android:visibility="gone">
 
@@ -1319,7 +1331,10 @@
         android:elevation="8dp"
         android:gravity="end"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingRight="16dp"
+        android:paddingLeft="16dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_cancel"

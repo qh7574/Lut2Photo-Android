@@ -31,9 +31,11 @@
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="32dp"
-            android:layout_marginEnd="4dp"
-            android:gravity="top|center"
+            android:gravity="center|center_horizontal|center_vertical"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:minWidth="0dp"
+            android:minHeight="0dp"
             android:text="中"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="13sp" />
@@ -41,16 +43,14 @@
         <!-- 刷新按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_refresh_preview"
-            style="@style/Widget.Material3.Button.TextButton.Icon"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_marginEnd="4dp"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
-            android:minWidth="0dp"
-            app:icon="@drawable/outline_reset_settings_24"
+            app:icon="@drawable/outline_refresh_24"
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="16dp"
@@ -59,7 +59,7 @@
         <!-- 折叠/展开按钮 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_toggle_preview"
-            style="@style/Widget.Material3.Button.TextButton.Icon"
+            style="@style/Widget.Material3.Button.IconButton"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginRight="16dp"
@@ -67,7 +67,6 @@
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
-            android:minWidth="0dp"
             app:icon="@drawable/ic_expand_less"
             app:iconGravity="textStart"
             app:iconPadding="0dp"
@@ -81,7 +80,7 @@
         android:id="@+id/layout_preview_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="0dp"
         android:orientation="vertical">
 
         <!-- 预览图片容器 -->

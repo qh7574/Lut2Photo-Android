@@ -47,11 +47,10 @@
             <!-- 刷新按钮 -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_refresh_preview"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:contentDescription="刷新预览"
-                android:minWidth="0dp"
                 android:paddingHorizontal="8dp"
                 app:icon="@drawable/outline_refresh_24"
                 app:iconSize="18dp" />

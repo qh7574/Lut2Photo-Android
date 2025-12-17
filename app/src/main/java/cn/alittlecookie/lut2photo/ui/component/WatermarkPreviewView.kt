@@ -145,8 +145,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
             canvas.drawText("点击此处添加图片", width / 2f, height / 2f - 20f, paint)
 
-            paint.textSize = 16f
-            canvas.drawText("预览效果", width / 2f, height / 2f + 20f, paint)
+            paint.textSize = 18f
+            canvas.drawText("预览水印效果", width / 2f, height / 2f + 20f, paint)
 
             bitmap
         } catch (e: Exception) {
