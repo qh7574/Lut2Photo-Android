@@ -98,7 +98,9 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_global_strength"
                             android:layout_width="0dp"
@@ -107,6 +109,7 @@
                             android:valueFrom="0"
                             android:valueTo="100"
                             android:stepSize="1" />
+
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/text_global_strength"
                             android:layout_width="48dp"
@@ -210,7 +213,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.RangeSlider
                                 android:id="@+id/range_slider_tonal"
                                 android:layout_width="0dp"
@@ -236,7 +240,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_shadow_ratio"
                                 android:layout_width="0dp"
@@ -261,7 +266,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_highlight_ratio"
                                 android:layout_width="0dp"
@@ -286,7 +292,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_shadow_size_ratio"
                                 android:layout_width="0dp"
@@ -311,7 +318,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_highlight_size_ratio"
                                 android:layout_width="0dp"
@@ -345,7 +353,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_red_channel"
                                 android:layout_width="0dp"
@@ -370,7 +379,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_blue_channel"
                                 android:layout_width="0dp"
@@ -395,7 +405,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_correlation"
                                 android:layout_width="0dp"
@@ -420,7 +431,8 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center_vertical">
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_color_preservation"
                                 android:layout_width="0dp"
@@ -470,6 +482,11 @@
                 android:layout_marginRight="8dp"
                 android:text="@string/reset_to_default" />
 
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_cancel"
                 style="@style/Widget.Material3.Button.TextButton"
@@ -481,9 +498,8 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_save"
                 style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:layout_marginStart="0dp"
                 android:text="@string/save_settings" />
         </LinearLayout>

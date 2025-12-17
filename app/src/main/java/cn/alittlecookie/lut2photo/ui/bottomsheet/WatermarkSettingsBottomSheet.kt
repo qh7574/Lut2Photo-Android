@@ -603,6 +603,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             importWatermarkConfig()
         }
 
+        binding.buttonResetDefault.setOnClickListener {
+            resetToDefaultSettings()
+        }
+
         binding.buttonCancel.setOnClickListener {
             dismiss()
         }
@@ -643,6 +647,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.buttonBorderColor,
             binding.buttonExportConfig,
             binding.buttonImportConfig,
+            binding.buttonResetDefault,
             binding.buttonCancel,
             binding.buttonConfirm
         )
@@ -1563,6 +1568,129 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                 callback()
             }
         })
+    }
+
+    /**
+     * 恢复默认设置
+     * 将所有水印设置恢复到默认值，并清除水印图片和字体
+     */
+    private fun resetToDefaultSettings() {
+        try {
+            // 创建默认配置
+            val defaultConfig = WatermarkConfig()
+            
+            // 清除选中的图片和字体
+            selectedImagePath = null
+            selectedFontPath = null
+            
+            // 应用默认配置到UI
+            applyConfigToUI(defaultConfig)
+            
+            // 更新预览
+            updatePreview()
+            
+            Toast.makeText(context, "已恢复默认设置", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "恢复默认设置失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e("WatermarkSettings", "恢复默认设置失败", e)
+        }
+    }
+    
+    /**
+     * 将配置应用到UI
+     */
+    private fun applyConfigToUI(config: WatermarkConfig) {
+        // 设置水印类型 Segmented Button
+        val checkedButtons = mutableListOf<Int>()
+        if (config.enableTextWatermark) {
+            checkedButtons.add(binding.buttonTextWatermark.id)
+        }
+        if (config.enableImageWatermark) {
+            checkedButtons.add(binding.buttonImageWatermark.id)
+        }
+
+        // 清除并设置按钮状态
+        binding.toggleGroupWatermarkType.clearOnButtonCheckedListeners()
+        binding.toggleGroupWatermarkType.clearChecked()
+        checkedButtons.forEach { buttonId ->
+            binding.toggleGroupWatermarkType.check(buttonId)
+        }
+        // 重新添加监听器
+        binding.toggleGroupWatermarkType.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            when (checkedId) {
+                binding.buttonTextWatermark.id -> {
+                    binding.cardTextSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
+                }
+                binding.buttonImageWatermark.id -> {
+                    binding.cardImageSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
+                }
+            }
+        }
+
+        // 设置文本对齐方式
+        val alignmentButtonId = when (config.textAlignment) {
+            TextAlignment.LEFT -> binding.buttonTextAlignLeft.id
+            TextAlignment.CENTER -> binding.buttonTextAlignCenter.id
+            TextAlignment.RIGHT -> binding.buttonTextAlignRight.id
+        }
+        binding.toggleGroupTextAlignment.check(alignmentButtonId)
+
+        // 设置文字跟随模式
+        binding.switchTextFollowMode.isChecked = config.enableTextFollowMode
+        updateTextFollowModeVisibility(config.enableTextFollowMode)
+        
+        // 设置文字跟随方向
+        val followDirectionButtonId = when (config.textFollowDirection) {
+            TextFollowDirection.TOP -> binding.buttonFollowTop.id
+            TextFollowDirection.BOTTOM -> binding.buttonFollowBottom.id
+            TextFollowDirection.LEFT -> binding.buttonFollowLeft.id
+            TextFollowDirection.RIGHT -> binding.buttonFollowRight.id
+        }
+        binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
+
+        // 设置位置和透明度
+        binding.sliderTextPositionX.value = config.textPositionX
+        binding.sliderTextPositionY.value = config.textPositionY
+        binding.sliderImagePositionX.value = config.imagePositionX
+        binding.sliderImagePositionY.value = config.imagePositionY
+        binding.sliderTextOpacity.value = config.textOpacity
+        binding.sliderImageOpacity.value = config.imageOpacity
+
+        // 设置大小
+        binding.sliderTextSize.value = config.textSize.coerceAtLeast(0.1f)
+        binding.sliderImageSize.value = config.imageSize
+
+        // 设置文字内容和颜色
+        binding.editTextContent.setText(config.textContent)
+        updateTextColorButton(config.textColor)
+
+        // 设置图片和字体路径
+        selectedImagePath = config.imagePath.ifEmpty { null }
+        selectedFontPath = config.fontPath.ifEmpty { null }
+        updateImagePathDisplay()
+        updateFontPathDisplay()
+
+        // 设置图片文字间距
+        binding.sliderTextImageSpacing.value = config.textImageSpacing
+
+        // 设置边框
+        binding.sliderBorderTopWidth.value = config.borderTopWidth
+        binding.sliderBorderBottomWidth.value = config.borderBottomWidth
+        binding.sliderBorderLeftWidth.value = config.borderLeftWidth
+        binding.sliderBorderRightWidth.value = config.borderRightWidth
+        updateBorderColorButton(config.borderColor)
+
+        // 设置字间距和行间距
+        binding.sliderLetterSpacing.value = config.letterSpacing
+        binding.sliderLineSpacing.value = config.lineSpacing
+
+        // 设置边框颜色模式
+        val borderColorModeButtonId = when (config.borderColorMode) {
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL -> binding.buttonManualColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.PALETTE -> binding.buttonAutoColor.id
+            cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> binding.buttonMaterialColor.id
+        }
+        binding.toggleBorderColorMode.check(borderColorModeButtonId)
     }
 
     private fun saveSettings() {
