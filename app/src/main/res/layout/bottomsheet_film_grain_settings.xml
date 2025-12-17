@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
     android:orientation="vertical">
 
     <!-- 顶部拖拽条和标题 -->
@@ -456,22 +455,18 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- 底部悬浮按钮栏 -->
-    <com.google.android.material.card.MaterialCardView
+    <!-- 底部按钮区域 -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        app:cardElevation="8dp"
-        app:cardCornerRadius="0dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:paddingRight="16dp"
-            android:paddingLeft="16dp">
+        android:background="?attr/colorSurfaceVariant"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:paddingRight="16dp"
+        android:paddingLeft="16dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_reset"
@@ -502,6 +497,5 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="0dp"
                 android:text="@string/save_settings" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 </LinearLayout>

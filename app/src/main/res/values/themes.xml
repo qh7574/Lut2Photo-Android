@@ -34,6 +34,9 @@
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+        
+        <!-- BottomSheet 主题，确保继承应用主题颜色 -->
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Lut2Photo.BottomSheetDialog</item>
     </style>
     
     <!-- Light theme -->
@@ -100,5 +103,11 @@
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <!-- BottomSheet Dialog 主题覆盖 -->
+    <style name="ThemeOverlay.Lut2Photo.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <!-- 继承应用主题的所有颜色属性，支持动态取色 -->
+        <!-- 不需要手动定义颜色，会自动从父主题继承 -->
     </style>
 </resources>

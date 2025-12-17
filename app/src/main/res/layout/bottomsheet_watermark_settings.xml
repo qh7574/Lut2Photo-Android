@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
     android:orientation="vertical">
 
     <!-- 顶部拖拽条和标题 -->
@@ -11,7 +10,6 @@
         android:id="@+id/layout_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bottomsheet_header_background"
         android:orientation="vertical"
         android:paddingLeft="16dp"
         android:paddingRight="16dp">
