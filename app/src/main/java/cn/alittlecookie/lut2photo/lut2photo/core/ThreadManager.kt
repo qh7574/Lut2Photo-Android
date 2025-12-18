@@ -38,6 +38,7 @@ class ThreadManager(context: Context) {
         val id: String,
         val bitmap: Bitmap,
         val params: ILutProcessor.ProcessingParams,
+        val grainConfigSnapshot: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig?,
         val onProgress: ((String) -> Unit)? = null,
         val onComplete: (Result<Bitmap?>) -> Unit
     )
@@ -222,6 +223,7 @@ class ThreadManager(context: Context) {
             try {
                 for (task in gpuChannel) {
                     try {
+                        gpuProcessor.setFilmGrainConfig(task.grainConfigSnapshot)
                         task.onProgress?.invoke("Processing on GPU...")
                         val result = gpuProcessor.processImage(task.bitmap, task.params)
                         task.onComplete(Result.success(result))
@@ -243,7 +245,12 @@ class ThreadManager(context: Context) {
         try {
             task.onProgress?.invoke("Fallback to CPU processing...")
             val result = cpuProcessor.processImage(task.bitmap, task.params)
-            task.onComplete(Result.success(result))
+            val finalResult = if (result != null) {
+                applyFilmGrain(result, task.grainConfigSnapshot)
+            } else {
+                null
+            }
+            task.onComplete(Result.success(finalResult))
         } catch (e: Exception) {
             Log.e(TAG, "CPU fallback processing failed for task ${task.id}", e)
             task.onComplete(Result.failure(e))
@@ -343,7 +350,7 @@ class ThreadManager(context: Context) {
         onComplete: (Result<Bitmap?>) -> Unit
     ): String {
         val taskId = "task_${taskCounter.incrementAndGet()}_${System.currentTimeMillis()}"
-        val task = ProcessingTask(taskId, bitmap, params, onProgress, onComplete)
+        val task = ProcessingTask(taskId, bitmap, params, currentGrainConfig, onProgress, onComplete)
 
         val processorType = forceProcessor ?: preferredProcessor
 
@@ -406,6 +413,11 @@ class ThreadManager(context: Context) {
                 }
                 
                 val result = cpuProcessor.processImage(task.bitmap, task.params)
+                val finalResult = if (result != null) {
+                    applyFilmGrain(result, task.grainConfigSnapshot)
+                } else {
+                    null
+                }
 
                 // 记录内存使用情况
                 nativeProcessor?.let { nativeProc ->
@@ -415,7 +427,7 @@ class ThreadManager(context: Context) {
                     }
                 }
                 
-                task.onComplete(Result.success(result))
+                task.onComplete(Result.success(finalResult))
             } catch (e: Exception) {
                 Log.e(TAG, "CPU processing failed for task ${task.id}", e)
                 task.onComplete(Result.failure(e))

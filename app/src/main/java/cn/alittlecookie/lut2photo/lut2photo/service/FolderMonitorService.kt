@@ -1433,36 +1433,7 @@ class FolderMonitorService : Service() {
                                     lutProcessedBitmap
                                 }
 
-                            // 颗粒效果处理逻辑：
-                            // - GPU处理器：颗粒已在着色器中与LUT一起处理，无需单独处理
-                            // - CPU处理器：需要单独调用FilmGrainProcessor处理颗粒
-                            val processorInfo = threadManager.getProcessorInfo()
-                            val usedGpu = processorInfo.preferredProcessor == ILutProcessor.ProcessorType.GPU && processorInfo.isGpuAvailable
-                            
-                            val finalBitmap = if (preferencesManager.folderMonitorGrainEnabled && !usedGpu) {
-                                // CPU处理器：需要单独处理颗粒
-                                Log.d(TAG, "CPU处理器：开始单独添加颗粒效果: ${inputFile.name}")
-                                try {
-                                    val grainConfig = preferencesManager.getFilmGrainConfig().copy(isEnabled = true)
-                                    val grainProcessor = cn.alittlecookie.lut2photo.lut2photo.core.FilmGrainProcessor()
-                                    val grainedBitmap = grainProcessor.processImage(processedBitmap, grainConfig)
-                                    if (grainedBitmap != null) {
-                                        Log.d(TAG, "CPU颗粒效果添加完成: ${inputFile.name}")
-                                        grainedBitmap
-                                    } else {
-                                        Log.w(TAG, "CPU颗粒效果添加失败，使用原图: ${inputFile.name}")
-                                        processedBitmap
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "CPU添加颗粒效果失败: ${inputFile.name}", e)
-                                    processedBitmap
-                                }
-                            } else if (preferencesManager.folderMonitorGrainEnabled && usedGpu) {
-                                Log.d(TAG, "GPU处理器：颗粒已在着色器中处理，跳过单独处理: ${inputFile.name}")
-                                processedBitmap
-                            } else {
-                                processedBitmap
-                            }
+                            val finalBitmap = processedBitmap
 
                             // 修复：使用正确的文件命名格式
                             val originalName = inputFile.name?.substringBeforeLast(".") ?: "unknown"

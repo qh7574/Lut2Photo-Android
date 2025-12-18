@@ -724,11 +724,17 @@ class DashboardFragment : Fragment() {
                                     // 设置颗粒配置（如果启用）
                                     if (binding.switchGrain.isChecked) {
                                         val originalConfig = preferencesManager.getFilmGrainConfig()
-                                        // 预览图直接使用原始配置，不进行缩放
-                                        // 这样预览效果会更接近实际输出（实际输出也使用原始配置）
-                                        val previewConfig = originalConfig.copy(isEnabled = true)
+                                        val previewConfig = originalConfig.scaleForPreview(
+                                            previewWidth = resource.width,
+                                            previewHeight = resource.height,
+                                            originalWidth = originalWidth,
+                                            originalHeight = originalHeight
+                                        )
                                         threadManager.setFilmGrainConfig(previewConfig)
-                                        Log.d("DashboardFragment", "预览颗粒配置: 使用原始配置（不缩放），grainSize: ${originalConfig.grainSize}, 强度: ${originalConfig.globalStrength}")
+                                        Log.d(
+                                            "DashboardFragment",
+                                            "预览颗粒配置: grainSize=${previewConfig.grainSize}, 强度=${previewConfig.globalStrength}, 原图=${originalWidth}x${originalHeight}, 预览=${resource.width}x${resource.height}"
+                                        )
                                     } else {
                                         threadManager.setFilmGrainConfig(null)
                                     }

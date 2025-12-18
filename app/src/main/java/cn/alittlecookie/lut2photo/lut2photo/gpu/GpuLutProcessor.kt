@@ -109,6 +109,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                 uniform float u_blueChannelRatio;
                 uniform float u_channelCorrelation;
                 uniform float u_colorPreservation;
+                uniform float u_strengthCorrection; // 视觉尺度锚定强度补偿系数
+                uniform vec2 u_texSize; // 纹理尺寸，用于计算像素坐标
                 
                 // 改进的随机数生成函数（多重哈希）
                 float random(vec2 co) {
@@ -193,18 +195,17 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     float sizeRatio = getGrainSizeRatio(luminance);
                     
                     // 计算实际噪声强度
-                    float noiseStrength = u_grainStrength * strengthRatio * u_grainSize * sizeRatio * 0.1;
+                    // 使用动态强度补偿（u_strengthCorrection）
+                    // 移除了 u_grainSize 和 sizeRatio 的直接乘法影响
+                    float noiseStrength = u_grainStrength * strengthRatio * u_strengthCorrection * 0.1;
                     
-                    // 使用固定的归一化频率，让 scaleForPreview 负责缩放
-                    // grainSize 已经在 Kotlin 层通过 scaleForPreview 调整过了
-                    vec2 texSize = vec2(textureSize(u_inputTexture, 0));
-                    float STANDARD_DENSITY = 1000.0;
-                    // 固定使用标准密度，不根据实际图片尺寸调整
-                    float normalizedFreq = STANDARD_DENSITY / 1000.0;  // = 1.0
+                    // 计算颗粒缩放比例
+                    // u_grainSize 此时传入的是 grainDiameterPx（视觉尺度锚定后的颗粒直径）
+                    float grainScale = u_grainSize * sizeRatio;
                     
                     // 生成基于像素坐标的噪声UV（确保空间连续性）
-                    vec2 pixelCoord = uv * texSize;
-                    vec2 grainUV = pixelCoord / (u_grainSize * sizeRatio * normalizedFreq);
+                    vec2 pixelCoord = uv * u_texSize;
+                    vec2 grainUV = pixelCoord / grainScale;
                     
                     // 生成基础噪声（用于通道相关性）
                     float baseNoise = gaussianNoise(grainUV, u_grainSeed);
@@ -325,6 +326,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     private var blueChannelRatioLocation: Int = 0
     private var channelCorrelationLocation: Int = 0
     private var colorPreservationLocation: Int = 0
+    private var strengthCorrectionLocation: Int = 0
+    private var texSizeLocation: Int = 0
     
     // 当前颗粒配置
     private var currentGrainConfig: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? = null
@@ -1800,8 +1803,12 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         val grainEnabled = grainConfig?.isEnabled == true && grainConfig.globalStrength > 0f
         GLES30.glUniform1i(grainEnabledLocation, if (grainEnabled) 1 else 0)
         if (grainEnabled && grainConfig != null) {
+            // 计算视觉尺度锚定参数
+            val (grainDiameterPx, strengthCorrection) = grainConfig.calculateAnchoredParams(width, height)
+
             GLES30.glUniform1f(grainStrengthLocation, grainConfig.globalStrength)
-            GLES30.glUniform1f(grainSizeLocation, grainConfig.grainSize)
+            GLES30.glUniform1f(grainSizeLocation, grainDiameterPx)
+            GLES30.glUniform1f(strengthCorrectionLocation, strengthCorrection)
             GLES30.glUniform1f(grainSeedLocation, kotlin.random.Random.nextFloat() * 1000f)
             // 设置影调范围阈值（从0-255转换为0-1范围）
             GLES30.glUniform1f(shadowThresholdLocation, grainConfig.shadowThreshold / 255f)
@@ -1816,6 +1823,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             GLES30.glUniform1f(blueChannelRatioLocation, grainConfig.blueChannelRatio)
             GLES30.glUniform1f(channelCorrelationLocation, grainConfig.channelCorrelation)
             GLES30.glUniform1f(colorPreservationLocation, grainConfig.colorPreservation)
+            GLES30.glUniform2f(texSizeLocation, width.toFloat(), height.toFloat())
             Log.d(TAG, "胶片颗粒已启用，强度: ${grainConfig.globalStrength}, 影调范围: ${grainConfig.shadowThreshold}-${grainConfig.highlightThreshold}")
         } else {
             Log.d(TAG, "胶片颗粒未启用")
@@ -2097,6 +2105,8 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
             blueChannelRatioLocation = GLES30.glGetUniformLocation(shaderProgram, "u_blueChannelRatio")
             channelCorrelationLocation = GLES30.glGetUniformLocation(shaderProgram, "u_channelCorrelation")
             colorPreservationLocation = GLES30.glGetUniformLocation(shaderProgram, "u_colorPreservation")
+            strengthCorrectionLocation = GLES30.glGetUniformLocation(shaderProgram, "u_strengthCorrection")
+            texSizeLocation = GLES30.glGetUniformLocation(shaderProgram, "u_texSize")
 
             Log.d(TAG, "uniform位置获取结果:")
             Log.d(TAG, "  u_inputTexture: $inputTextureLocation")
