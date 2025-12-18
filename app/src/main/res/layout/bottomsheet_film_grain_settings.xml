@@ -112,8 +112,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:valueFrom="0"
-                            android:valueTo="100"
-                            android:stepSize="1" />
+                            android:valueTo="100" />
 
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/text_global_strength"
@@ -131,15 +130,17 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_grain_size"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:valueFrom="0.5"
-                            android:valueTo="6.0"
-                            android:stepSize="0.1" />
+                            android:valueFrom="0.1"
+                            android:valueTo="10.0" />
+
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/text_grain_size"
                             android:layout_width="48dp"
@@ -227,7 +228,6 @@
                                 android:layout_weight="1"
                                 android:valueFrom="0"
                                 android:valueTo="255"
-                                android:stepSize="5"
                                 app:values="@array/default_tonal_range" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_tonal_range"
@@ -253,8 +253,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.2"
-                                android:valueTo="1.0"
-                                android:stepSize="0.05" />
+                                android:valueTo="1.0" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_shadow_ratio"
                                 android:layout_width="48dp"
@@ -279,8 +278,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.1"
-                                android:valueTo="0.8"
-                                android:stepSize="0.05" />
+                                android:valueTo="0.8" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_highlight_ratio"
                                 android:layout_width="48dp"
@@ -305,8 +303,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="1.0"
-                                android:valueTo="2.0"
-                                android:stepSize="0.1" />
+                                android:valueTo="2.0" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_shadow_size_ratio"
                                 android:layout_width="48dp"
@@ -331,8 +328,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.3"
-                                android:valueTo="1.0"
-                                android:stepSize="0.05" />
+                                android:valueTo="1.0" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_highlight_size_ratio"
                                 android:layout_width="48dp"
@@ -366,8 +362,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.5"
-                                android:valueTo="1.5"
-                                android:stepSize="0.05" />
+                                android:valueTo="1.5" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_red_channel"
                                 android:layout_width="48dp"
@@ -392,8 +387,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.8"
-                                android:valueTo="1.5"
-                                android:stepSize="0.05" />
+                                android:valueTo="1.5" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_blue_channel"
                                 android:layout_width="48dp"
@@ -418,8 +412,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.8"
-                                android:valueTo="0.95"
-                                android:stepSize="0.01" />
+                                android:valueTo="0.95" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_correlation"
                                 android:layout_width="48dp"
@@ -444,8 +437,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:valueFrom="0.9"
-                                android:valueTo="1.0"
-                                android:stepSize="0.01" />
+                                android:valueTo="1.0" />
                             <com.google.android.material.textview.MaterialTextView
                                 android:id="@+id/text_color_preservation"
                                 android:layout_width="48dp"

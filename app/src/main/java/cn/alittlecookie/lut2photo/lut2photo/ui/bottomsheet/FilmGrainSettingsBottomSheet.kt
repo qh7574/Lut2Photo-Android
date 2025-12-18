@@ -91,7 +91,6 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
             }
         }
     }
-
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -210,7 +209,7 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         sliderGlobalStrength.value = (config.globalStrength * 100).coerceIn(0f, 100f)
         textGlobalStrength.text = "${(config.globalStrength * 100).toInt()}%"
         
-        sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 6.0f)
+        sliderGrainSize.value = config.grainSize.coerceIn(0.1f, 10.0f)
         textGrainSize.text = String.format("%.1f", config.grainSize)
         
         // 设置影调范围
@@ -361,20 +360,20 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
     private fun resetToDefault() {
         val defaultConfig = FilmGrainConfig.default()
         
-        sliderGlobalStrength.value = defaultConfig.globalStrength * 100
-        sliderGrainSize.value = defaultConfig.grainSize
+        sliderGlobalStrength.value = (defaultConfig.globalStrength * 100).coerceIn(0f, 100f)
+        sliderGrainSize.value = defaultConfig.grainSize.coerceIn(0.1f, 10.0f)
         rangeSliderTonal.values = listOf(
-            defaultConfig.shadowThreshold.toFloat(),
-            defaultConfig.highlightThreshold.toFloat()
+            defaultConfig.shadowThreshold.toFloat().coerceIn(0f, 255f),
+            defaultConfig.highlightThreshold.toFloat().coerceIn(0f, 255f)
         )
-        sliderShadowRatio.value = defaultConfig.shadowGrainRatio
-        sliderHighlightRatio.value = defaultConfig.highlightGrainRatio
-        sliderShadowSizeRatio.value = defaultConfig.shadowSizeRatio
-        sliderHighlightSizeRatio.value = defaultConfig.highlightSizeRatio
-        sliderRedChannel.value = defaultConfig.redChannelRatio
-        sliderBlueChannel.value = defaultConfig.blueChannelRatio
-        sliderCorrelation.value = defaultConfig.channelCorrelation
-        sliderColorPreservation.value = defaultConfig.colorPreservation
+        sliderShadowRatio.value = defaultConfig.shadowGrainRatio.coerceIn(0.2f, 1.0f)
+        sliderHighlightRatio.value = defaultConfig.highlightGrainRatio.coerceIn(0.1f, 0.8f)
+        sliderShadowSizeRatio.value = defaultConfig.shadowSizeRatio.coerceIn(1.0f, 2.0f)
+        sliderHighlightSizeRatio.value = defaultConfig.highlightSizeRatio.coerceIn(0.3f, 1.0f)
+        sliderRedChannel.value = defaultConfig.redChannelRatio.coerceIn(0.5f, 1.5f)
+        sliderBlueChannel.value = defaultConfig.blueChannelRatio.coerceIn(0.8f, 1.5f)
+        sliderCorrelation.value = defaultConfig.channelCorrelation.coerceIn(0.8f, 0.95f)
+        sliderColorPreservation.value = defaultConfig.colorPreservation.coerceIn(0.9f, 1.0f)
     }
     
     /**
@@ -475,7 +474,7 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
      */
     private fun applyConfig(config: FilmGrainConfig) {
         sliderGlobalStrength.value = (config.globalStrength * 100).coerceIn(0f, 100f)
-        sliderGrainSize.value = config.grainSize.coerceIn(0.5f, 6.0f)
+        sliderGrainSize.value = config.grainSize.coerceIn(0.1f, 10.0f)
         rangeSliderTonal.values = listOf(
             config.shadowThreshold.toFloat().coerceIn(0f, 255f),
             config.highlightThreshold.toFloat().coerceIn(0f, 255f)

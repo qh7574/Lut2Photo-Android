@@ -52,14 +52,14 @@ class FilmGrainProcessor {
                 // 生成随机种子（与GPU的u_grainSeed对应）
                 val grainSeed = Random.nextFloat() * 1000f
                 
-                // 计算视觉尺度锚定参数
-                val (grainDiameterPx, strengthCorrection) = config.calculateAnchoredParams(width, height)
-                Log.d(TAG, "视觉尺度锚定: 直径=${grainDiameterPx}px, 强度补偿=${strengthCorrection}")
+                // 直接使用用户配置的颗粒大小，不进行复杂的视觉尺度锚定
+                val grainSize = config.grainSize
+                Log.d(TAG, "颗粒大小: $grainSize")
                 
                 if (totalPixels <= MAX_BLOCK_PIXELS) {
-                    processImageDirect(bitmap, config, grainSeed, grainDiameterPx, strengthCorrection)
+                    processImageDirect(bitmap, config, grainSeed, grainSize)
                 } else {
-                    processImageInBlocks(bitmap, config, grainSeed, grainDiameterPx, strengthCorrection)
+                    processImageInBlocks(bitmap, config, grainSeed, grainSize)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "颗粒处理失败", e)
@@ -75,15 +75,14 @@ class FilmGrainProcessor {
         bitmap: Bitmap, 
         config: FilmGrainConfig, 
         grainSeed: Float,
-        grainDiameterPx: Float,
-        strengthCorrection: Float
+        grainSize: Float
     ): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
         
-        applyGrainToPixels(pixels, width, height, config, grainSeed, grainDiameterPx, strengthCorrection, 0)
+        applyGrainToPixels(pixels, width, height, config, grainSeed, grainSize, 0)
         
         val resultBitmap = createBitmap(width, height)
         resultBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
@@ -100,8 +99,7 @@ class FilmGrainProcessor {
         bitmap: Bitmap, 
         config: FilmGrainConfig, 
         grainSeed: Float,
-        grainDiameterPx: Float,
-        strengthCorrection: Float
+        grainSize: Float
     ): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
@@ -125,7 +123,7 @@ class FilmGrainProcessor {
             bitmap.getPixels(blockPixels, 0, width, 0, currentY, width, currentBlockHeight)
             
             // 使用全局坐标处理，噪声天然连续，无需边界混合
-            applyGrainToPixels(blockPixels, width, currentBlockHeight, config, grainSeed, grainDiameterPx, strengthCorrection, currentY)
+            applyGrainToPixels(blockPixels, width, currentBlockHeight, config, grainSeed, grainSize, currentY)
             
             resultBitmap.setPixels(blockPixels, 0, width, 0, currentY, width, currentBlockHeight)
             
@@ -267,8 +265,7 @@ class FilmGrainProcessor {
      * @param blockHeight 当前块高度
      * @param config 颗粒配置
      * @param grainSeed 随机种子（对应GPU的u_grainSeed）
-     * @param grainDiameterPx 视觉尺度锚定后的颗粒直径（像素）
-     * @param strengthCorrection 强度补偿系数
+     * @param grainSize 颗粒尺寸
      * @param offsetY 当前块在整图中的Y偏移
      */
     private fun applyGrainToPixels(
@@ -277,10 +274,12 @@ class FilmGrainProcessor {
         blockHeight: Int,
         config: FilmGrainConfig,
         grainSeed: Float,
-        grainDiameterPx: Float,
-        strengthCorrection: Float,
+        grainSize: Float,
         offsetY: Int
     ) {
+        // 确保 grainSize 不为 0
+        val effectiveGrainSize = if (grainSize <= 0f) 1.5f else grainSize
+
         for (y in 0 until blockHeight) {
             for (x in 0 until blockWidth) {
                 val i = y * blockWidth + x
@@ -297,11 +296,8 @@ class FilmGrainProcessor {
                 val strengthRatio = getGrainStrengthRatio(luminance, config)
                 val sizeRatio = getGrainSizeRatio(luminance, config)
                 
-                // 计算实际噪声强度（使用动态强度补偿）
-                // 原公式：noiseStrength = strength * strengthRatio * grainSize * sizeRatio * 0.1
-                // 新公式：noiseStrength = strength * strengthRatio * strengthCorrection * 0.1
-                // 移除了 grainSize 和 sizeRatio 的直接乘法影响，由 strengthCorrection 接管
-                val noiseStrength = config.globalStrength * strengthRatio * strengthCorrection * NOISE_INTENSITY_FACTOR
+                // 计算实际噪声强度
+                val noiseStrength = config.globalStrength * strengthRatio * NOISE_INTENSITY_FACTOR
                 
                 // 如果噪声强度为0，跳过处理
                 if (noiseStrength <= 0f) continue
@@ -310,23 +306,18 @@ class FilmGrainProcessor {
                 val globalY = offsetY + y
                 
                 // 计算颗粒缩放比例
-                // grainDiameterPx 已经包含了基准比例和用户 grainSize 设置
-                val grainScale = grainDiameterPx * sizeRatio
+                val grainScale = effectiveGrainSize * sizeRatio
                 
                 // 计算噪声UV坐标（与GPU着色器一致）
                 // GPU: vec2 grainUV = pixelCoord / grainScale;
                 val grainU = x.toFloat() / grainScale
                 val grainV = globalY.toFloat() / grainScale
-                // GPU: vec2 grainUV = pixelCoord / (u_grainSize * sizeRatio * normalizedFreq);
-                // val grainUVx = x.toFloat() / (config.grainSize * sizeRatio * normalizedFreq)
-                // val grainUVy = globalY.toFloat() / (config.grainSize * sizeRatio * normalizedFreq)
                 
                 // 生成基础噪声（与GPU着色器一致）
-                // GPU: float baseNoise = gaussianNoise(grainUV, u_grainSeed);
+                // 使用 Box-Muller 高斯噪声
                 val baseNoise = gaussianNoise(grainU, grainV, grainSeed)
                 
                 // 生成各通道噪声（与GPU着色器一致）
-                // GPU: float rNoise = mix(gaussianNoise(grainUV, u_grainSeed + 0.1), baseNoise, u_channelCorrelation) * u_redChannelRatio;
                 val rIndependent = gaussianNoise(grainU, grainV, grainSeed + 0.1f)
                 val rNoise = mix(rIndependent, baseNoise, config.channelCorrelation) * config.redChannelRatio
                 
@@ -372,10 +363,9 @@ class FilmGrainProcessor {
             
             val grainSeed = Random.nextFloat() * 1000f
             
-            // 计算视觉尺度锚定参数
-            val (grainDiameterPx, strengthCorrection) = config.calculateAnchoredParams(width, height)
+            val grainSize = config.grainSize
             
-            processImageDirect(bitmap, config, grainSeed, grainDiameterPx, strengthCorrection)
+            processImageDirect(bitmap, config, grainSeed, grainSize)
         } catch (e: Exception) {
             Log.e(TAG, "颗粒处理失败", e)
             null
