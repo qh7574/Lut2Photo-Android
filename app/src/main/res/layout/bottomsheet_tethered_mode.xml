@@ -87,7 +87,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_filter_jpg"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                     android:layout_width="wrap_content"
                     android:layout_height="42dp"
                     app:icon="@drawable/outline_photo_24"
@@ -96,7 +96,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_filter_raw"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                     android:layout_width="wrap_content"
                     android:layout_height="42dp"
                     app:icon="@drawable/raw_on_24"
@@ -106,7 +106,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_filter_video"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                     android:layout_width="wrap_content"
                     android:layout_height="42dp"
                     app:icon="@drawable/hangout_video_24"

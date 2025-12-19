@@ -27,15 +27,12 @@
         <item name="colorSurfaceInverse">@color/md_theme_light_inverseSurface</item>
         <item name="colorOnSurfaceInverse">@color/md_theme_light_inverseOnSurface</item>
         <item name="colorPrimaryInverse">@color/md_theme_light_inversePrimary</item>
-
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?android:attr/windowBackground</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
-        
-        <!-- BottomSheet 主题，确保继承应用主题颜色 -->
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Lut2Photo.BottomSheetDialog</item>
     </style>
     
@@ -53,7 +50,6 @@
     <style name="Theme.Lut2Photo.Dark" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/md_theme_dark_primary</item>
         <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>
-        <!-- 添加所有深色主题颜色 -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?android:attr/windowBackground</item>
         <item name="android:windowLightStatusBar">false</item>
@@ -107,7 +103,23 @@
 
     <!-- BottomSheet Dialog 主题覆盖 -->
     <style name="ThemeOverlay.Lut2Photo.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
-        <!-- 继承应用主题的所有颜色属性，支持动态取色 -->
-        <!-- 不需要手动定义颜色，会自动从父主题继承 -->
+
+    </style>
+
+    <!-- 自定义 Slider 样式 - 加深禁用状态轨道颜色 -->
+    <style name="Widget.Lut2Photo.Slider" parent="Widget.Material3.Slider">
+        <item name="trackColorInactive">@color/slider_track_inactive</item>
+    </style>
+
+    <!-- 自定义 RangeSlider 样式 - 加深禁用状态轨道颜色 -->
+    <style name="Widget.Lut2Photo.RangeSlider" parent="Widget.Material3.Slider">
+        <item name="trackColorInactive">@color/slider_track_inactive</item>
+    </style>
+
+    <!-- 自定义 ToggleButton 样式 - 选中状态使用 Primary 颜色 -->
+    <style name="Widget.Lut2Photo.Button.OutlinedButton.ToggleButton" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="backgroundTint">@color/toggle_button_background</item>
+        <item name="android:textColor">@color/toggle_button_text</item>
+        <item name="iconTint">@color/toggle_button_text</item>
     </style>
 </resources>

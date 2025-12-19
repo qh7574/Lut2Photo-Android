@@ -105,7 +105,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_image_watermark"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -114,7 +114,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/button_text_watermark"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -207,6 +207,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_image_size"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -243,6 +244,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_image_position_x"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -279,6 +281,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_image_position_y"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -314,6 +317,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_image_opacity"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -469,6 +473,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_text_size"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -505,6 +510,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_letter_spacing"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -541,6 +547,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_line_spacing"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -579,7 +586,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_text_align_left"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -589,7 +596,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_text_align_center"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -599,7 +606,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_text_align_right"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -652,46 +659,42 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_follow_top"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="上方"
                             android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:textColor="?attr/colorOnSurface"
                             android:textSize="12sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_follow_bottom"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="下方"
                             android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:textColor="?attr/colorOnSurface"
                             android:textSize="12sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_follow_left"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="左侧"
                             android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:textColor="?attr/colorOnSurface"
                             android:textSize="12sp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_follow_right"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="右侧"
                             android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
-                            android:textColor="?attr/colorOnSurface"
                             android:textSize="12sp" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
@@ -717,6 +720,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_text_image_spacing"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -755,6 +759,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_text_position_x"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -793,6 +798,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_text_position_y"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -828,6 +834,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_text_opacity"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -887,6 +894,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_border_top_width"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -923,6 +931,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_border_bottom_width"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -959,6 +968,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_border_left_width"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -995,6 +1005,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_border_right_width"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
@@ -1032,7 +1043,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_manual_color"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -1040,7 +1051,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_auto_color"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -1048,7 +1059,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_material_color"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"

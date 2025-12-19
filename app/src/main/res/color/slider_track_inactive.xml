@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 禁用状态 - 使用加深的颜色 (on-surface 25% 不透明度) -->
+    <item android:alpha="0.25" android:color="?attr/colorOnPrimary" android:state_enabled="false"/>
+    <!-- 启用但未激活状态 - 使用加深的颜色 (on-surface 25% 不透明度) -->
+    <item android:alpha="0.25" android:color="?attr/colorOnPrimary"/>
+</selector>

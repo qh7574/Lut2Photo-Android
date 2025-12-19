@@ -285,4 +285,6 @@
     
     <!-- 全屏图片查看 -->
     <string name="preview_image">预览图片</string>
+    <string name="film_grain_info_title">基础参数说明</string>
+    <string name="film_grain_info"><![CDATA[全局强度：控制颗粒明显程度\n颗粒大小：推荐1附近的值，较大的值（>4）用于制作特殊艺术效果]]></string>
 </resources>

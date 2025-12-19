@@ -74,6 +74,32 @@
             android:padding="16dp"
             android:paddingBottom="80dp">
 
+            <!--<com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/film_grain_info_title"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>-->
+
             <!-- 基础参数卡片（不可折叠） -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Outlined"
@@ -91,9 +117,16 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="0dp"
                         android:text="@string/film_grain_basic_params_title"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/film_grain_info"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <!-- 全局强度 -->
                     <com.google.android.material.textview.MaterialTextView
@@ -108,6 +141,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_global_strength"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -135,6 +169,7 @@
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/slider_grain_size"
+                            style="@style/Widget.Lut2Photo.Slider"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -223,6 +258,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.RangeSlider
                                 android:id="@+id/range_slider_tonal"
+                                style="@style/Widget.Lut2Photo.RangeSlider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -249,6 +285,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_shadow_ratio"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -274,6 +311,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_highlight_ratio"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -299,6 +337,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_shadow_size_ratio"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -324,6 +363,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_highlight_size_ratio"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -358,6 +398,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_red_channel"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -383,6 +424,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_blue_channel"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -408,6 +450,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_correlation"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -433,6 +476,7 @@
                             android:layout_marginBottom="8dp">
                             <com.google.android.material.slider.Slider
                                 android:id="@+id/slider_color_preservation"
+                                style="@style/Widget.Lut2Photo.Slider"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
