@@ -183,7 +183,7 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     }
                 }
                 
-                // 应用胶片颗粒效果（优化版）
+                // 应用胶片颗粒效果（优化版 - 使用固定参考分辨率）
                 vec3 applyFilmGrain(vec3 color, vec2 uv) {
                     // 计算亮度
                     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
@@ -195,16 +195,14 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
                     // 计算实际噪声强度
                     float noiseStrength = u_grainStrength * strengthRatio * u_grainSize * sizeRatio * 0.1;
                     
-                    // 改进的UV坐标计算：基于纹理分辨率而非固定常数
+                    // 使用固定参考分辨率（1000像素）避免重复缩放
+                    // 确保颗粒大小与分辨率无关，仅由 u_grainSize 控制
                     vec2 texSize = vec2(textureSize(u_inputTexture, 0));
-                    // 使用纹理尺寸的平均值作为基准，确保分辨率无关性
-                    float avgTexSize = (texSize.x + texSize.y) * 0.5;
-                    // 归一化的颗粒频率（每1000像素的颗粒数量）
-                    float normalizedFreq = avgTexSize / 1000.0;
-                    
-                    // 生成基于像素坐标的噪声UV（确保空间连续性）
                     vec2 pixelCoord = uv * texSize;
-                    vec2 grainUV = pixelCoord / (u_grainSize * sizeRatio * normalizedFreq);
+                    
+                    // 基于固定参考分辨率计算颗粒UV，避免分辨率相关的重复缩放
+                    float referenceResolution = 1000.0;
+                    vec2 grainUV = pixelCoord / (u_grainSize * sizeRatio * referenceResolution);
                     
                     // 生成基础噪声（用于通道相关性）
                     float baseNoise = gaussianNoise(grainUV, u_grainSeed);

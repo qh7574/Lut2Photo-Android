@@ -47,7 +47,7 @@ class FullscreenImageActivity : AppCompatActivity() {
 
         // 只有非处理后的图片才显示预览提示
         if (!isProcessedImage) {
-            Toast.makeText(this, "非全尺寸预览图，颗粒比输出略大", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "非全尺寸预览图，效果仅供参考", Toast.LENGTH_SHORT).show()
         }
 
         // 检查是否从 Drawable 资源加载

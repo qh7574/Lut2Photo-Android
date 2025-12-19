@@ -149,20 +149,40 @@ data class FilmGrainConfig(
     }
     
     /**
-     * 为预览图缩放颗粒参数（基于像素密度归一化）
+     * 为预览图缩放颗粒参数（基于物理尺寸归一化）
      * 
-     * 简单缩放预览图的颗粒强度，以模拟大图的视觉效果。
+     * 使用屏幕物理尺寸计算缩放比例，确保预览图和原图在全屏显示时颗粒物理大小一致。
+     * 颗粒大小与物理显示尺寸成反比，强度与物理显示尺寸成正比。
+     * 
+     * @param previewWidth 预览图宽度（像素）
+     * @param previewHeight 预览图高度（像素）
+     * @param originalWidth 原图宽度（像素）
+     * @param originalHeight 原图高度（像素）
+     * @param screenDensity 屏幕密度（dpi）
+     * @param screenWidth 屏幕宽度（像素）
+     * @param screenHeight 屏幕高度（像素）
      */
     fun scaleForPreview(
         previewWidth: Int,
         previewHeight: Int,
         originalWidth: Int,
-        originalHeight: Int
+        originalHeight: Int,
+        screenDensity: Float,
+        screenWidth: Int,
+        screenHeight: Int
     ): FilmGrainConfig {
-        val previewShort = kotlin.math.min(previewWidth, previewHeight).toFloat()
-        val originalShort = kotlin.math.min(originalWidth, originalHeight).toFloat()
+        if (screenDensity <= 0f || screenWidth <= 0 || screenHeight <= 0) {
+            android.util.Log.w(
+                "FilmGrainConfig",
+                "scaleForPreview: invalid screen params density=$screenDensity, screen=${screenWidth}x${screenHeight}"
+            )
+            return this.copy(isEnabled = true)
+        }
 
-        if (previewShort <= 0f || originalShort <= 0f) {
+        val previewPixels = previewWidth * previewHeight
+        val originalPixels = originalWidth * originalHeight
+        
+        if (previewPixels <= 0 || originalPixels <= 0) {
             android.util.Log.w(
                 "FilmGrainConfig",
                 "scaleForPreview: invalid size preview=${previewWidth}x${previewHeight}, original=${originalWidth}x${originalHeight}"
@@ -170,13 +190,58 @@ data class FilmGrainConfig(
             return this.copy(isEnabled = true)
         }
 
+        val previewShort = kotlin.math.min(previewWidth, previewHeight).toFloat()
+        val originalShort = kotlin.math.min(originalWidth, originalHeight).toFloat()
+
+        if (previewShort <= 0f || originalShort <= 0f) {
+            android.util.Log.w(
+                "FilmGrainConfig",
+                "scaleForPreview: invalid short side preview=$previewShort, original=$originalShort"
+            )
+            return this.copy(isEnabled = true)
+        }
+
+        val previewLong = kotlin.math.max(previewWidth, previewHeight).toFloat()
+        val originalLong = kotlin.math.max(originalWidth, originalHeight).toFloat()
+
+        val previewScaleX = screenWidth.toFloat() / previewWidth
+        val previewScaleY = screenHeight.toFloat() / previewHeight
+        val originalScaleX = screenWidth.toFloat() / originalWidth
+        val originalScaleY = screenHeight.toFloat() / originalHeight
+
+        val previewDisplayScale = kotlin.math.min(previewScaleX, previewScaleY)
+        val originalDisplayScale = kotlin.math.min(originalScaleX, originalScaleY)
+
+        if (originalDisplayScale < 0.001f) {
+            android.util.Log.w(
+                "FilmGrainConfig",
+                "scaleForPreview: originalDisplayScale too small: $originalDisplayScale"
+            )
+            return this.copy(isEnabled = true)
+        }
+
+        val physicalScale = previewDisplayScale / originalDisplayScale
+
+        val densityScale = kotlin.math.sqrt(previewPixels.toFloat() / originalPixels.toFloat())
+        val perceptualScale = kotlin.math.sqrt(physicalScale)
+
+        val rawScaledStrength = globalStrength * perceptualScale / densityScale
+        val scaledStrength = rawScaledStrength.coerceIn(0f, 10f)
+
+        val baseSize = grainSize / physicalScale
+        val densityCompensation = 1.0f / densityScale
+        val strengthCompensation = globalStrength / scaledStrength
+        val scaledGrainSize = baseSize * densityCompensation * strengthCompensation
+        val finalGrainSize = scaledGrainSize.coerceIn(0.1f, 10f)
+
         android.util.Log.d(
             "FilmGrainConfig",
-            "scaleForPreview: previewShort=$previewShort, originalShort=$originalShort, strength=$globalStrength"
+            "scaleForPreview: physicalScale=$physicalScale, densityScale=$densityScale, perceptualScale=$perceptualScale, " +
+            "strengthRatio=${scaledStrength/globalStrength}, " +
+            "originalSize=$grainSize→$finalGrainSize, originalStrength=$globalStrength→$scaledStrength"
         )
-        val scale = (previewShort / originalShort).coerceIn(0f, 1f)
-        val scaledStrength = (globalStrength * scale * kotlin.math.sqrt(scale)).coerceIn(0f, 1f)
-        return this.copy(isEnabled = true, globalStrength = scaledStrength)
+
+        return this.copy(isEnabled = true, globalStrength = scaledStrength, grainSize = finalGrainSize)
     }
 }
 

@@ -296,8 +296,8 @@ class FilmGrainProcessor {
                 val strengthRatio = getGrainStrengthRatio(luminance, config)
                 val sizeRatio = getGrainSizeRatio(luminance, config)
                 
-                // 计算实际噪声强度
-                val noiseStrength = config.globalStrength * strengthRatio * NOISE_INTENSITY_FACTOR
+                // 计算实际噪声强度（与GPU着色器完全一致：u_grainStrength * strengthRatio * u_grainSize * sizeRatio * 0.1）
+                val noiseStrength = config.globalStrength * strengthRatio * grainSize * sizeRatio * NOISE_INTENSITY_FACTOR
                 
                 // 如果噪声强度为0，跳过处理
                 if (noiseStrength <= 0f) continue
@@ -305,13 +305,11 @@ class FilmGrainProcessor {
                 // 全局像素坐标（用于跨块一致性）
                 val globalY = offsetY + y
                 
-                // 计算颗粒缩放比例
-                val grainScale = effectiveGrainSize * sizeRatio
-                
-                // 计算噪声UV坐标（与GPU着色器一致）
-                // GPU: vec2 grainUV = pixelCoord / grainScale;
-                val grainU = x.toFloat() / grainScale
-                val grainV = globalY.toFloat() / grainScale
+                // 使用固定参考分辨率1000像素计算噪声UV坐标（与GPU着色器完全一致）
+                // GPU: vec2 grainUV = pixelCoord / (u_grainSize * sizeRatio * 1000.0);
+                val referenceResolution = 1000.0f
+                val grainU = x.toFloat() / (grainSize * sizeRatio * referenceResolution)
+                val grainV = globalY.toFloat() / (grainSize * sizeRatio * referenceResolution)
                 
                 // 生成基础噪声（与GPU着色器一致）
                 // 使用 Box-Muller 高斯噪声

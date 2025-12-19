@@ -724,16 +724,27 @@ class DashboardFragment : Fragment() {
                                     // 设置颗粒配置（如果启用）
                                     if (binding.switchGrain.isChecked) {
                                         val originalConfig = preferencesManager.getFilmGrainConfig()
+                                        
+                                        val metrics = resources.displayMetrics
+                                        val screenDensity = metrics.densityDpi.toFloat()
+                                        val screenWidth = metrics.widthPixels
+                                        val screenHeight = metrics.heightPixels
+                                        
                                         val previewConfig = originalConfig.scaleForPreview(
                                             previewWidth = resource.width,
                                             previewHeight = resource.height,
                                             originalWidth = originalWidth,
-                                            originalHeight = originalHeight
+                                            originalHeight = originalHeight,
+                                            screenDensity = screenDensity,
+                                            screenWidth = screenWidth,
+                                            screenHeight = screenHeight
                                         )
                                         threadManager.setFilmGrainConfig(previewConfig)
                                         Log.d(
                                             "DashboardFragment",
-                                            "预览颗粒配置: grainSize=${previewConfig.grainSize}, 强度=${previewConfig.globalStrength}, 原图=${originalWidth}x${originalHeight}, 预览=${resource.width}x${resource.height}"
+                                            "预览颗粒配置: grainSize=${previewConfig.grainSize}, 强度=${previewConfig.globalStrength}, " +
+                                            "原图=${originalWidth}x${originalHeight}, 预览=${resource.width}x${resource.height}, " +
+                                            "屏幕=${screenWidth}x${screenHeight}, density=$screenDensity"
                                         )
                                     } else {
                                         threadManager.setFilmGrainConfig(null)
