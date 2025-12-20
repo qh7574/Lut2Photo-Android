@@ -634,21 +634,9 @@ class FolderMonitorService : Service() {
                 val existingFiles = fileTrackerManager!!.consumeExisting()
                 Log.d(TAG, "存量文件数量: ${existingFiles.size}个")
                 
-                // 计算冷扫描期间的增量文件数量
-                val coldScanIncrementalCount = existingCount - existingFiles.size
-                Log.d(TAG, "冷扫描期间的增量文件数量: ${coldScanIncrementalCount}个")
-                
-                // 收集冷扫描期间的增量文件（这些是服务启动前就存在的文件，需要跳过）
-                val coldScanIncrementalFiles = mutableListOf<FileRecord>()
-                if (coldScanIncrementalCount > 0) {
-                    // 使用 take 操作符只收集指定数量的文件
-                    fileTrackerManager!!.consumeIncremental()
-                        .take(coldScanIncrementalCount)
-                        .collect { fileRecord ->
-                            coldScanIncrementalFiles.add(fileRecord)
-                            Log.d(TAG, "收集到冷扫描增量文件: ${fileRecord.fileName} (${coldScanIncrementalFiles.size}/${coldScanIncrementalCount})")
-                        }
-                }
+                // 获取冷扫描期间的增量文件
+                val coldScanIncrementalFiles = fileTrackerManager!!.getColdScanIncrementalFiles()
+                Log.d(TAG, "冷扫描期间的增量文件数量: ${coldScanIncrementalFiles.size}个")
                 
                 // 合并所有需要标记的文件
                 val allFilesToMark = existingFiles + coldScanIncrementalFiles
@@ -939,8 +927,8 @@ class FolderMonitorService : Service() {
                 
                 existingRecords.addAll(batchRecords)
                 
-                // 优化5：每批写入一次，使用 commit() 确保完成
-                prefs.edit().putStringSet("records", existingRecords).commit()
+                // 优化5：每批写入一次，使用 apply() 异步写入避免阻塞
+                prefs.edit().putStringSet("records", existingRecords).apply()
                 
                 // 批量更新缓存
                 batch.forEach { fileRecord ->
@@ -1199,7 +1187,9 @@ class FolderMonitorService : Service() {
         processedFilesCache[fileName] = true
 
         // 发送广播通知历史页面更新
-        val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+        val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE").apply {
+            setPackage(packageName)
+        }
         sendBroadcast(intent)
     }
 

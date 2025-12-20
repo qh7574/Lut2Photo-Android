@@ -538,8 +538,8 @@ class WatermarkSettingsDialog : DialogFragment() {
 
     // Palette相关方法
     private fun selectPaletteImage() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        intent.type = "image/*"
+        val intent = Intent(Intent.ACTION_PICK)
+        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
         paletteImagePickerLauncher.launch(intent)
     }
 

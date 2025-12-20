@@ -359,7 +359,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 prefs.edit { putStringSet("records", existingRecords) }
 
                 // 发送广播通知历史页面更新
-                val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+                val intent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE").apply {
+                    setPackage(getApplication<Application>().packageName)
+                }
                 getApplication<Application>().sendBroadcast(intent)
             }
         }

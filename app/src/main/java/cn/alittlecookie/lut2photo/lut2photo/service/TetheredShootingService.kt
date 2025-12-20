@@ -111,6 +111,7 @@ class TetheredShootingService : Service() {
             Log.e(TAG, "未找到相机设备")
             sendBroadcast(Intent(ACTION_CONNECTION_ERROR).apply {
                 putExtra(EXTRA_ERROR_MESSAGE, "未找到相机设备，请检查 USB 连接")
+                setPackage(packageName)
             })
             stopSelf()
             return
@@ -133,6 +134,7 @@ class TetheredShootingService : Service() {
                     Log.e(TAG, "USB 权限被拒绝")
                     sendBroadcast(Intent(ACTION_CONNECTION_ERROR).apply {
                         putExtra(EXTRA_ERROR_MESSAGE, "USB 权限被拒绝")
+                        setPackage(packageName)
                     })
                     stopSelf()
                 }
@@ -150,6 +152,7 @@ class TetheredShootingService : Service() {
             Log.e(TAG, "无法打开 USB 设备")
             sendBroadcast(Intent(ACTION_CONNECTION_ERROR).apply {
                 putExtra(EXTRA_ERROR_MESSAGE, "无法打开 USB 设备")
+                setPackage(packageName)
             })
             stopSelf()
             return
@@ -167,6 +170,7 @@ class TetheredShootingService : Service() {
                 mainHandler.post {
                     sendBroadcast(Intent(ACTION_CONNECTION_ERROR).apply {
                         putExtra(EXTRA_ERROR_MESSAGE, "相机连接失败")
+                        setPackage(packageName)
                     })
                     stopSelf()
                 }
@@ -188,6 +192,7 @@ class TetheredShootingService : Service() {
                 // 连接失败，发送广播
                 sendBroadcast(Intent(ACTION_CONNECTION_ERROR).apply {
                     putExtra(EXTRA_ERROR_MESSAGE, "相机连接失败")
+                    setPackage(packageName)
                 })
                 stopSelf()
             }
@@ -479,6 +484,7 @@ class TetheredShootingService : Service() {
         // 发送照片添加广播
         sendBroadcast(Intent(ACTION_PHOTO_ADDED).apply {
             putExtra(EXTRA_PHOTO_PATH, photoPath)
+            setPackage(packageName)
         })
         
         // 获取输入文件夹
@@ -576,6 +582,7 @@ class TetheredShootingService : Service() {
                             // 发送下载完成广播
                             sendBroadcast(Intent(ACTION_PHOTO_DOWNLOADED).apply {
                                 putExtra(EXTRA_PHOTO_PATH, destFile.uri.toString())
+                                setPackage(packageName)
                             })
                         } else {
                             Log.e(TAG, "无法创建目标文件: $fileName")

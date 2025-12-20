@@ -179,8 +179,10 @@ class NotificationsFragment : Fragment() {
             preferencesManager.processorType = selectedProcessor
 
             // 发送广播通知处理器设置变化
-            val intent = Intent("cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED")
-            intent.putExtra("processorType", selectedProcessor)
+            val intent = Intent("cn.alittlecookie.lut2photo.PROCESSOR_SETTING_CHANGED").apply {
+                putExtra("processorType", selectedProcessor)
+                setPackage(requireContext().packageName)
+            }
             requireContext().sendBroadcast(intent)
 
             Toast.makeText(

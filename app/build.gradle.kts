@@ -50,8 +50,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin.compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
     buildFeatures {
         viewBinding = true
@@ -89,10 +89,6 @@ android {
 }
 
 dependencies {
-    // Kotlin 标准库 - 解决 NoClassDefFoundError 问题
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.0.21")
-    
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -102,8 +98,6 @@ dependencies {
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.exifinterface)
-    
-    // 新增依赖 - 使用正确的库
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.activity.ktx)

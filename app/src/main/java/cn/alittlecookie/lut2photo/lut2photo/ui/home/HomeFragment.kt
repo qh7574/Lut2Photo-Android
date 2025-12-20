@@ -20,6 +20,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.documentfile.provider.DocumentFile
@@ -328,7 +329,9 @@ class HomeFragment : Fragment() {
                 }
                 
                 // 4. 发送广播通知历史页面更新
-                val updateIntent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
+                val updateIntent = Intent("cn.alittlecookie.lut2photo.PROCESSING_UPDATE").apply {
+                    setPackage(requireContext().packageName)
+                }
                 requireContext().sendBroadcast(updateIntent)
                 
                 Log.d("HomeFragment", "========== 缓存和记录清除完成 ==========")
@@ -784,11 +787,12 @@ class HomeFragment : Fragment() {
                 addAction(FolderMonitorService.ACTION_MONITORING_STATUS_UPDATE)
                 addAction("cn.alittlecookie.lut2photo.FILE_COUNT_WARNING")
             }
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                requireContext().registerReceiver(monitoringStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                requireContext().registerReceiver(monitoringStatusReceiver, filter)
-            }
+            ContextCompat.registerReceiver(
+                requireContext(),
+                monitoringStatusReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
             Log.d("HomeFragment", "========== 监控状态广播接收器已注册 ==========")
         } catch (e: Exception) {
             Log.e("HomeFragment", "注册监控状态广播接收器失败", e)
@@ -1826,7 +1830,7 @@ class HomeFragment : Fragment() {
     private fun showConnectionErrorDialog(errorMessage: String) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.connection_error))
-            .setMessage(getString(R.string.connection_error_message, errorMessage))
+            .setMessage(getString(R.string.connection_error_message) + "\n\n错误详情：$errorMessage")
             .setPositiveButton(getString(R.string.retry)) { _, _ ->
                 binding.switchTetheredMode.isChecked = true
             }
@@ -1852,7 +1856,12 @@ class HomeFragment : Fragment() {
             addAction(TetheredShootingService.ACTION_CONNECTION_ERROR)
             addAction(TetheredShootingService.ACTION_PHOTO_DOWNLOADED)
         }
-        requireContext().registerReceiver(tetheredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(
+            requireContext(),
+            tetheredReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun unregisterTetheredReceiver() {

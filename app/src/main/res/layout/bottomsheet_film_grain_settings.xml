@@ -515,8 +515,6 @@
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="0dp"
-                android:layout_marginRight="8dp"
                 android:text="@string/reset_to_default" />
 
             <Space

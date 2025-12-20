@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import cn.alittlecookie.lut2photo.lut2photo.R
@@ -1170,7 +1171,12 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             addAction(TetheredShootingService.ACTION_CAMERA_CONNECTED)
             addAction(TetheredShootingService.ACTION_CAMERA_DISCONNECTED)
         }
-        requireContext().registerReceiver(broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        ContextCompat.registerReceiver(
+            requireContext(),
+            broadcastReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun unregisterBroadcastReceiver() {

@@ -6,29 +6,11 @@
     <string name="title_home">实时处理</string>
     <string name="title_dashboard">手动处理</string>
     <string name="title_notifications">设置</string>
-    <string name="title_processing_history">处理历史</string>
-    <string name="title_lut_manager">LUT管理</string>
 
     <!-- 通用操作 -->
-    <string name="select_lut_file">选择LUT文件</string>
-    <string name="lut_file_not_selected">未选择LUT文件</string>
-    <string name="processing">处理中…</string>
-    <string name="processing_complete">处理完成</string>
-    <string name="ready">准备就绪</string>
     <string name="unknown">未知</string>
-    <string name="unknown_file">未知文件</string>
-    <string name="delete">删除</string>
     <string name="import_text">导入</string>
     <string name="export">导出</string>
-    <string name="delete_selected">删除选中</string>
-    <string name="importing">导入中…</string>
-    <string name="import_lut">导入</string>
-    <string name="version_format">版本: %s</string>
-    <string name="file_name">文件名</string>
-    <string name="status">状态</string>
-    <string name="time">时间</string>
-    <string name="path_info">路径信息</string>
-    <string name="close">×</string>
 
     <!-- 处理器设置 -->
     <string name="processor_settings">处理设置</string>
@@ -36,66 +18,35 @@
     <string name="processor_auto">自动</string>
     <string name="processor_gpu">GPU</string>
     <string name="processor_cpu">CPU</string>
-    <string name="processor_description">选择图像处理使用的处理器类型</string>
-    <string name="processor_setting_changed">处理器已切换到: %s</string>
     <string name="keep_original_resolution">保持原始分辨率</string>
     <string name="keep_original_resolution_description">启用后将保持图片原始分辨率，可能增加内存使用</string>
 
     <!-- 文件夹监控 -->
     <string name="folder_monitoring">文件夹监控</string>
     <string name="realtime_monitoring">实时处理</string>
-    <string name="input_folder">输入文件夹</string>
-    <string name="output_folder">输出文件夹</string>
-    <string name="start_monitoring">开始监控</string>
-    <string name="stop_monitoring">停止监控</string>
-    <string name="monitoring_status">监控状态</string>
-    <string name="monitoring_status_format">监控状态: %s</string>
-    <string name="monitoring_control">监控控制</string>
-    <string name="monitoring_status_not_started">监控未启动</string>
-    <string name="monitoring_status_running">监控中...</string>
-    <string name="monitoring_status_stopped">已停止监控</string>
     <string name="folder_not_set">未设置文件夹</string>
     <string name="select_input_folder">输入文件夹</string>
     <string name="select_output_folder">输出文件夹</string>
-    <string name="input_folder_selected">输入文件夹已选择</string>
-    <string name="output_folder_selected">输出文件夹已选择</string>
 
     <!-- 手动处理 -->
     <string name="single_file_processing">手动处理</string>
-    <string name="select_images">选择图片</string>
     <string name="clear_images">清空</string>
     <string name="start_processing">处理</string>
-    <string name="processing_in_progress">正在处理</string>
-    <string name="images_selected">已选择: %d 张图片</string>
     <string name="image_count_format">已选择 %d 张图片</string>
     <string name="processed_count_format">已处理 %d / %d</string>
-    <string name="processing_control">处理控制</string>
-    <string name="image_selection">图片选择</string>
     <string name="images_selected_zero">已选择: 0 张图片</string>
-    <string name="status_completed">处理完成</string>
-    <string name="status_error">处理失败</string>
-    <string name="status_stopped">已停止</string>
 
     <!-- 参数设置 -->
-    <string name="processing_parameters">处理参数</string>
     <string name="dither_type">抖动类型</string>
-    <string name="dither_none">无</string>
-    <string name="dither_floyd">Floyd-Steinberg</string>
-    <string name="dither_random">随机</string>
-    <string name="dither_random_short">Random</string>
     <string name="strength_slider_desc">强度滑块</string>
 
     <!-- 设置 -->
     <string name="settings">设置</string>
-    <string name="theme_settings">主题设置</string>
-    <string name="select_theme">选择主题</string>
     <string name="theme_light">浅色主题</string>
     <string name="theme_dark">深色主题</string>
     <string name="theme_system">跟随系统</string>
-    <string name="theme_dynamic">动态颜色</string>
     <string name="theme_follow_system">跟随系统</string>
     <string name="theme_dynamic_color">动态颜色</string>
-    <string name="permission_management">权限管理</string>
 
     <!-- 应用信息 -->
     <string name="app_version_format">App版本: %s</string>
@@ -106,53 +57,13 @@
     <string name="permission_granted">✓ 已授权</string>
     <string name="permission_denied">✕ 未授权</string>
     <string name="request_permissions">请求权限</string>
-    <string name="app_settings">应用设置</string>
-    <string name="permission_status">权限状态: %d/%d 已授权</string>
-    <string name="permission_status_checking">权限状态: 检查中...</string>
     <string name="permission_check_passed">权限检查通过</string>
     <string name="permission_read_storage">读取存储</string>
     <string name="permission_write_storage">写入存储</string>
     <string name="permission_read_images">读取图片</string>
-    <string name="permission_notifications">发送通知</string>
     <string name="permission_post_notifications">发送通知</string>
 
-    <!-- 处理历史 -->
-    <string name="processing_history">处理历史</string>
-    <string name="history_count_format">共 %d 条记录</string>
-    <string name="history_count_zero">共 0 条处理记录</string>
-    <string name="clear_history">清空记录</string>
-    <string name="history_cleared">历史记录已清空</string>
-    <string name="processing_success">处理成功</string>
-    <string name="processing_failed">处理失败</string>
-    <string name="decode_failed">解码失败</string>
-    <string name="lut_format">LUT: %s</string>
-
-    <!-- LUT管理 -->
-    <string name="lut_count_format">共 %d 个LUT文件</string>
-    <string name="lut_count_zero">共 0 个LUT文件</string>
-
-    <!-- Toast消息 -->
-    <string name="toast_input_folder_selected">输入文件夹已选择</string>
-    <string name="toast_output_folder_selected">输出文件夹已选择</string>
-    <string name="toast_select_input_output_folder">请选择输入和输出文件夹</string>
-    <string name="toast_select_input_output_folders">请选择输入和输出文件夹</string>
-    <string name="toast_folder_permission_expired">文件夹访问权限已失效，请重新选择文件夹</string>
-    <string name="toast_select_lut_file">请选择LUT文件</string>
-    <string name="toast_start_monitoring">开始监控文件夹</string>
-    <string name="toast_stop_monitoring">已停止监控文件夹</string>
-    <string name="toast_select_images_to_process">请选择要处理的图片</string>
-    <string name="toast_processing_complete_format">处理完成！成功处理 %d 张图片</string>
-    <string name="toast_processing_failed_format">处理失败：%s</string>
-    <string name="toast_images_auto_cleared">已自动清空选择的图片</string>
-    <string name="toast_import_error_format">导入错误: %s</string>
-    <string name="toast_select_lut_to_export">请选择要导出的LUT文件</string>
-    <string name="toast_export_error_format">导出错误: %s</string>
-    <string name="toast_select_lut_to_delete">请选择要删除的LUT文件</string>
-    <string name="toast_delete_success_format">成功删除 %d 个LUT文件</string>
-    <string name="toast_lut_import_success">LUT文件导入成功</string>
-    <string name="toast_lut_import_failed">LUT文件导入失败</string>
-
-    <!-- 状态消息 (整合重复项) -->
+    <!-- 状态消息 -->
     <string name="status_ready">准备就绪</string>
     <string name="status_monitoring">监控中</string>
     <string name="status_monitoring_stopped">监控已停止</string>
@@ -160,93 +71,36 @@
     <string name="output_quality">输出质量</string>
     <string name="parameter_settings">参数设置</string>
     <string name="file_settings">文件设置</string>
-    <string name="status_loading_lut">正在加载LUT文件...</string>
-    <string name="status_lut_loaded_start_processing">LUT已加载，开始处理</string>
-    <string name="status_processing_image">正在处理第 %d 张图片</string>
-    <string name="status_processing_image_format">处理第 %d 张图片，共 %d 张</string>
-    <string name="status_processing_complete">处理完成！共处理 %d 张图片</string>
-    <string name="status_processing_complete_format">处理完成！共处理 %d 张图片</string>
-    <string name="status_processing_cancelled">处理已取消</string>
-    <string name="status_processing_error_format">处理第 %d 张图片时出错: %s</string>
     <string name="processing_completed_success">处理完成！成功处理了 %d 张图片</string>
     <string name="processing_completed_partial">处理完成！成功处理了 %d 张图片，共 %d 张图片</string>
-    <string name="status_processing_completed">处理完成，共处理 %d 张图片</string>
-    <string name="status_processing_partial">处理完成，共处理 %d/%d 张图片</string>
     <string name="processing_image_progress">正在处理第 %d/%d 张图片: %s</string>
     <string name="processing_completed_and_cleared">处理完成！已处理 %d 张图片，图片列表已清空</string>
-    <string name="status_processing">处理中...</string>
-    <string name="status_processing_stopped">处理已停止</string>
-    <string name="status_processing_error_general_format">处理过程中发生错误: %s</string>
-    <string name="status_decode_failed">图片解码失败</string>
-    <string name="status_success">处理成功</string>
-    <string name="status_failed">处理失败</string>
+    <string name="status_processing">处理中…</string>
 
     <!-- 服务通知 -->
-    <string name="notification_starting_service">正在启动监控服务...</string>
-    <string name="monitoring_requirements_not_met">监控未启动</string>
-    <string name="notification_loading_lut">正在加载LUT文件...</string>
-    <string name="notification_monitoring_folder">正在监控文件夹</string>
-    <string name="notification_processing_file">正在处理文件...</string>
-    <string name="notification_processing_complete">处理完成</string>
-    <string name="notification_folder_permission_expired">文件夹访问权限已失效，请重新选择文件夹</string>
-    <string name="notification_folder_permission_insufficient">文件夹访问权限不足，请重新授权</string>
-    <string name="notification_processing_failed_format">处理失败: %s</string>
     <string name="notification_channel_name">文件夹监控服务</string>
-    <string name="notification_processing_format">正在处理：\n%s</string>
-    <string name="notification_completed_format">已完成：\n%s</string>
 
     <!-- 错误信息 -->
-    <string name="error_lut_load_failed">LUT文件加载失败</string>
-    <string name="error_image_load_failed">图片加载失败</string>
-    <string name="error_processing_failed">处理失败</string>
-    <string name="error_permission_required">需要相关权限才能正常使用</string>
-    <string name="error_processing_failed_format">处理失败: %s</string>
-    <string name="error_cannot_create_output_file">无法创建输出文件</string>
-    <string name="error_processor_not_initialized">处理器未初始化或处理失败</string>
-    <string name="error_processing_image">处理图片时出错</string>
-    <string name="error_processing_exception">处理过程中发生异常</string>
-    <string name="error_exif_read">读取EXIF信息失败</string>
-    <string name="error_output_folder_permission">输出文件夹权限不足</string>
-    <string name="error_exif_save">保存EXIF信息失败</string>
-    <string name="error_save_image">保存图片失败</string>
 
     <!-- BottomSheet相关 -->
     <string name="select_images_from_gallery">选择图片</string>
-    <string name="import_images">导入图片</string>
     <string name="toggle_section">切换区域</string>
-    <string name="drag_to_expand">上滑展开</string>
-    <string name="drag_to_collapse">下滑收起</string>
     <string name="image_gallery">已选择图片</string>
 
     <!-- 添加缺失的字符串资源 -->
     <string name="no_folder_selected">未选择文件夹</string>
     <string name="no_lut_selected">未选择LUT文件</string>
-    <string name="no_images_selected">未选择图片</string>
-    <string name="no_output_folder_selected">未选择输出文件夹</string>
     <string name="no_input_folder_selected">未选择输入文件夹</string>
-    <string name="selected_images_count">已选择: %d 张图片</string>
-    <string name="monitoring_active">监控中...</string>
-    <string name="monitoring_inactive">未启动</string>
     <!-- GPU处理相关 -->
-    <string name="gpu_block_processing_started">GPU分块处理开始</string>
-    <string name="gpu_block_processing_complete">GPU分块处理完成</string>
-    <string name="gpu_memory_insufficient">GPU内存不足，回退到CPU处理</string>
-    <string name="gpu_processing_fallback_cpu">GPU处理失败，回退到CPU处理</string>
 
     <!-- 水印设置相关 -->
-    <string name="enable_watermark">启用水印</string>
-    <string name="watermark_settings">水印设置</string>
 
     <!-- 联机模式相关 - 其他字符串在 strings_tethered.xml 中定义 -->
-    <string name="tethered_mode_description">通过USB连接相机，自动传输拍摄的照片</string>
     <string name="enable_tethered_mode_first">请先启用联机模式</string>
     <string name="photo_downloaded">照片已下载: %s</string>
-    <string name="camera_photos">相机照片</string>
-    <string name="selected_count">已选择 %d 张</string>
-    
+
     <!-- 胶片颗粒设置 -->
     <string name="film_grain_settings_title">颗粒设置</string>
-    <string name="film_grain_basic_params">基础参数</string>
     <string name="film_grain_basic_params_title">基础参数</string>
     <string name="film_grain_advanced_params_title">高级参数</string>
     <string name="film_grain_global_strength">全局强度</string>
@@ -262,9 +116,6 @@
     <string name="film_grain_blue_channel">蓝色通道系数</string>
     <string name="film_grain_correlation">通道相关性</string>
     <string name="film_grain_color_preservation">色彩保护</string>
-    <string name="enable_film_grain">启用胶片颗粒</string>
-    <string name="film_grain_enabled">颗粒效果已启用</string>
-    <string name="film_grain_disabled">颗粒效果已禁用</string>
     <string name="save_settings">保存设置</string>
     <string name="reset_to_default">恢复默认</string>
     <string name="grain_settings">颗粒设置</string>
@@ -285,6 +136,5 @@
     
     <!-- 全屏图片查看 -->
     <string name="preview_image">预览图片</string>
-    <string name="film_grain_info_title">基础参数说明</string>
     <string name="film_grain_info"><![CDATA[全局强度：控制颗粒明显程度\n颗粒大小：推荐1附近的值，较大的值（>4）用于制作特殊艺术效果]]></string>
 </resources>

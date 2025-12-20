@@ -56,6 +56,9 @@ class FileTrackerManager(
     // 存量文件缓存
     private var existingFilesCache: List<FileRecord> = emptyList()
     
+    // 冷扫描增量文件缓存
+    private var coldScanIncrementalFilesCache: List<FileRecord> = emptyList()
+    
     // 当前配置
     private var currentConfig: FileTrackerConfig? = null
     
@@ -110,6 +113,7 @@ class FileTrackerManager(
             // 执行冷启动扫描
             val scanResult = coldBootScanner!!.scan()
             existingFilesCache = scanResult.existingFiles
+            coldScanIncrementalFilesCache = scanResult.incrementalFiles
             
             Log.d(TAG, "冷扫描完成: 存量${scanResult.existingFiles.size}, 增量${scanResult.incrementalFiles.size}")
             
@@ -157,6 +161,7 @@ class FileTrackerManager(
         _coldScanComplete.value = false
         _isRunning.value = false
         existingFilesCache = emptyList()
+        coldScanIncrementalFilesCache = emptyList()
         currentConfig = null
         
         // 更新退出时间
@@ -195,6 +200,14 @@ class FileTrackerManager(
      */
     fun getExistingFilesCount(): Int {
         return existingFilesCache.size
+    }
+    
+    /**
+     * 获取冷扫描期间的增量文件列表
+     * 这些是服务启动前就存在的文件，在"仅处理新增文件"模式下需要跳过
+     */
+    suspend fun getColdScanIncrementalFiles(): List<FileRecord> {
+        return coldScanIncrementalFilesCache
     }
     
     /**
