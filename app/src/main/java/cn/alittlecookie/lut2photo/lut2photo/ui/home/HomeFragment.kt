@@ -767,17 +767,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateToggleButtonIcon(button: ImageView, isExpanded: Boolean) {
-        val iconRes = if (isExpanded) {
-            R.drawable.ic_expand_less
+        // 使用旋转动画表示展开/收缩状态
+        // 展开状态：0度（箭头向上）
+        // 收缩状态：180度（箭头向下）
+        if (isExpanded) {
+            button.animate().rotation(0f).setDuration(200).start()
         } else {
-            R.drawable.ic_expand_more
+            button.animate().rotation(180f).setDuration(200).start()
         }
-        button.setImageResource(iconRes)
-        // 添加旋转动画
-        button.animate()
-            .rotation(if (isExpanded) 0f else 180f)
-            .setDuration(200)
-            .start()
     }
 
     private fun getDisplayNameFromUri(uriString: String): String {

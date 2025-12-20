@@ -562,13 +562,12 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         }
 
         layoutAdvancedContent.visibility = if (isExpanded) View.VISIBLE else View.GONE
-        buttonToggleAdvanced.setImageResource(
-            if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
-        )
-        // 添加旋转动画
-        buttonToggleAdvanced.animate()
-            .rotation(if (isExpanded) 0f else 180f)
-            .setDuration(200)
-            .start()
+        
+        // 使用旋转动画表示展开/收缩状态
+        if (isExpanded) {
+            buttonToggleAdvanced.animate().rotation(0f).setDuration(200).start()
+        } else {
+            buttonToggleAdvanced.animate().rotation(180f).setDuration(200).start()
+        }
     }
 }

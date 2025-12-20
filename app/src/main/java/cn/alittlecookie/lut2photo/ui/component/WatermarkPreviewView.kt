@@ -197,15 +197,13 @@ class WatermarkPreviewView @JvmOverloads constructor(
         if (collapsed) {
             // 折叠状态：只显示标题栏
             binding.layoutPreviewContent.visibility = GONE
-            binding.buttonTogglePreview.setIconResource(R.drawable.ic_expand_more)
-            // 添加旋转动画
+            // 旋转到180度表示收缩
             binding.buttonTogglePreview.animate().rotation(180f).setDuration(200).start()
             binding.textPreviewTitle.text = "水印预览（右侧展开）"
         } else {
             // 展开状态：显示完整预览
             binding.layoutPreviewContent.visibility = VISIBLE
-            binding.buttonTogglePreview.setIconResource(R.drawable.ic_expand_less)
-            // 添加旋转动画
+            // 旋转到0度表示展开
             binding.buttonTogglePreview.animate().rotation(0f).setDuration(200).start()
             binding.textPreviewTitle.text = "水印预览"
 
