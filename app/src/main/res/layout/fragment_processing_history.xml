@@ -18,9 +18,9 @@
             android:text="处理历史"
             android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="0dp"
+            android:layout_marginTop="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="0dp" />
 
         <!-- 操作栏 -->
         <LinearLayout

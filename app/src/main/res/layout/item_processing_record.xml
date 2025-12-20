@@ -35,65 +35,69 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="0dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="14dp"
+            android:layout_marginHorizontal="16dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/textFileName"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="文件名"
-                android:textSize="14sp"
-                android:shadowColor="#ff000000"
-                android:shadowDx="0"
-                android:shadowDy="2"
-                android:shadowRadius="10"
-                android:textColor="#ffffffff"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:gravity="top">
 
-            <TextView
-                android:id="@+id/text_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="状态"
-                android:textSize="12sp"
-                android:background="@drawable/status_background"
-                android:textColor="#ffffffff"
-                android:padding="4dp" />
+                <TextView
+                    android:id="@+id/textFileName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:shadowColor="#ff000000"
+                    android:shadowDx="0"
+                    android:shadowDy="2"
+                    android:shadowRadius="10"
+                    android:text="文件名"
+                    android:textColor="#ffffffff"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/text_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/status_background"
+                    android:padding="4dp"
+                    android:layout_marginTop="2dp"
+                    android:text="状态"
+                    android:textColor="#ffffffff"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
 
         <TextView
             android:id="@+id/text_timestamp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="时间"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:shadowColor="#ff000000"
             android:shadowDx="0"
             android:shadowDy="2"
             android:shadowRadius="10"
             android:textColor="#ffffffff"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="2dp" />
 
         <TextView
             android:id="@+id/text_paths"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="路径信息"
-            android:textSize="12sp"
+            android:textSize="10sp"
             android:shadowColor="#ff000000"
             android:shadowDx="0"
             android:shadowDy="2"
             android:shadowRadius="10"
             android:textColor="#ffffffff"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="0dp" />
 
         </LinearLayout>
 
