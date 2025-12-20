@@ -36,10 +36,15 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
     private lateinit var historyAdapter: ProcessingHistoryAdapter
     private lateinit var thumbnailManager: ThumbnailManager
 
+    // 防抖处理：避免短时间内多次刷新
+    private var lastRefreshTime = 0L
+    private val refreshDebounceMs = 500L // 500ms 防抖间隔
+    private var pendingRefresh: Runnable? = null
+
     private val processingUpdateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "cn.alittlecookie.lut2photo.PROCESSING_UPDATE") {
-                loadProcessingHistory()
+                scheduleRefresh()
             }
         }
     }
@@ -73,8 +78,10 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
         return binding.root
     }
 
-    override fun onStart() {
-        super.onStart()
+    override fun onResume() {
+        super.onResume()
+        
+        // 注册广播接收器
         val filter = IntentFilter("cn.alittlecookie.lut2photo.PROCESSING_UPDATE")
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             requireContext().registerReceiver(
@@ -90,21 +97,25 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
                 ContextCompat.RECEIVER_EXPORTED
             )
         }
+        
+        // 页面恢复时主动刷新一次,确保显示最新数据
         loadProcessingHistory()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        try {
-            requireContext().unregisterReceiver(processingUpdateReceiver)
-        } catch (_: Exception) {}
     }
 
     override fun onPause() {
         super.onPause()
+        
+        // 注销广播接收器
         try {
             requireContext().unregisterReceiver(processingUpdateReceiver)
-        } catch (_: Exception) {}
+        } catch (e: IllegalArgumentException) {
+            // 接收器未注册,忽略异常
+            Log.d("ProcessingHistoryFragment", "广播接收器未注册或已注销")
+        }
+        
+        // 取消待处理的刷新任务
+        pendingRefresh?.let { binding.root.removeCallbacks(it) }
+        pendingRefresh = null
     }
 
     private fun setupViews() {
@@ -345,6 +356,35 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
 
         historyAdapter.submitList(processingRecords)
         binding.textHistoryCount.text = "共 ${processingRecords.size} 条记录"
+        
+        Log.d("ProcessingHistoryFragment", "刷新历史记录: ${processingRecords.size} 条")
+    }
+
+    /**
+     * 防抖刷新：避免短时间内多次刷新UI
+     * 使用延迟执行机制,在500ms内的多次刷新请求会被合并为一次
+     */
+    private fun scheduleRefresh() {
+        val currentTime = System.currentTimeMillis()
+        
+        // 如果距离上次刷新时间超过防抖间隔,立即刷新
+        if (currentTime - lastRefreshTime >= refreshDebounceMs) {
+            lastRefreshTime = currentTime
+            loadProcessingHistory()
+            return
+        }
+        
+        // 否则取消之前的待处理任务,安排新的延迟刷新
+        pendingRefresh?.let { binding.root.removeCallbacks(it) }
+        
+        val refreshTask = Runnable {
+            lastRefreshTime = System.currentTimeMillis()
+            loadProcessingHistory()
+            pendingRefresh = null
+        }
+        
+        pendingRefresh = refreshTask
+        binding.root.postDelayed(refreshTask, refreshDebounceMs)
     }
 
     private fun clearHistory() {
@@ -361,6 +401,11 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
 
     override fun onDestroyView() {
         super.onDestroyView()
+        
+        // 清理待处理的刷新任务
+        pendingRefresh?.let { binding.root.removeCallbacks(it) }
+        pendingRefresh = null
+        
         _binding = null
     }
 }
