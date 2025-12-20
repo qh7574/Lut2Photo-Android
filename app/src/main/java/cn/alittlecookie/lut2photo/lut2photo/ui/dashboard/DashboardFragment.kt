@@ -214,14 +214,6 @@ class DashboardFragment : Fragment() {
             toggleSection(binding.layoutParamsContent, binding.buttonToggleParams)
         }
 
-        // 设置文件设置切换
-        binding.layoutFileSettingsHeader.setOnClickListener {
-            toggleSection(
-                binding.layoutFileSettingsContent,
-                binding.buttonToggleFileSettings
-            )
-        }
-
         // 设置滑块
         setupSliders()
 
@@ -928,17 +920,11 @@ class DashboardFragment : Fragment() {
     private fun restoreUIState() {
         // 恢复UI状态，如折叠面板的展开/收起状态
         val isParamsExpanded = preferencesManager.dashboardParamsExpanded
-        val isFileSettingsExpanded = preferencesManager.dashboardFileSettingsExpanded
         val isPreviewExpanded = preferencesManager.dashboardPreviewExpanded
 
         if (!isParamsExpanded) {
             binding.layoutParamsContent.visibility = View.GONE
             binding.buttonToggleParams.rotation = 180f
-        }
-
-        if (!isFileSettingsExpanded) {
-            binding.layoutFileSettingsContent.visibility = View.GONE
-            binding.buttonToggleFileSettings.rotation = 180f
         }
 
         // 恢复预览卡片的折叠状态
@@ -968,10 +954,6 @@ class DashboardFragment : Fragment() {
         when (contentLayout.id) {
             R.id.layout_params_content -> {
                 preferencesManager.dashboardParamsExpanded = !isVisible
-            }
-
-            R.id.layout_file_settings_content -> {
-                preferencesManager.dashboardFileSettingsExpanded = !isVisible
             }
         }
     }

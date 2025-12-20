@@ -103,8 +103,12 @@ class HomeFragment : Fragment() {
                         TetheredShootingService.EXTRA_ERROR_MESSAGE
                     ) ?: getString(R.string.unknown)
                     Log.e("HomeFragment", "连接错误: $errorMessage")
-                    showConnectionErrorDialog(errorMessage)
-                    binding.switchTetheredMode.isChecked = false
+                    
+                    // 添加生命周期检查，确保 Fragment 处于活动状态
+                    if (isAdded && !isDetached && view != null) {
+                        showConnectionErrorDialog(errorMessage)
+                        binding.switchTetheredMode.isChecked = false
+                    }
                 }
                 TetheredShootingService.ACTION_PHOTO_DOWNLOADED -> {
                     val photoPath = intent.getStringExtra(
@@ -347,9 +351,9 @@ class HomeFragment : Fragment() {
             toggleSection(binding.layoutParamsContent, binding.buttonToggleParams)
         }
 
-        // 文件设置折叠/展开
-        binding.layoutFileSettingsHeader.setOnClickListener {
-            toggleSection(binding.layoutFileSettingsContent, binding.buttonToggleFileSettings)
+        // 联机设置折叠/展开
+        binding.layoutTetheredHeader.setOnClickListener {
+            toggleSection(binding.layoutTetheredContent, binding.buttonToggleTethered)
         }
 
         // 设置滑块
@@ -721,14 +725,14 @@ class HomeFragment : Fragment() {
             updateToggleButtonIcon(binding.buttonToggleParams, false)
         }
 
-        // 恢复文件设置展开状态
-        val fileSettingsExpanded = preferencesManager.homeFileSettingsExpanded
-        if (fileSettingsExpanded) {
-            binding.layoutFileSettingsContent.visibility = View.VISIBLE
-            updateToggleButtonIcon(binding.buttonToggleFileSettings, true)
+        // 恢复联机设置展开状态
+        val tetheredSettingsExpanded = preferencesManager.homeTetheredExpanded
+        if (tetheredSettingsExpanded) {
+            binding.layoutTetheredContent.visibility = View.VISIBLE
+            updateToggleButtonIcon(binding.buttonToggleTethered, true)
         } else {
-            binding.layoutFileSettingsContent.visibility = View.GONE
-            updateToggleButtonIcon(binding.buttonToggleFileSettings, false)
+            binding.layoutTetheredContent.visibility = View.GONE
+            updateToggleButtonIcon(binding.buttonToggleTethered, false)
         }
     }
 
@@ -739,15 +743,13 @@ class HomeFragment : Fragment() {
             layout.visibility = View.GONE
             when (layout.id) {
                 R.id.layout_params_content -> preferencesManager.homeParamsExpanded = false
-                R.id.layout_file_settings_content -> preferencesManager.homeFileSettingsExpanded =
-                    false
+                R.id.layout_tethered_content -> preferencesManager.homeTetheredExpanded = false
             }
         } else {
             layout.visibility = View.VISIBLE
             when (layout.id) {
                 R.id.layout_params_content -> preferencesManager.homeParamsExpanded = true
-                R.id.layout_file_settings_content -> preferencesManager.homeFileSettingsExpanded =
-                    true
+                R.id.layout_tethered_content -> preferencesManager.homeTetheredExpanded = true
             }
         }
 
@@ -1830,14 +1832,12 @@ class HomeFragment : Fragment() {
     }
 
     private fun showConnectionErrorDialog(errorMessage: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(getString(R.string.connection_error))
-            .setMessage(getString(R.string.connection_error_message) + "\n\n错误详情：$errorMessage")
-            .setPositiveButton(getString(R.string.retry)) { _, _ ->
-                binding.switchTetheredMode.isChecked = true
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        // 使用 Toast 显示错误信息，避免 MaterialAlertDialogBuilder 的资源加载问题
+        val message = "${getString(R.string.connection_error)}: $errorMessage"
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+        
+        // 自动关闭联机模式开关
+        binding.switchTetheredMode.isChecked = false
     }
 
     private fun updateTetheredStatus(isConnected: Boolean, customMessage: String? = null) {

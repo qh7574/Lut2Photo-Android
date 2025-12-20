@@ -11,19 +11,19 @@ class PreferencesManager(context: Context) {
 
     // Home Fragment 设置 (0-100范围)
     var homeStrength: Float
-        get() = sharedPreferences.getFloat("home_strength", 60f)
+        get() = sharedPreferences.getFloat("home_strength", 100f)
         set(value) = sharedPreferences.edit {
             putFloat("home_strength", value.coerceIn(0f, 100f))
         }
 
     var homeQuality: Float
-        get() = sharedPreferences.getFloat("home_quality", 90f)
+        get() = sharedPreferences.getFloat("home_quality", 97f)
         set(value) = sharedPreferences.edit {
             putFloat("home_quality", value.coerceIn(50f, 100f))
         }
 
     var homeDitherType: String
-        get() = sharedPreferences.getString("home_dither_type", "none") ?: "none"
+        get() = sharedPreferences.getString("home_dither_type", "random") ?: "random"
         set(value) = sharedPreferences.edit { putString("home_dither_type", value) }
 
     var homeLutUri: String?
@@ -36,7 +36,7 @@ class PreferencesManager(context: Context) {
         set(value) = sharedPreferences.edit { putString("home_lut2_uri", value) }
 
     var homeLut2Strength: Float
-        get() = sharedPreferences.getFloat("home_lut2_strength", 60f)
+        get() = sharedPreferences.getFloat("home_lut2_strength", 100f)
         set(value) = sharedPreferences.edit {
             putFloat("home_lut2_strength", value.coerceIn(0f, 100f))
         }
@@ -51,7 +51,7 @@ class PreferencesManager(context: Context) {
 
     // Dashboard Fragment 设置 - 修改为统一使用Float类型
     var dashboardStrength: Float
-        get() = sharedPreferences.getFloat("dashboard_strength", 0.6f)
+        get() = sharedPreferences.getFloat("dashboard_strength", 1.0f)
         set(value) = sharedPreferences.edit {
             putFloat("dashboard_strength", value.coerceIn(0.0f, 1.0f))
         }
@@ -60,10 +60,10 @@ class PreferencesManager(context: Context) {
         get() {
             // 兼容性处理：如果之前存储为Int，转换为Float
             return try {
-                sharedPreferences.getFloat("dashboard_quality", 95f)
+                sharedPreferences.getFloat("dashboard_quality", 97f)
             } catch (_: ClassCastException) {
                 // 如果之前存储为Int，读取并转换为Float
-                val intValue = sharedPreferences.getInt("dashboard_quality", 95)
+                val intValue = sharedPreferences.getInt("dashboard_quality", 97)
                 val floatValue = intValue.toFloat()
                 // 重新存储为Float
                 sharedPreferences.edit { putFloat("dashboard_quality", floatValue) }
@@ -75,7 +75,7 @@ class PreferencesManager(context: Context) {
         }
 
     var dashboardDitherType: String
-        get() = sharedPreferences.getString("dashboard_dither_type", "none") ?: "none"
+        get() = sharedPreferences.getString("dashboard_dither_type", "random") ?: "random"
         set(value) = sharedPreferences.edit { putString("dashboard_dither_type", value) }
 
     var dashboardLutUri: String?
@@ -88,7 +88,7 @@ class PreferencesManager(context: Context) {
         set(value) = sharedPreferences.edit { putString("dashboard_lut2_uri", value) }
 
     var dashboardLut2Strength: Float
-        get() = sharedPreferences.getFloat("dashboard_lut2_strength", 0.6f)
+        get() = sharedPreferences.getFloat("dashboard_lut2_strength", 1.0f)
         set(value) = sharedPreferences.edit {
             putFloat("dashboard_lut2_strength", value.coerceIn(0.0f, 1.0f))
             Log.d(
@@ -113,12 +113,6 @@ class PreferencesManager(context: Context) {
         }
 
     // Dashboard折叠状态保存
-    var dashboardFileSettingsExpanded: Boolean
-        get() = sharedPreferences.getBoolean("dashboard_file_settings_expanded", true)
-        set(value) = sharedPreferences.edit {
-            putBoolean("dashboard_file_settings_expanded", value)
-        }
-
     var dashboardParamsExpanded: Boolean
         get() = sharedPreferences.getBoolean("dashboard_params_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("dashboard_params_expanded", value) }
@@ -141,6 +135,10 @@ class PreferencesManager(context: Context) {
     var homePreviewExpanded: Boolean
         get() = sharedPreferences.getBoolean("home_preview_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("home_preview_expanded", value) }
+
+    var homeTetheredExpanded: Boolean
+        get() = sharedPreferences.getBoolean("home_tethered_expanded", true)
+        set(value) = sharedPreferences.edit { putBoolean("home_tethered_expanded", value) }
 
     // 胶片颗粒设置折叠状态
     var filmGrainAdvancedExpanded: Boolean

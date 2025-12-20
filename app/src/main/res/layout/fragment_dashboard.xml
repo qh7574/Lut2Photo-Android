@@ -54,27 +54,23 @@
                 style="@style/Widget.Material3.CardView.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="12dp"
                 app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <!--<com.google.android.material.textview.MaterialTextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="@string/processing_control"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />-->
+                    android:paddingTop="16dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="12dp">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/text_image_count"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
+                        android:layout_marginBottom="8dp"
                         android:text="@string/images_selected_zero"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
@@ -93,11 +89,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginRight="8dp"
                         android:text="@string/select_images_from_gallery"
-                        android:textSize="16sp"
                         app:icon="@drawable/outline_photo_24"
-                        app:iconGravity="textStart"
-                        app:iconPadding="8dp"
-                        app:iconSize="24dp"
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp"/>
 
@@ -105,15 +97,13 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_start_processing"
                         app:icon="@drawable/outline_photo_filter_24"
-                        app:iconGravity="textStart"
-                        app:iconPadding="8dp"
                         app:iconSize="24dp"
                         style="@style/Widget.Material3.Button"
                         android:layout_width="0dp"
                         android:layout_weight="2"
                         android:layout_height="wrap_content"
                         android:text="@string/start_processing"
-                        android:textSize="16sp"
+                        android:textSize="16dp"
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp"/>
 
@@ -125,15 +115,6 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:visibility="gone" />
-
-                    <!--<com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/text_processing_status"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/ready"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />-->
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/text_processed_count"
@@ -153,6 +134,37 @@
                         android:text="停止处理"
                         android:visibility="gone" />
 
+                    <!-- 输出文件夹选择 -->
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="0dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_select_output_folder"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="0dp"
+                            android:layout_weight="3"
+                            android:layout_height="wrap_content"
+                            android:layout_marginRight="8dp"
+                            app:icon="@drawable/outline_folder_24"
+                            android:text="@string/select_output_folder" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/text_output_folder"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="2"
+                            android:singleLine="false"
+                            android:gravity="center"
+                            android:text="@string/folder_not_set"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    </LinearLayout>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -164,122 +176,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp" />
 
-            <!-- 3. 文件设置（可折叠） -->
-            <com.google.android.material.card.MaterialCardView
-                style="@style/Widget.Material3.CardView.Outlined"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardElevation="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <LinearLayout
-                        android:id="@+id/layout_file_settings_header"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:minHeight="24dp"
-                        android:orientation="horizontal"
-                        tools:ignore="TouchTargetSizeCheck">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/file_settings"
-                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-                        <ImageView
-                            android:id="@+id/button_toggle_file_settings"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@string/toggle_section"
-                            android:src="@drawable/ic_expand_less" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/layout_file_settings_content"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:orientation="vertical">
-
-                        <!-- 主要LUT选择 -->
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                            android:layout_marginBottom="16dp"
-                            android:hint="LUT 1">
-
-                            <AutoCompleteTextView
-                                android:id="@+id/dropdown_lut"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="none" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <!-- 第二个LUT选择 -->
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                            android:layout_marginBottom="16dp"
-                            android:hint="LUT 2">
-
-                            <AutoCompleteTextView
-                                android:id="@+id/dropdown_lut2"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="none" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-
-                        <!-- 输出文件夹选择 -->
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="0dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-
-                            <com.google.android.material.textview.MaterialTextView
-                                android:id="@+id/text_output_folder"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/folder_not_set"
-                                android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/button_select_output_folder"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
-                                android:layout_width="wrap_content"
-                                android:layout_height="48dp"
-                                app:icon="@drawable/outline_folder_24"
-                                android:text="@string/select_output_folder"
-                                android:textSize="14sp" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 4. 参数设置（可折叠） -->
+            <!-- 3. 参数设置（可折叠） -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.Material3.CardView.Outlined"
                 android:layout_width="match_parent"
@@ -329,6 +226,43 @@
                         android:layout_marginTop="16dp"
                         android:orientation="vertical">
 
+                        <!-- 主要LUT选择 -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_marginBottom="8dp"
+                            android:hint="LUT 1">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/dropdown_lut"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="4dp"
+                                android:inputType="none" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- 第二个LUT选择 -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_marginBottom="8dp"
+                            android:hint="LUT 2">
+
+                            <AutoCompleteTextView
+                                android:id="@+id/dropdown_lut2"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:layout_marginEnd="4dp"
+                                android:inputType="none"
+                                android:layout_marginBottom="8dp"/>
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
                         <!-- 主要LUT强度设置 -->
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="match_parent"
@@ -359,7 +293,7 @@
                                     android:layout_weight="1"
                                     android:contentDescription="@string/effect_strength"
                                     android:stepSize="1"
-                                    android:value="60"
+                                    android:value="100"
                                     android:valueFrom="0"
                                     android:valueTo="100" />
 
@@ -369,7 +303,7 @@
                                     android:layout_height="wrap_content"
                                     android:gravity="center"
                                     android:minWidth="48dp"
-                                    android:text="60%"
+                                    android:text="100%"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                             </LinearLayout>
@@ -397,7 +331,7 @@
                                     android:layout_weight="1"
                                     android:contentDescription="第二个LUT效果强度滑块"
                                     android:stepSize="1"
-                                    android:value="60"
+                                    android:value="100"
                                     android:valueFrom="0"
                                     android:valueTo="100" />
 
@@ -407,7 +341,7 @@
                                     android:layout_height="wrap_content"
                                     android:gravity="center"
                                     android:minWidth="48dp"
-                                    android:text="60%"
+                                    android:text="100%"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                             </LinearLayout>
@@ -435,7 +369,7 @@
                                     android:layout_weight="1"
                                     android:contentDescription="@string/output_quality"
                                     android:stepSize="1"
-                                    android:value="95"
+                                    android:value="97"
                                     android:valueFrom="50"
                                     android:valueTo="100" />
 
@@ -445,7 +379,7 @@
                                     android:layout_height="wrap_content"
                                     android:gravity="center"
                                     android:minWidth="48dp"
-                                    android:text="95"
+                                    android:text="97"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                             </LinearLayout>

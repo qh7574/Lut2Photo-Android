@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="100dp"
+    android:paddingBottom="4dp"
     android:clipToPadding="false"
     tools:context=".ui.home.HomeFragment">
 
@@ -56,7 +56,7 @@
                 android:paddingTop="16dp"
                 android:paddingLeft="16dp"
                 android:paddingRight="16dp"
-                android:paddingBottom="8dp">
+                android:paddingBottom="12dp">
 
                 <!--<com.google.android.material.textview.MaterialTextView
                     android:layout_width="match_parent"
@@ -70,14 +70,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="监控未启动"
-                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium.Emphasized"
                     android:layout_marginBottom="8dp" />
                     
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="-4dp">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -97,14 +98,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/folder_monitoring"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge.Emphasized" />
                     </LinearLayout>
 
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switch_monitoring"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:checked="false" />
+                        android:checked="false"/>
 
                 </LinearLayout>
 
@@ -127,184 +128,16 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="仅处理新增文件"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge.Emphasized" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/switch_process_new_files_only"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
 
-                </LinearLayout>
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 2. 联机模式 -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.CardView.Outlined"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingLeft="16dp"
-                android:paddingRight="16dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <!-- 连接状态提示 -->
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/text_tethered_status"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/camera_disconnected"
-                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-                <!-- 联机模式开关行 -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:layout_marginEnd="8dp"
-                            android:contentDescription="相机图标"
-                            android:src="@drawable/ic_camera_24" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/tethered_mode"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-                    </LinearLayout>
-
-                    <!-- 设置按钮 -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/button_tethered_settings"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginEnd="8dp"
-                        android:enabled="false"
-                        app:icon="@drawable/ic_settings_24"
-                        android:contentDescription="@string/tethered_mode_settings" />
-
-                    <!-- 开关 -->
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switch_tethered_mode"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 3. 图片预览 -->
-        <include
-            android:id="@+id/preview_card_home"
-            layout="@layout/component_image_preview_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
-
-        <!-- 4. 文件设置（可折叠） -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.Material3.CardView.Outlined"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:id="@+id/layout_file_settings_header"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="?attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center_vertical"
-                    android:minHeight="24dp"
-                    android:orientation="horizontal"
-                    tools:ignore="TouchTargetSizeCheck">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="文件设置"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
-
-                    <ImageView
-                        android:id="@+id/button_toggle_file_settings"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:contentDescription="@string/toggle_section"
-                        android:src="@drawable/ic_expand_less" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/layout_file_settings_content"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="16dp">
-
-                    <!-- 第一个LUT文件选择 -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:hint="LUT 1">
-
-                        <AutoCompleteTextView
-                            android:id="@+id/dropdown_lut"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="none" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- 第二个LUT文件选择 -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:layout_marginBottom="16dp"
-                        android:hint="LUT 2">
-
-                        <AutoCompleteTextView
-                            android:id="@+id/dropdown_lut2"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="none" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
 
 
                     <!-- 输入文件夹 -->
@@ -314,7 +147,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="12dp">
+                        android:layout_marginBottom="4dp">
 
                         <com.google.android.material.textview.MaterialTextView
                             android:id="@+id/text_input_folder"
@@ -323,12 +156,13 @@
                             android:layout_weight="1"
                             android:text="未设置文件夹"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:layout_marginStart="2dp"
                             android:layout_marginEnd="16dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_select_input_folder"
                             android:layout_width="wrap_content"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Material3.Button"
                             android:text="@string/select_input_folder"
                             app:icon="@drawable/outline_folder_24"
                             android:layout_height="48dp"
@@ -351,21 +185,137 @@
                             android:layout_weight="1"
                             android:text="未设置文件夹"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                            android:layout_marginStart="2dp"
                             android:layout_marginEnd="16dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_select_output_folder"
                             android:layout_width="wrap_content"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            style="@style/Widget.Material3.Button"
                             android:text="@string/select_output_folder"
                             app:icon="@drawable/outline_folder_24"
                             android:layout_height="48dp"
                             android:textSize="14sp" />
 
                     </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 联机设置（可折叠） -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.Material3.CardView.Outlined"
+            app:cardElevation="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="16dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="8dp">
+
+                <LinearLayout
+                    android:id="@+id/layout_tethered_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:minHeight="24dp"
+                    android:orientation="horizontal"
+                    tools:ignore="TouchTargetSizeCheck"
+                    android:layout_marginBottom="8dp">
+
+                    <!-- 连接状态提示 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_tethered_status"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginTop="0dp"
+                        android:layout_marginBottom="0dp"
+                        android:text="@string/camera_disconnected"
+                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                    <ImageView
+                        android:id="@+id/button_toggle_tethered"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/toggle_section"
+                        android:src="@drawable/ic_expand_less" />
+
+                </LinearLayout>
+
+                <!-- 可折叠的联机模式内容 -->
+                <LinearLayout
+                    android:id="@+id/layout_tethered_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- 联机模式开关行 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_marginEnd="8dp"
+                                android:contentDescription="相机图标"
+                                android:src="@drawable/ic_camera_24" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/tethered_mode"
+                                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+                        </LinearLayout>
+
+                        <!-- 设置按钮 -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/button_tethered_settings"
+                            style="@style/Widget.Material3.Button.IconButton"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_marginEnd="8dp"
+                            android:enabled="false"
+                            app:icon="@drawable/ic_settings_24"
+                            android:contentDescription="@string/tethered_mode_settings" />
+
+                        <!-- 开关 -->
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_tethered_mode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+
+        <!-- 3. 图片预览 -->
+        <include
+            android:id="@+id/preview_card_home"
+            layout="@layout/component_image_preview_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
 
         <!-- 5. 参数设置（可折叠） -->
         <com.google.android.material.card.MaterialCardView
@@ -417,6 +367,43 @@
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="0dp">
 
+                    <!-- 第一个LUT文件选择 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:hint="LUT 1">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/dropdown_lut"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- 第二个LUT文件选择 -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_marginBottom="16dp"
+                        android:hint="LUT 2">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/dropdown_lut2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
+                            android:inputType="none" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+
                     <!-- 主要LUT强度滑块 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
@@ -441,7 +428,7 @@
                             android:layout_weight="1"
                             android:contentDescription="@string/strength_slider_desc"
                             android:stepSize="1"
-                            android:value="60"
+                            android:value="100"
                             android:valueFrom="0"
                             android:valueTo="100" />
 
@@ -451,7 +438,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:minWidth="48dp"
-                            android:text="60%"
+                            android:text="100%"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     </LinearLayout>
@@ -479,7 +466,7 @@
                             android:layout_weight="1"
                             android:contentDescription="第二个LUT效果强度滑块"
                             android:stepSize="1"
-                            android:value="60"
+                            android:value="100"
                             android:valueFrom="0"
                             android:valueTo="100" />
 
@@ -489,7 +476,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:minWidth="48dp"
-                            android:text="60%"
+                            android:text="100%"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     </LinearLayout>
@@ -517,7 +504,7 @@
                             android:layout_weight="1"
                             android:contentDescription="@string/output_quality"
                             android:stepSize="1"
-                            android:value="90"
+                            android:value="97"
                             android:valueFrom="50"
                             android:valueTo="100" />
 
@@ -527,7 +514,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:minWidth="48dp"
-                            android:text="90"
+                            android:text="97"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     </LinearLayout>
