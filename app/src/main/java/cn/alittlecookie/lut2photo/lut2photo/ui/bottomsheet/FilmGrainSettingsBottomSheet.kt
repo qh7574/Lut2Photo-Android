@@ -11,6 +11,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.transition.AutoTransition
+import androidx.transition.TransitionManager
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
@@ -549,6 +551,16 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
      * 更新高级参数区域的可见性
      */
     private fun updateAdvancedSectionVisibility(isExpanded: Boolean) {
+        // 添加过渡动画
+        view?.let { rootView ->
+            TransitionManager.beginDelayedTransition(
+                rootView as ViewGroup,
+                AutoTransition().apply {
+                    duration = 200
+                }
+            )
+        }
+
         layoutAdvancedContent.visibility = if (isExpanded) View.VISIBLE else View.GONE
         buttonToggleAdvanced.setImageResource(
             if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more

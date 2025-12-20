@@ -27,6 +27,8 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.transition.AutoTransition
+import androidx.transition.TransitionManager
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.LutProcessor
@@ -739,6 +741,14 @@ class HomeFragment : Fragment() {
     private fun toggleSection(layout: View, button: ImageView) {
         val isExpanded = layout.isVisible
 
+        // 添加过渡动画
+        TransitionManager.beginDelayedTransition(
+            binding.root as ViewGroup,
+            AutoTransition().apply {
+                duration = 200
+            }
+        )
+
         if (isExpanded) {
             layout.visibility = View.GONE
             when (layout.id) {
@@ -1164,6 +1174,14 @@ class HomeFragment : Fragment() {
 
     private fun togglePreviewSection(layout: View, button: ImageView) {
         val isExpanded = layout.isVisible
+
+        // 添加过渡动画
+        TransitionManager.beginDelayedTransition(
+            binding.root as ViewGroup,
+            AutoTransition().apply {
+                duration = 200
+            }
+        )
 
         if (isExpanded) {
             layout.visibility = View.GONE

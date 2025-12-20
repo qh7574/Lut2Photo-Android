@@ -12,7 +12,10 @@ import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.transition.AutoTransition
+import androidx.transition.TransitionManager
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ComponentWatermarkPreviewBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
@@ -180,6 +183,16 @@ class WatermarkPreviewView @JvmOverloads constructor(
      */
     private fun setCollapsed(collapsed: Boolean) {
         isCollapsed = collapsed
+
+        // 添加过渡动画
+        (parent as? ViewGroup)?.let { parentView ->
+            TransitionManager.beginDelayedTransition(
+                parentView,
+                AutoTransition().apply {
+                    duration = 200
+                }
+            )
+        }
 
         if (collapsed) {
             // 折叠状态：只显示标题栏

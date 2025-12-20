@@ -17,6 +17,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import androidx.palette.graphics.Palette
+import androidx.transition.AutoTransition
+import androidx.transition.TransitionManager
 import cn.alittlecookie.lut2photo.lut2photo.databinding.BottomsheetWatermarkSettingsBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
 import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
@@ -367,14 +369,22 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 设置水印类型 Segmented Button 监听器
         binding.toggleGroupWatermarkType.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            // 添加过渡动画 - 使用 ScrollView 作为动画容器
+            TransitionManager.beginDelayedTransition(
+                binding.scrollviewContent,
+                AutoTransition().apply {
+                    duration = 200
+                }
+            )
+
+            // 多选模式：根据每个按钮的选中状态独立控制对应卡片的可见性
             when (checkedId) {
                 binding.buttonTextWatermark.id -> {
                     binding.cardTextSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
                 }
 
                 binding.buttonImageWatermark.id -> {
-                    binding.cardImageSettings.visibility =
-                        if (isChecked) View.VISIBLE else View.GONE
+                    binding.cardImageSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
                 }
             }
         }
@@ -562,6 +572,14 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 设置边框颜色模式切换监听器
         binding.toggleBorderColorMode.addOnButtonCheckedListener { group, checkedId, isChecked ->
             if (isChecked) {
+                // 添加过渡动画
+                TransitionManager.beginDelayedTransition(
+                    binding.root as ViewGroup,
+                    AutoTransition().apply {
+                        duration = 200
+                    }
+                )
+
                 when (checkedId) {
                     binding.buttonManualColor.id -> {
                         isManualColorMode = true
@@ -743,8 +761,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         checkedButtons.forEach { buttonId ->
             binding.toggleGroupWatermarkType.check(buttonId)
         }
-        // 重新添加监听器
+        // 重新添加监听器（带动画）
         binding.toggleGroupWatermarkType.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            // 添加过渡动画
+            TransitionManager.beginDelayedTransition(
+                binding.scrollviewContent,
+                AutoTransition().apply {
+                    duration = 200
+                }
+            )
+
             when (checkedId) {
                 binding.buttonTextWatermark.id -> {
                     binding.cardTextSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
@@ -1161,8 +1187,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         checkedButtons.forEach { buttonId ->
             binding.toggleGroupWatermarkType.check(buttonId)
         }
-        // 重新添加监听器
+        // 重新添加监听器（带动画）
         binding.toggleGroupWatermarkType.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            // 添加过渡动画
+            TransitionManager.beginDelayedTransition(
+                binding.scrollviewContent,
+                AutoTransition().apply {
+                    duration = 200
+                }
+            )
+
             when (checkedId) {
                 binding.buttonTextWatermark.id -> {
                     binding.cardTextSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
@@ -1433,6 +1467,14 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
      * 更新文字跟随模式相关UI的显示/隐藏状态
      */
     private fun updateTextFollowModeVisibility(isFollowMode: Boolean) {
+        // 添加过渡动画
+        TransitionManager.beginDelayedTransition(
+            binding.root as ViewGroup,
+            AutoTransition().apply {
+                duration = 200
+            }
+        )
+
         if (isFollowMode) {
             // 跟随模式下：隐藏文字位置滑块，显示跟随方向和间距设置
             binding.textPositionXLabel.visibility = View.GONE
@@ -1615,8 +1657,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         checkedButtons.forEach { buttonId ->
             binding.toggleGroupWatermarkType.check(buttonId)
         }
-        // 重新添加监听器
+        // 重新添加监听器（带动画）
         binding.toggleGroupWatermarkType.addOnButtonCheckedListener { group, checkedId, isChecked ->
+            // 添加过渡动画
+            TransitionManager.beginDelayedTransition(
+                binding.scrollviewContent,
+                AutoTransition().apply {
+                    duration = 200
+                }
+            )
+
             when (checkedId) {
                 binding.buttonTextWatermark.id -> {
                     binding.cardTextSettings.visibility = if (isChecked) View.VISIBLE else View.GONE
