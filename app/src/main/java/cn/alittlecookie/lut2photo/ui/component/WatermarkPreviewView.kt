@@ -198,11 +198,15 @@ class WatermarkPreviewView @JvmOverloads constructor(
             // 折叠状态：只显示标题栏
             binding.layoutPreviewContent.visibility = GONE
             binding.buttonTogglePreview.setIconResource(R.drawable.ic_expand_more)
+            // 添加旋转动画
+            binding.buttonTogglePreview.animate().rotation(180f).setDuration(200).start()
             binding.textPreviewTitle.text = "水印预览（右侧展开）"
         } else {
             // 展开状态：显示完整预览
             binding.layoutPreviewContent.visibility = VISIBLE
             binding.buttonTogglePreview.setIconResource(R.drawable.ic_expand_less)
+            // 添加旋转动画
+            binding.buttonTogglePreview.animate().rotation(0f).setDuration(200).start()
             binding.textPreviewTitle.text = "水印预览"
 
             // 展开时显示示例图片
@@ -212,6 +216,13 @@ class WatermarkPreviewView @JvmOverloads constructor(
         }
 
         onToggleListener?.invoke(isCollapsed)
+    }
+
+    /**
+     * 公开方法：设置折叠状态（供外部调用）
+     */
+    fun setCollapsedState(collapsed: Boolean) {
+        setCollapsed(collapsed)
     }
 
     /**

@@ -136,6 +136,10 @@ class PreferencesManager(context: Context) {
         get() = sharedPreferences.getBoolean("home_preview_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("home_preview_expanded", value) }
 
+    var watermarkPreviewExpanded: Boolean
+        get() = sharedPreferences.getBoolean("watermark_preview_expanded", true)
+        set(value) = sharedPreferences.edit { putBoolean("watermark_preview_expanded", value) }
+
     var homeTetheredExpanded: Boolean
         get() = sharedPreferences.getBoolean("home_tethered_expanded", true)
         set(value) = sharedPreferences.edit { putBoolean("home_tethered_expanded", value) }

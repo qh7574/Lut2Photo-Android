@@ -358,8 +358,9 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             binding.scrollViewSettings.visibility = View.VISIBLE
             binding.textSettingsEmpty.visibility = if (configItems.isEmpty()) View.VISIBLE else View.GONE
             
-            // 更新图标
+            // 更新图标并添加旋转动画
             expandIcon.setImageResource(R.drawable.ic_expand_more)
+            expandIcon.animate().rotation(180f).setDuration(200).start()
         } else {
             // 收缩：设置区域占 1 份（只显示标题），照片区域占 10 份
             settingsParams.weight = 1f
@@ -369,8 +370,9 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             binding.scrollViewSettings.visibility = View.GONE
             binding.textSettingsEmpty.visibility = View.GONE
             
-            // 更新图标
+            // 更新图标并添加旋转动画
             expandIcon.setImageResource(R.drawable.ic_expand_less)
+            expandIcon.animate().rotation(0f).setDuration(200).start()
         }
         
         // 应用新的 LayoutParams

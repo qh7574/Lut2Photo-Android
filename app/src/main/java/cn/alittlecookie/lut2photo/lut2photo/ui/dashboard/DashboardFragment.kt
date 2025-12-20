@@ -24,6 +24,8 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.transition.AutoTransition
+import androidx.transition.TransitionManager
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.adapter.ImageAdapter
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
@@ -942,6 +944,14 @@ class DashboardFragment : Fragment() {
     private fun toggleSection(contentLayout: View, toggleButton: ImageView) {
         val isVisible = contentLayout.isVisible
 
+        // 添加过渡动画
+        TransitionManager.beginDelayedTransition(
+            binding.root as ViewGroup,
+            AutoTransition().apply {
+                duration = 200
+            }
+        )
+
         if (isVisible) {
             contentLayout.visibility = View.GONE
             toggleButton.animate().rotation(180f).setDuration(200).start()
@@ -960,6 +970,14 @@ class DashboardFragment : Fragment() {
 
     private fun togglePreviewSection(contentLayout: View, toggleButton: ImageView) {
         val isVisible = contentLayout.isVisible
+
+        // 添加过渡动画
+        TransitionManager.beginDelayedTransition(
+            binding.root as ViewGroup,
+            AutoTransition().apply {
+                duration = 200
+            }
+        )
 
         if (isVisible) {
             contentLayout.visibility = View.GONE

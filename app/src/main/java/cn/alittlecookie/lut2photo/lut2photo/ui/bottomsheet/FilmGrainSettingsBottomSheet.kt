@@ -565,5 +565,10 @@ class FilmGrainSettingsBottomSheet : BottomSheetDialogFragment() {
         buttonToggleAdvanced.setImageResource(
             if (isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more
         )
+        // 添加旋转动画
+        buttonToggleAdvanced.animate()
+            .rotation(if (isExpanded) 0f else 180f)
+            .setDuration(200)
+            .start()
     }
 }

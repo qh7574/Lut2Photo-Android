@@ -1509,8 +1509,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private fun setupPreviewView() {
         // 设置预览视图的折叠监听器
         binding.watermarkPreview.onToggleListener = { isCollapsed ->
-            // 可以在这里处理折叠状态变化
-            // 例如，调整ScrollView的高度等
+            // 保存折叠状态到 SharedPreferences
+            preferencesManager.watermarkPreviewExpanded = !isCollapsed
         }
 
         // 设置配置提供者回调
@@ -1530,6 +1530,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 为所有设置控件添加预览更新监听器
         setupPreviewUpdateListeners()
+
+        // 恢复保存的展开/折叠状态
+        val isExpanded = preferencesManager.watermarkPreviewExpanded
+        binding.watermarkPreview.setCollapsedState(!isExpanded)
 
         // 初始化预览
         updatePreview()

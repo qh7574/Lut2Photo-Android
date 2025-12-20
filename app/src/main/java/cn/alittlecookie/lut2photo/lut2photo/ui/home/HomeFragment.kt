@@ -773,6 +773,11 @@ class HomeFragment : Fragment() {
             R.drawable.ic_expand_more
         }
         button.setImageResource(iconRes)
+        // 添加旋转动画
+        button.animate()
+            .rotation(if (isExpanded) 0f else 180f)
+            .setDuration(200)
+            .start()
     }
 
     private fun getDisplayNameFromUri(uriString: String): String {
@@ -1185,11 +1190,13 @@ class HomeFragment : Fragment() {
 
         if (isExpanded) {
             layout.visibility = View.GONE
-            button.rotation = 180f
+            // 添加旋转动画
+            button.animate().rotation(180f).setDuration(200).start()
             preferencesManager.homePreviewExpanded = false
         } else {
             layout.visibility = View.VISIBLE
-            button.rotation = 0f
+            // 添加旋转动画
+            button.animate().rotation(0f).setDuration(200).start()
             preferencesManager.homePreviewExpanded = true
         }
     }
