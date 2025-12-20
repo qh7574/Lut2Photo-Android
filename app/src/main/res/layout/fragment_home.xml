@@ -309,15 +309,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-
-        <!-- 3. 图片预览 -->
-        <include
-            android:id="@+id/preview_card_home"
-            layout="@layout/component_image_preview_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
-
         <!-- 5. 参数设置（可折叠） -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -365,8 +356,17 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="4dp"
                     android:layout_marginBottom="0dp">
+
+                    <!-- 3. 图片预览 -->
+                    <include
+                        android:id="@+id/preview_card_home"
+                        layout="@layout/component_image_preview_card"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp" />
+
 
                     <!-- 第一个LUT文件选择 -->
                     <com.google.android.material.textfield.TextInputLayout

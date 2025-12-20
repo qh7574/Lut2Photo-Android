@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    style="@style/Widget.Material3.CardView.Outlined"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="16dp"
-    app:cardElevation="0dp">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+    android:layout_marginBottom="0dp"
+    android:orientation="vertical">
 
         <!-- 预览标题 -->
         <LinearLayout
@@ -24,10 +18,9 @@
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
-            android:minHeight="48dp"
             android:orientation="horizontal"
-            android:paddingRight="16dp"
-            android:paddingLeft="16dp"
+            android:paddingRight="0dp"
+            android:paddingLeft="0dp"
             android:paddingBottom="0dp"
             android:paddingTop="0dp">
 
@@ -42,8 +35,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="图片预览"
-                android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+                android:text="预览"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
             <!-- 刷新按钮 -->
             <com.google.android.material.button.MaterialButton
@@ -72,9 +65,9 @@
             android:layout_width="match_parent"
             android:layout_height="200dp"
             android:background="@drawable/preview_background"
-            android:layout_marginBottom="8dp"
-            android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp">
+            android:layout_marginBottom="0dp"
+            android:layout_marginLeft="0dp"
+            android:layout_marginRight="0dp">
 
             <!-- 占位图 -->
             <LinearLayout
@@ -187,6 +180,4 @@
 
         </LinearLayout>
 
-    </LinearLayout>
-
-</com.google.android.material.card.MaterialCardView>
+</LinearLayout>
