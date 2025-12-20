@@ -47,7 +47,7 @@ class ExifReader(private val context: Context) {
         val exifData = mutableMapOf<String, String>()
 
         // ISO感光度
-        val iso = exif.getAttribute(ExifInterface.TAG_ISO_SPEED_RATINGS)
+        val iso = exif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY)
         exifData[ExifVariables.ISO] = iso ?: "未知"
 
         // 光圈值

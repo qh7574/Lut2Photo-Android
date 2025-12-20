@@ -917,7 +917,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             ExifInterface.TAG_GPS_DATESTAMP,
             ExifInterface.TAG_EXPOSURE_TIME,
             ExifInterface.TAG_F_NUMBER,
-            ExifInterface.TAG_ISO_SPEED_RATINGS,
+            ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
             ExifInterface.TAG_FOCAL_LENGTH,
             ExifInterface.TAG_WHITE_BALANCE,
             ExifInterface.TAG_FLASH
@@ -974,7 +974,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     ExifInterface.TAG_GPS_DATESTAMP,
                     ExifInterface.TAG_EXPOSURE_TIME,
                     ExifInterface.TAG_F_NUMBER,
-                    ExifInterface.TAG_ISO_SPEED_RATINGS,
+                    ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
                     ExifInterface.TAG_FOCAL_LENGTH,
                     ExifInterface.TAG_WHITE_BALANCE,
                     ExifInterface.TAG_FLASH

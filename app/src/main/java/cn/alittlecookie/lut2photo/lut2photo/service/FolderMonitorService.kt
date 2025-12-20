@@ -1665,7 +1665,6 @@ class FolderMonitorService : Service() {
                     ExifInterface.TAG_APERTURE_VALUE,
                     ExifInterface.TAG_EXPOSURE_TIME,
                     ExifInterface.TAG_FOCAL_LENGTH,
-                    ExifInterface.TAG_ISO_SPEED_RATINGS,
                     ExifInterface.TAG_WHITE_BALANCE,
                     ExifInterface.TAG_FLASH,
                     ExifInterface.TAG_GPS_LATITUDE,
