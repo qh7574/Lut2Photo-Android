@@ -427,8 +427,10 @@ class HomeFragment : Fragment() {
                 Log.d("HomeFragment", "ViewModel状态与UI一致: isMonitoring=$isMonitoring (无需同步)")
             }
             
-            // 更新"仅处理新增文件"开关状态
+            // 更新"仅处理新增文件"开关状态和文件夹按钮状态
             binding.switchProcessNewFilesOnly.isEnabled = !isMonitoring
+            binding.buttonSelectInputFolder.isEnabled = !isMonitoring
+            binding.buttonSelectOutputFolder.isEnabled = !isMonitoring
         }
     }
 
