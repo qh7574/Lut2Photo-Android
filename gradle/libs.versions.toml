@@ -24,9 +24,9 @@ kotlinxCoroutines = "1.7.3"
 lifecycleService = "2.7.0"
 # GPU相关依赖版本
 openglWrapper = "1.0.0"
-glide = "4.16.0"
+glide = "5.0.5"
 # 水印处理相关依赖版本
-coil = "2.5.0"
+coil = "2.7.0"
 # 中文转拼音
 pinyin4j = "2.5.1"
 # 图片缩放查看

@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    kotlin("kapt")
 }
 
 android {
@@ -107,7 +106,6 @@ dependencies {
 
     // GPU相关依赖
     implementation(libs.glide)
-    kapt(libs.glide.compiler)
 
     // 水印处理相关依赖
     implementation(libs.coil)
