@@ -78,11 +78,77 @@ class MainActivity : AppCompatActivity() {
                     )
                 )
                 navView.setupWithNavController(navController)
+                
+                // 设置导航动画
+                setupNavigationAnimations(navView, navController)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
+    }
+    
+    /**
+     * 设置导航动画
+     * 根据页面位置关系动态选择滑动方向
+     */
+    private fun setupNavigationAnimations(
+        navView: BottomNavigationView,
+        navController: androidx.navigation.NavController
+    ) {
+        // 定义页面顺序（从左到右）
+        val pageOrder = listOf(
+            R.id.navigation_home,
+            R.id.navigation_dashboard,
+            R.id.navigation_processing_history,
+            R.id.navigation_lut_manager,
+            R.id.navigation_notifications
+        )
+        
+        var previousDestinationId = navController.currentDestination?.id
+        
+        navView.setOnItemSelectedListener { item ->
+            val currentDestinationId = navController.currentDestination?.id
+            val targetDestinationId = item.itemId
+            
+            // 如果点击的是当前页面，不执行导航
+            if (currentDestinationId == targetDestinationId) {
+                return@setOnItemSelectedListener true
+            }
+            
+            // 获取当前页面和目标页面的位置
+            val currentIndex = pageOrder.indexOf(currentDestinationId)
+            val targetIndex = pageOrder.indexOf(targetDestinationId)
+            
+            // 根据位置关系选择动画
+            val (enterAnim, exitAnim) = if (targetIndex > currentIndex) {
+                // 向右导航（1→2→3→4→5）
+                R.anim.slide_in_right to R.anim.slide_out_left
+            } else {
+                // 向左导航（5→4→3→2→1）
+                R.anim.slide_in_left to R.anim.slide_out_right
+            }
+            
+            // 应用动画并导航
+            try {
+                navController.navigate(
+                    targetDestinationId,
+                    null,
+                    androidx.navigation.NavOptions.Builder()
+                        .setEnterAnim(enterAnim)
+                        .setExitAnim(exitAnim)
+                        .setPopEnterAnim(R.anim.slide_in_left)
+                        .setPopExitAnim(R.anim.slide_out_right)
+                        .setPopUpTo(navController.graph.startDestinationId, false)
+                        .build()
+                )
+                previousDestinationId = targetDestinationId
+                true
+            } catch (e: Exception) {
+                Log.e("MainActivity", "导航失败", e)
+                false
+            }
+        }
     }
     
     private fun setupSystemBars() {
