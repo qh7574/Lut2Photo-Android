@@ -2,7 +2,7 @@
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
 
-![应用版本](https://img.shields.io/badge/版本-3.1.1-blue)
+![应用版本](https://img.shields.io/badge/版本-3.1.2-blue)
 ![Android](https://img.shields.io/badge/Android-10+-green)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-purple)
 ![Material 3](https://img.shields.io/badge/Material%203-支持-orange)
