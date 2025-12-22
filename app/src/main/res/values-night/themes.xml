@@ -1,83 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    浅色模式主题配置
+    深色模式主题配置
     
-    此文件定义了应用在浅色模式下的主题样式。
-    当系统处于浅色模式或用户选择"浅色模式"时，Android 会加载此文件中的主题。
+    此文件定义了应用在深色模式下的主题样式。
+    当系统切换到深色模式或用户选择"跟随系统"时，Android 会自动加载此文件中的主题。
     
     颜色命名规则：
-    - md_theme_light_* : Material Design 3 浅色主题颜色
+    - md_theme_dark_* : Material Design 3 深色主题颜色
     - 所有颜色定义在 values/colors.xml 中
     
-    与 values-night/themes.xml 的对应关系：
+    与 values/themes.xml 的对应关系：
     - Theme.Lut2Photo (浅色) ↔ Theme.Lut2Photo (深色)
     - Theme.Lut2Photo.Light ↔ Theme.Lut2Photo.Dark
     - Theme.Lut2Photo.Dynamic ↔ Theme.Lut2Photo.Dynamic
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ==================== 基础应用主题（浅色版本）==================== -->
+    <!-- ==================== 基础应用主题（深色版本）==================== -->
     <!-- 
         用于"跟随系统"模式
-        当系统处于浅色模式时，此主题会被加载
-        深色模式下会被 values-night/themes.xml 中的同名主题覆盖
+        当系统处于深色模式时，此主题会覆盖 values/themes.xml 中的同名主题
     -->
     <style name="Theme.Lut2Photo" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
         <!-- 主色调 -->
-        <item name="colorPrimary">@color/md_theme_light_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
-        <item name="colorPrimaryContainer">@color/md_theme_light_primaryContainer</item>
-        <item name="colorOnPrimaryContainer">@color/md_theme_light_onPrimaryContainer</item>
+        <item name="colorPrimary">@color/md_theme_dark_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_dark_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_dark_onPrimaryContainer</item>
         
         <!-- 次要色调 -->
-        <item name="colorSecondary">@color/md_theme_light_secondary</item>
-        <item name="colorOnSecondary">@color/md_theme_light_onSecondary</item>
-        <item name="colorSecondaryContainer">@color/md_theme_light_secondaryContainer</item>
-        <item name="colorOnSecondaryContainer">@color/md_theme_light_onSecondaryContainer</item>
+        <item name="colorSecondary">@color/md_theme_dark_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_dark_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_dark_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_dark_onSecondaryContainer</item>
         
         <!-- 第三色调 -->
-        <item name="colorTertiary">@color/md_theme_light_tertiary</item>
-        <item name="colorOnTertiary">@color/md_theme_light_onTertiary</item>
-        <item name="colorTertiaryContainer">@color/md_theme_light_tertiaryContainer</item>
-        <item name="colorOnTertiaryContainer">@color/md_theme_light_onTertiaryContainer</item>
+        <item name="colorTertiary">@color/md_theme_dark_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_dark_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_dark_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_dark_onTertiaryContainer</item>
         
         <!-- 错误色调 -->
-        <item name="colorError">@color/md_theme_light_error</item>
-        <item name="colorOnError">@color/md_theme_light_onError</item>
-        <item name="colorErrorContainer">@color/md_theme_light_errorContainer</item>
-        <item name="colorOnErrorContainer">@color/md_theme_light_onErrorContainer</item>
+        <item name="colorError">@color/md_theme_dark_error</item>
+        <item name="colorOnError">@color/md_theme_dark_onError</item>
+        <item name="colorErrorContainer">@color/md_theme_dark_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/md_theme_dark_onErrorContainer</item>
         
         <!-- 轮廓色 -->
-        <item name="colorOutline">@color/md_theme_light_outline</item>
+        <item name="colorOutline">@color/md_theme_dark_outline</item>
         
-        <!-- 背景色 - 浅色模式核心 -->
-        <item name="android:colorBackground">@color/md_theme_light_background</item>
-        <item name="colorOnBackground">@color/md_theme_light_onBackground</item>
+        <!-- 背景色 - 深色模式核心 -->
+        <item name="android:colorBackground">@color/md_theme_dark_background</item>
+        <item name="colorOnBackground">@color/md_theme_dark_onBackground</item>
         
         <!-- 表面色 - 卡片、对话框等组件背景 -->
-        <item name="colorSurface">@color/md_theme_light_surface</item>
-        <item name="colorOnSurface">@color/md_theme_light_onSurface</item>
-        <item name="colorSurfaceVariant">@color/md_theme_light_surfaceVariant</item>
-        <item name="colorOnSurfaceVariant">@color/md_theme_light_onSurfaceVariant</item>
+        <item name="colorSurface">@color/md_theme_dark_surface</item>
+        <item name="colorOnSurface">@color/md_theme_dark_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_dark_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_dark_onSurfaceVariant</item>
         
         <!-- 反色（用于 Snackbar 等需要高对比度的组件）-->
-        <item name="colorSurfaceInverse">@color/md_theme_light_inverseSurface</item>
-        <item name="colorOnSurfaceInverse">@color/md_theme_light_inverseOnSurface</item>
-        <item name="colorPrimaryInverse">@color/md_theme_light_inversePrimary</item>
+        <item name="colorSurfaceInverse">@color/md_theme_dark_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/md_theme_dark_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/md_theme_dark_inversePrimary</item>
         
-        <!-- 系统栏配置 - 浅色模式下使用深色图标 -->
+        <!-- 系统栏配置 - 深色模式下使用深色图标 -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?android:attr/windowBackground</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
         
         <!-- BottomSheet 主题 -->
         <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Lut2Photo.BottomSheetDialog</item>
     </style>
-    
-    <!-- ==================== 浅色主题 ==================== -->
+
+    <!-- ==================== 浅色主题（深色模式下不变）==================== -->
     <!-- 
         强制浅色主题，即使系统处于深色模式也保持浅色
         用于用户明确选择"浅色模式"的场景
@@ -90,8 +89,8 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
-    
-    <!-- ==================== 深色主题 ==================== -->
+
+    <!-- ==================== 深色主题==================== -->
     <!-- 
         强制深色主题
         用于用户明确选择"深色模式"的场景
@@ -106,23 +105,23 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
-    
-    <!-- ==================== 动态颜色主题（浅色版本）==================== -->
+
+    <!-- ==================== 动态颜色主题（深色版本）==================== -->
     <!-- 
         Material You 动态颜色主题
         在 Android 12+ 设备上，会根据用户壁纸自动生成配色
-        浅色模式下系统栏使用深色图标
+        深色模式下系统栏使用浅色图标
     -->
     <style name="Theme.Lut2Photo.Dynamic" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?android:attr/windowBackground</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
     </style>
 
-    <!-- ==================== 颜色选择器对话框主题 ==================== -->
+    <!-- ==================== 颜色选择器对话框主题（深色版本）==================== -->
     <style name="Theme.ColorPickerDialog.Light" parent="Theme.Material3.Light.Dialog">
         <item name="android:colorBackground">@color/md_theme_light_surface</item>
         <item name="colorSurface">@color/md_theme_light_surface</item>
@@ -157,7 +156,7 @@
 
     <!-- ==================== BottomSheet 对话框主题覆盖 ==================== -->
     <style name="ThemeOverlay.Lut2Photo.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
-        <!-- 可在此添加 BottomSheet 的自定义样式 -->
+        <!-- 深色模式下 BottomSheet 会自动使用深色表面色 -->
     </style>
 
     <!-- ==================== 自定义组件样式 ==================== -->
