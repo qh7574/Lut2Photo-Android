@@ -100,14 +100,6 @@ class LutManagerFragment : Fragment() {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = "*/*"
-                    putExtra(Intent.EXTRA_MIME_TYPES, arrayOf(
-                        "text/plain", 
-                        "application/octet-stream",
-                        "text/cube",
-                        "application/cube",
-                        "application/vlt",
-                        "text/vlt"
-                    ))
                     putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                 }
                 importLutLauncher.launch(intent)
@@ -164,17 +156,37 @@ class LutManagerFragment : Fragment() {
         }
     }
 
+    private fun isUriSupported(uri: Uri): Boolean {
+        val documentFile = DocumentFile.fromSingleUri(requireContext(), uri)
+        val fileName = documentFile?.name ?: return false
+        val lowerName = fileName.lowercase()
+        return lowerName.endsWith(".cube") || lowerName.endsWith(".vlt")
+    }
+
     @SuppressLint("SetTextI18n")
     private fun importMultipleLutFiles(uris: List<Uri>) {
         lifecycleScope.launch {
             try {
+                // 1. 过滤文件
+                val supportedUris = uris.filter { isUriSupported(it) }
+                val ignoredCount = uris.size - supportedUris.size
+
+                if (supportedUris.isEmpty()) {
+                    Toast.makeText(requireContext(), "未找到支持的文件，仅支持 .cube 和 .vlt", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                if (ignoredCount > 0) {
+                    Toast.makeText(requireContext(), "已忽略 $ignoredCount 个不支持的文件", Toast.LENGTH_SHORT).show()
+                }
+
                 binding.buttonImportLut.isEnabled = false
                 binding.buttonImportLut.text = "导入中..."
 
                 var successCount = 0
                 var failCount = 0
 
-                for ((index, uri) in uris.withIndex()) {
+                for ((index, uri) in supportedUris.withIndex()) {
                     try {
                         val success = withContext(Dispatchers.IO) {
                             lutManager.importLut(uri)
@@ -187,7 +199,7 @@ class LutManagerFragment : Fragment() {
                         }
 
                         // 更新进度
-                        binding.buttonImportLut.text = "导入中... (${index + 1}/${uris.size})"
+                        binding.buttonImportLut.text = "导入中... (${index + 1}/${supportedUris.size})"
                     } catch (e: Exception) {
                         failCount++
                         e.printStackTrace()
@@ -220,6 +232,11 @@ class LutManagerFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun importLutFile(uri: Uri) {
+        if (!isUriSupported(uri)) {
+            Toast.makeText(requireContext(), "不支持的文件格式，仅支持 .cube 和 .vlt", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         lifecycleScope.launch {
             try {
                 binding.buttonImportLut.isEnabled = false
