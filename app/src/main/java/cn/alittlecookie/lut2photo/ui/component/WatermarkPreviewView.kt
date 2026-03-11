@@ -738,12 +738,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
             isDither = true
             isSubpixelText = true
 
-            // 设置文本对齐方式
-            textAlign = when (config.textAlignment) {
-                cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> Paint.Align.LEFT
-                cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> Paint.Align.CENTER
-                cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> Paint.Align.RIGHT
-            }
+            // 设置文本对齐方式为LEFT，因为我们手动计算每行的精确位置
+            textAlign = Paint.Align.LEFT
 
             // 加载自定义字体
             if (config.fontPath.isNotEmpty()) {
@@ -815,31 +811,46 @@ class WatermarkPreviewView @JvmOverloads constructor(
         val lineHeight = baseLineHeight + additionalLineSpacing
 
         val totalHeight = lines.size * lineHeight
-        val startY = y - totalHeight / 2 + lineHeight / 2
-
-        // 根据对齐方式计算X坐标
-        val drawX = when (config.textAlignment) {
-            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> {
-                bitmap.width * 0.05f
-            }
-            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> {
-                x
-            }
-            cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> {
-                bitmap.width * 0.95f
-            }
-        }
+        
+        // 计算文字段落的最小外接矩形
+        // 先计算所有行的实际宽度，找出最宽的行
+        val maxLineWidth = lines.maxOfOrNull { line -> 
+            if (line.isEmpty()) 0f else paint.measureText(line)
+        } ?: 0f
+        
+        // 文字段落的视觉中心：最小外接矩形的中心
+        // 垂直方向：使用总高度的中心，考虑文字基线
+        val textCenterY = y
+        val startY = textCenterY - totalHeight / 2 + singleCharHeight * 0.8f
+        
+        // 水平方向：根据对齐方式计算，但锚点始终在段落视觉中心
+        val textCenterX = x
 
         // 绘制每一行文字
         lines.forEachIndexed { index, line ->
             if (line.isNotEmpty()) {
                 val lineY = startY + index * lineHeight
-                val adjustedY = when {
-                    lineY < finalTextSize -> finalTextSize
-                    lineY > bitmap.height - 10 -> bitmap.height - 10f
-                    else -> lineY
+                
+                // 根据对齐方式计算每行的X坐标
+                // 无论哪种对齐方式，都确保整个段落的视觉中心在x上
+                val lineWidth = paint.measureText(line)
+                val lineX = when (config.textAlignment) {
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> {
+                        // 左对齐：段落左边界距离视觉中心 maxLineWidth/2
+                        textCenterX - maxLineWidth / 2
+                    }
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> {
+                        // 居中对齐：每行都居中到段落视觉中心
+                        textCenterX - lineWidth / 2
+                    }
+                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> {
+                        // 右对齐：段落右边界距离视觉中心 maxLineWidth/2
+                        textCenterX + maxLineWidth / 2 - lineWidth
+                    }
                 }
-                canvas.drawText(line, drawX, adjustedY, paint)
+                
+                // 直接绘制，不做任何避让处理，允许超出画布范围
+                canvas.drawText(line, lineX, lineY, paint)
             }
         }
     }
@@ -989,6 +1000,11 @@ class WatermarkPreviewView @JvmOverloads constructor(
         reference: cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference,
         config: WatermarkConfig
     ): PointF {
+        // 首先需要确定原图尺寸，用于统一的边框计算
+        val originalRect = calculateOriginalImageRect(bitmap, config)
+        val originalWidth = originalRect.width().toInt()
+        val originalHeight = originalRect.height().toInt()
+        
         return when (reference) {
             cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS -> {
                 // 整个画布（现有逻辑）
@@ -998,35 +1014,34 @@ class WatermarkPreviewView @JvmOverloads constructor(
             }
             cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.ORIGINAL -> {
                 // 原图区域
-                val originalRect = calculateOriginalImageRect(bitmap, config)
                 val x = originalRect.left + originalRect.width() * xPercent / 100
                 val y = originalRect.top + originalRect.height() * yPercent / 100
                 PointF(x, y)
             }
             cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.TOP_BORDER -> {
-                // 上边框区域
-                val borderRect = calculateTopBorderRect(bitmap, config)
+                // 上边框区域 - 基于原图尺寸计算边框大小
+                val borderRect = calculateTopBorderRect(originalWidth, originalHeight, config)
                 val x = borderRect.left + borderRect.width() * xPercent / 100
                 val y = borderRect.top + borderRect.height() * yPercent / 100
                 PointF(x, y)
             }
             cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.BOTTOM_BORDER -> {
-                // 下边框区域
-                val borderRect = calculateBottomBorderRect(bitmap, config)
+                // 下边框区域 - 基于原图尺寸计算边框大小
+                val borderRect = calculateBottomBorderRect(originalWidth, originalHeight, config)
                 val x = borderRect.left + borderRect.width() * xPercent / 100
                 val y = borderRect.top + borderRect.height() * yPercent / 100
                 PointF(x, y)
             }
             cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.LEFT_BORDER -> {
-                // 左边框区域
-                val borderRect = calculateLeftBorderRect(bitmap, config)
+                // 左边框区域 - 基于原图尺寸计算边框大小
+                val borderRect = calculateLeftBorderRect(originalWidth, originalHeight, config)
                 val x = borderRect.left + borderRect.width() * xPercent / 100
                 val y = borderRect.top + borderRect.height() * yPercent / 100
                 PointF(x, y)
             }
             cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.RIGHT_BORDER -> {
-                // 右边框区域
-                val borderRect = calculateRightBorderRect(bitmap, config)
+                // 右边框区域 - 基于原图尺寸计算边框大小
+                val borderRect = calculateRightBorderRect(originalWidth, originalHeight, config)
                 val x = borderRect.left + borderRect.width() * xPercent / 100
                 val y = borderRect.top + borderRect.height() * yPercent / 100
                 PointF(x, y)
@@ -1051,12 +1066,28 @@ class WatermarkPreviewView @JvmOverloads constructor(
      * 计算原图区域矩形
      */
     private fun calculateOriginalImageRect(bitmap: Bitmap, config: WatermarkConfig): android.graphics.RectF {
-        // 计算边框像素大小
-        val shortSide = kotlin.math.min(bitmap.width, bitmap.height)
-        val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
-        val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
-        val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
-        val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
+        // 基于最终图片尺寸反推原图尺寸，然后计算边框像素大小
+        // 这里需要解方程：finalWidth = originalWidth + leftBorder + rightBorder
+        // 其中 leftBorder = originalShortSide * leftPercent / 100
+        
+        // 为了保持与addBorderOnly一致的计算逻辑，我们需要反推原图尺寸
+        // 假设原图的短边为 s，则：
+        // finalWidth = originalWidth + s * (leftPercent + rightPercent) / 100
+        // finalHeight = originalHeight + s * (topPercent + bottomPercent) / 100
+        
+        val totalHorizontalBorderPercent = config.borderLeftWidth + config.borderRightWidth
+        val totalVerticalBorderPercent = config.borderTopWidth + config.borderBottomWidth
+        
+        // 通过迭代求解原图尺寸（简化处理：假设原图比例与最终图片相近）
+        val estimatedOriginalWidth = bitmap.width / (1 + totalHorizontalBorderPercent / 100)
+        val estimatedOriginalHeight = bitmap.height / (1 + totalVerticalBorderPercent / 100)
+        val estimatedShortSide = kotlin.math.min(estimatedOriginalWidth, estimatedOriginalHeight)
+        
+        // 基于估算的原图短边计算边框像素大小
+        val borderTopPx = (estimatedShortSide * config.borderTopWidth / 100).toInt()
+        val borderBottomPx = (estimatedShortSide * config.borderBottomWidth / 100).toInt()
+        val borderLeftPx = (estimatedShortSide * config.borderLeftWidth / 100).toInt()
+        val borderRightPx = (estimatedShortSide * config.borderRightWidth / 100).toInt()
 
         return android.graphics.RectF(
             borderLeftPx.toFloat(),
@@ -1068,61 +1099,87 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
     /**
      * 计算上边框区域矩形
+     * @param originalWidth 原图宽度
+     * @param originalHeight 原图高度  
+     * @param config 水印配置
      */
-    private fun calculateTopBorderRect(bitmap: Bitmap, config: WatermarkConfig): android.graphics.RectF {
-        val shortSide = kotlin.math.min(bitmap.width, bitmap.height)
+    private fun calculateTopBorderRect(originalWidth: Int, originalHeight: Int, config: WatermarkConfig): android.graphics.RectF {
+        val shortSide = kotlin.math.min(originalWidth, originalHeight)
         val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
+        val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
+        val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
         
         return android.graphics.RectF(
             0f,
             0f,
-            bitmap.width.toFloat(),
+            (originalWidth + borderLeftPx + borderRightPx).toFloat(),
             borderTopPx.toFloat()
         )
     }
 
     /**
      * 计算下边框区域矩形
+     * @param originalWidth 原图宽度
+     * @param originalHeight 原图高度
+     * @param config 水印配置
      */
-    private fun calculateBottomBorderRect(bitmap: Bitmap, config: WatermarkConfig): android.graphics.RectF {
-        val shortSide = kotlin.math.min(bitmap.width, bitmap.height)
+    private fun calculateBottomBorderRect(originalWidth: Int, originalHeight: Int, config: WatermarkConfig): android.graphics.RectF {
+        val shortSide = kotlin.math.min(originalWidth, originalHeight)
+        val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
         val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
+        val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
+        val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
+        
+        val finalHeight = originalHeight + borderTopPx + borderBottomPx
         
         return android.graphics.RectF(
             0f,
-            (bitmap.height - borderBottomPx).toFloat(),
-            bitmap.width.toFloat(),
-            bitmap.height.toFloat()
+            (finalHeight - borderBottomPx).toFloat(),
+            (originalWidth + borderLeftPx + borderRightPx).toFloat(),
+            finalHeight.toFloat()
         )
     }
 
     /**
      * 计算左边框区域矩形
+     * @param originalWidth 原图宽度
+     * @param originalHeight 原图高度
+     * @param config 水印配置
      */
-    private fun calculateLeftBorderRect(bitmap: Bitmap, config: WatermarkConfig): android.graphics.RectF {
-        val shortSide = kotlin.math.min(bitmap.width, bitmap.height)
+    private fun calculateLeftBorderRect(originalWidth: Int, originalHeight: Int, config: WatermarkConfig): android.graphics.RectF {
+        val shortSide = kotlin.math.min(originalWidth, originalHeight)
+        val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
+        val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
         val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
         
         return android.graphics.RectF(
             0f,
             0f,
             borderLeftPx.toFloat(),
-            bitmap.height.toFloat()
+            (originalHeight + borderTopPx + borderBottomPx).toFloat()
         )
     }
 
     /**
      * 计算右边框区域矩形
+     * @param originalWidth 原图宽度
+     * @param originalHeight 原图高度
+     * @param config 水印配置
      */
-    private fun calculateRightBorderRect(bitmap: Bitmap, config: WatermarkConfig): android.graphics.RectF {
-        val shortSide = kotlin.math.min(bitmap.width, bitmap.height)
+    private fun calculateRightBorderRect(originalWidth: Int, originalHeight: Int, config: WatermarkConfig): android.graphics.RectF {
+        val shortSide = kotlin.math.min(originalWidth, originalHeight)
+        val borderTopPx = (shortSide * config.borderTopWidth / 100).toInt()
+        val borderBottomPx = (shortSide * config.borderBottomWidth / 100).toInt()
+        val borderLeftPx = (shortSide * config.borderLeftWidth / 100).toInt()
         val borderRightPx = (shortSide * config.borderRightWidth / 100).toInt()
         
+        val finalWidth = originalWidth + borderLeftPx + borderRightPx
+        
         return android.graphics.RectF(
-            (bitmap.width - borderRightPx).toFloat(),
+            (finalWidth - borderRightPx).toFloat(),
             0f,
-            bitmap.width.toFloat(),
-            bitmap.height.toFloat()
+            finalWidth.toFloat(),
+            (originalHeight + borderTopPx + borderBottomPx).toFloat()
         )
     }
 
