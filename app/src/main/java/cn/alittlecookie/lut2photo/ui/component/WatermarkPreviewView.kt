@@ -882,53 +882,38 @@ class WatermarkPreviewView @JvmOverloads constructor(
         // 计算间距（基于单个文字高度的百分比）
         val spacing = singleCharHeight * spacingPercent / 100f
 
-        // 计算文字位置
-        val textX: Float
-        val textY: Float
+        // 计算文字段落视觉中心的位置
+        // 文字跟随模式下，锚点始终在文字段落的视觉中心，不受对齐方式影响
+        val textCenterX: Float
+        val textCenterY: Float
 
         when (followDirection) {
             TextFollowDirection.TOP -> {
-                // 文字在图片上方
-                textY = imagePosition.y - imageHeight / 2f - spacing
-                textX = when (textAlignment) {
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.x - imageWidth / 2f
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.x
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.x + imageWidth / 2f
-                }
+                // 文字在图片上方，文字段落的视觉中心位置
+                textCenterY = imagePosition.y - imageHeight / 2f - spacing
+                textCenterX = imagePosition.x // 始终居中对齐到图片中心
             }
 
             TextFollowDirection.BOTTOM -> {
-                // 文字在图片下方
-                textY = imagePosition.y + imageHeight / 2f + spacing
-                textX = when (textAlignment) {
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.x - imageWidth / 2f
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.x
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.x + imageWidth / 2f
-                }
+                // 文字在图片下方，文字段落的视觉中心位置
+                textCenterY = imagePosition.y + imageHeight / 2f + spacing
+                textCenterX = imagePosition.x // 始终居中对齐到图片中心
             }
 
             TextFollowDirection.LEFT -> {
-                // 文字在图片左侧
-                textX = imagePosition.x - imageWidth / 2f - spacing
-                textY = when (textAlignment) {
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.y - imageHeight / 2f // 上对齐
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.y // 垂直居中
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.y + imageHeight / 2f // 下对齐
-                }
+                // 文字在图片左侧，文字段落的视觉中心位置
+                textCenterX = imagePosition.x - imageWidth / 2f - spacing
+                textCenterY = imagePosition.y // 始终垂直居中对齐到图片中心
             }
 
             TextFollowDirection.RIGHT -> {
-                // 文字在图片右侧
-                textX = imagePosition.x + imageWidth / 2f + spacing
-                textY = when (textAlignment) {
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.LEFT -> imagePosition.y - imageHeight / 2f // 上对齐
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.CENTER -> imagePosition.y // 垂直居中
-                    cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment.RIGHT -> imagePosition.y + imageHeight / 2f // 下对齐
-                }
+                // 文字在图片右侧，文字段落的视觉中心位置
+                textCenterX = imagePosition.x + imageWidth / 2f + spacing
+                textCenterY = imagePosition.y // 始终垂直居中对齐到图片中心
             }
         }
 
-        return PointF(textX, textY)
+        return PointF(textCenterX, textCenterY)
     }
     
     /**
