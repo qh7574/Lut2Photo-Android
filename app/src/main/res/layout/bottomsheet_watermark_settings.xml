@@ -226,6 +226,29 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
                     </LinearLayout>
 
+                    <!-- 图片水印定位参考系 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="定位参考系"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hint="选择定位参考系">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/dropdown_image_position_reference"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:text="整个画布" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
                     <!-- 图片水印位置设置 -->
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
@@ -635,6 +658,31 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content" />
                     </LinearLayout>
+
+                    <!-- 文字水印定位参考系 -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_position_reference_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="定位参考系"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layout_text_position_reference"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hint="选择定位参考系">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/dropdown_text_position_reference"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:text="整个画布" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- 文字跟随方向 -->
                     <com.google.android.material.textview.MaterialTextView

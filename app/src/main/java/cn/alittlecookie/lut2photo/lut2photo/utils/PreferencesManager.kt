@@ -226,8 +226,10 @@ class PreferencesManager(context: Context) {
             // 新的分离位置参数
             putFloat("watermark_text_position_x", config.textPositionX)
             putFloat("watermark_text_position_y", config.textPositionY)
+            putString("watermark_text_position_reference", config.textPositionReference.name)
             putFloat("watermark_image_position_x", config.imagePositionX)
             putFloat("watermark_image_position_y", config.imagePositionY)
+            putString("watermark_image_position_reference", config.imagePositionReference.name)
 
             // 新的分离透明度参数
             putFloat("watermark_text_opacity", config.textOpacity)
@@ -318,6 +320,27 @@ class PreferencesManager(context: Context) {
         } catch (e: IllegalArgumentException) {
             cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MANUAL
         }
+
+        // 读取定位参考系配置
+        val textPositionReferenceName =
+            sharedPreferences.getString("watermark_text_position_reference", "CANVAS") ?: "CANVAS"
+        val textPositionReference = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.valueOf(
+                textPositionReferenceName
+            )
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS
+        }
+
+        val imagePositionReferenceName =
+            sharedPreferences.getString("watermark_image_position_reference", "CANVAS") ?: "CANVAS"
+        val imagePositionReference = try {
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.valueOf(
+                imagePositionReferenceName
+            )
+        } catch (e: IllegalArgumentException) {
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS
+        }
             
         return WatermarkConfig(
             isEnabled = isEnabled,
@@ -333,6 +356,7 @@ class PreferencesManager(context: Context) {
                 "watermark_text_position_y",
                 sharedPreferences.getFloat("watermark_position_y", 90f)
             ),
+            textPositionReference = textPositionReference,
             imagePositionX = sharedPreferences.getFloat(
                 "watermark_image_position_x",
                 sharedPreferences.getFloat("watermark_position_x", 50f)
@@ -341,6 +365,7 @@ class PreferencesManager(context: Context) {
                 "watermark_image_position_y",
                 sharedPreferences.getFloat("watermark_position_y", 10f)
             ),
+            imagePositionReference = imagePositionReference,
 
             // 新的分离透明度参数，如果不存在则使用旧参数作为默认值
             textOpacity = sharedPreferences.getFloat(

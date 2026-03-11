@@ -14,10 +14,12 @@ data class WatermarkConfig(
     // 文字水印位置设置 (百分比形式，0-100)
     val textPositionX: Float = 50f, // 文字水印X位置百分比
     val textPositionY: Float = 90f, // 文字水印Y位置百分比
+    val textPositionReference: WatermarkPositionReference = WatermarkPositionReference.CANVAS, // 文字水印定位参考系
 
     // 图片水印位置设置 (百分比形式，0-100)
     val imagePositionX: Float = 50f, // 图片水印X位置百分比
     val imagePositionY: Float = 10f, // 图片水印Y位置百分比
+    val imagePositionReference: WatermarkPositionReference = WatermarkPositionReference.CANVAS, // 图片水印定位参考系
 
     // 大小设置 (百分比形式，0-100)
     val textSize: Float = 35f, // 文字水印大小百分比
@@ -135,4 +137,16 @@ enum class BorderColorMode {
     MANUAL,    // 手动选择颜色
     PALETTE,   // 从图片自动提取颜色
     MATERIAL   // Material Design颜色
+}
+
+/**
+ * 水印定位参考系枚举
+ */
+enum class WatermarkPositionReference {
+    CANVAS,        // 整个画布（现有逻辑）
+    ORIGINAL,      // 原图区域
+    TOP_BORDER,    // 上边框区域
+    BOTTOM_BORDER, // 下边框区域
+    LEFT_BORDER,   // 左边框区域
+    RIGHT_BORDER   // 右边框区域
 }

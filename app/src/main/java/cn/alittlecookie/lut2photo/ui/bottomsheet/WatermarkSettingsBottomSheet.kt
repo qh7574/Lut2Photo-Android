@@ -19,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.palette.graphics.Palette
 import androidx.transition.AutoTransition
 import androidx.transition.TransitionManager
+import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.BottomsheetWatermarkSettingsBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment
 import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
@@ -636,6 +637,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 设置预览视图的监听器
         setupPreviewView()
         
+        // 设置定位参考系下拉框
+        setupPositionReferenceDropdowns()
+        
         // 为所有交互控件设置触摸事件处理，防止意外关闭BottomSheet
         setupTouchEventHandling()
     }
@@ -740,6 +744,48 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * 设置定位参考系下拉框
+     */
+    private fun setupPositionReferenceDropdowns() {
+        // 定位参考系选项
+        val referenceOptions = arrayOf(
+            getString(R.string.position_reference_canvas),
+            getString(R.string.position_reference_original),
+            getString(R.string.position_reference_top_border),
+            getString(R.string.position_reference_bottom_border),
+            getString(R.string.position_reference_left_border),
+            getString(R.string.position_reference_right_border)
+        )
+
+        // 设置图片水印定位参考系下拉框
+        val imageReferenceAdapter = android.widget.ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            referenceOptions
+        )
+        binding.dropdownImagePositionReference.setAdapter(imageReferenceAdapter)
+        
+        // 设置文字水印定位参考系下拉框
+        val textReferenceAdapter = android.widget.ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            referenceOptions
+        )
+        binding.dropdownTextPositionReference.setAdapter(textReferenceAdapter)
+
+        // 设置下拉框触摸事件处理，防止意外关闭BottomSheet
+        binding.dropdownImagePositionReference.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+        
+        binding.dropdownTextPositionReference.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+    }
+
     private fun loadSavedSettings() {
         // 根据调用来源加载对应的配置
         val config = preferencesManager.getWatermarkConfig(forFolderMonitor = forFolderMonitor)
@@ -800,6 +846,36 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.sliderImagePositionX.value = config.imagePositionX
         binding.sliderImagePositionY.value = config.imagePositionY
         binding.sliderImageOpacity.value = config.imageOpacity
+
+        // 设置定位参考系
+        val textReferenceIndex = when (config.textPositionReference) {
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS -> 0
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.ORIGINAL -> 1
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.TOP_BORDER -> 2
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.BOTTOM_BORDER -> 3
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.LEFT_BORDER -> 4
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.RIGHT_BORDER -> 5
+        }
+        val imageReferenceIndex = when (config.imagePositionReference) {
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS -> 0
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.ORIGINAL -> 1
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.TOP_BORDER -> 2
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.BOTTOM_BORDER -> 3
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.LEFT_BORDER -> 4
+            cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.RIGHT_BORDER -> 5
+        }
+        
+        val referenceOptions = arrayOf(
+            getString(R.string.position_reference_canvas),
+            getString(R.string.position_reference_original),
+            getString(R.string.position_reference_top_border),
+            getString(R.string.position_reference_bottom_border),
+            getString(R.string.position_reference_left_border),
+            getString(R.string.position_reference_right_border)
+        )
+        
+        binding.dropdownTextPositionReference.setText(referenceOptions[textReferenceIndex], false)
+        binding.dropdownImagePositionReference.setText(referenceOptions[imageReferenceIndex], false)
 
         binding.sliderTextSize.value = config.textSize
         binding.sliderImageSize.value = config.imageSize
@@ -1146,8 +1222,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             // 新的分离位置和透明度设置
             textPositionX = binding.sliderTextPositionX.value,
             textPositionY = binding.sliderTextPositionY.value,
+            textPositionReference = getTextPositionReference(),
             imagePositionX = binding.sliderImagePositionX.value,
             imagePositionY = binding.sliderImagePositionY.value,
+            imagePositionReference = getImagePositionReference(),
             textSize = binding.sliderTextSize.value,
             imageSize = binding.sliderImageSize.value,
             textOpacity = binding.sliderTextOpacity.value,
@@ -1169,6 +1247,38 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             lineSpacing = binding.sliderLineSpacing.value,
             borderColorMode = getBorderColorMode()
         )
+    }
+
+    /**
+     * 获取文字水印定位参考系
+     */
+    private fun getTextPositionReference(): cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference {
+        val selectedText = binding.dropdownTextPositionReference.text.toString()
+        return when (selectedText) {
+            getString(R.string.position_reference_canvas) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS
+            getString(R.string.position_reference_original) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.ORIGINAL
+            getString(R.string.position_reference_top_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.TOP_BORDER
+            getString(R.string.position_reference_bottom_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.BOTTOM_BORDER
+            getString(R.string.position_reference_left_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.LEFT_BORDER
+            getString(R.string.position_reference_right_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.RIGHT_BORDER
+            else -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS
+        }
+    }
+
+    /**
+     * 获取图片水印定位参考系
+     */
+    private fun getImagePositionReference(): cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference {
+        val selectedText = binding.dropdownImagePositionReference.text.toString()
+        return when (selectedText) {
+            getString(R.string.position_reference_canvas) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS
+            getString(R.string.position_reference_original) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.ORIGINAL
+            getString(R.string.position_reference_top_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.TOP_BORDER
+            getString(R.string.position_reference_bottom_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.BOTTOM_BORDER
+            getString(R.string.position_reference_left_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.LEFT_BORDER
+            getString(R.string.position_reference_right_border) -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.RIGHT_BORDER
+            else -> cn.alittlecookie.lut2photo.lut2photo.model.WatermarkPositionReference.CANVAS
+        }
     }
 
     private fun applyImportedConfig(config: WatermarkConfig) {
@@ -1476,22 +1586,26 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         )
 
         if (isFollowMode) {
-            // 跟随模式下：隐藏文字位置滑块，显示跟随方向和间距设置
+            // 跟随模式下：隐藏文字位置滑块和定位参考系，显示跟随方向和间距设置
             binding.textPositionXLabel.visibility = View.GONE
             binding.layoutTextPositionX.visibility = View.GONE
             binding.textPositionYLabel.visibility = View.GONE
             binding.layoutTextPositionY.visibility = View.GONE
+            binding.textPositionReferenceLabel.visibility = View.GONE
+            binding.layoutTextPositionReference.visibility = View.GONE
 
             binding.textFollowDirectionLabel.visibility = View.VISIBLE
             binding.toggleGroupTextFollowDirection.visibility = View.VISIBLE
             binding.textImageSpacingLabel.visibility = View.VISIBLE
             binding.layoutTextImageSpacing.visibility = View.VISIBLE
         } else {
-            // 非跟随模式下：显示文字位置滑块，隐藏跟随方向和间距设置
+            // 非跟随模式下：显示文字位置滑块和定位参考系，隐藏跟随方向和间距设置
             binding.textPositionXLabel.visibility = View.VISIBLE
             binding.layoutTextPositionX.visibility = View.VISIBLE
             binding.textPositionYLabel.visibility = View.VISIBLE
             binding.layoutTextPositionY.visibility = View.VISIBLE
+            binding.textPositionReferenceLabel.visibility = View.VISIBLE
+            binding.layoutTextPositionReference.visibility = View.VISIBLE
 
             binding.textFollowDirectionLabel.visibility = View.GONE
             binding.toggleGroupTextFollowDirection.visibility = View.GONE
