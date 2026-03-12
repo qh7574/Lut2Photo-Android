@@ -1,8 +1,10 @@
 package cn.alittlecookie.lut2photo.lut2photo.core
 
+import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLES30
+import android.os.Debug
 import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +22,10 @@ class ProcessorSelectionStrategy(private val context: Context) {
         // 内存安全阈值
         private const val MEMORY_SAFETY_THRESHOLD_MB = 150L
         private const val MEMORY_CRITICAL_THRESHOLD_MB = 200L
+
+        // 内存边界策略
+        private const val BORDERLINE_MARGIN_MB = 64L
+        private const val BORDERLINE_RATIO = 0.05f
         
         // 像素数阈值
         private const val SAFE_GPU_PIXELS = 30_000_000L // 3000万像素
@@ -97,9 +103,28 @@ class ProcessorSelectionStrategy(private val context: Context) {
         
         // 3. 检查内存可用性
         val estimatedMemoryMB = estimateMemoryUsage(width, height)
-        val memoryCheckResult = checkMemoryAvailability(estimatedMemoryMB)
+        val memoryCheckResult = checkMemoryAvailability(estimatedMemoryMB, pixels)
         
         if (!memoryCheckResult.isSafe) {
+            if (memoryCheckResult.isBorderline) {
+                Log.w(TAG, "内存临界，尝试清理后再评估")
+                aggressiveMemoryCleanup()
+                val recheck = checkMemoryAvailability(estimatedMemoryMB, pixels)
+                if (recheck.isSafe) {
+                    Log.i(TAG, "清理后内存足够，允许GPU处理")
+                    return@withContext SelectionResult(
+                        processorType = ILutProcessor.ProcessorType.GPU,
+                        reason = "内存临界但清理后可用，尝试GPU处理"
+                    )
+                }
+                Log.w(TAG, "内存仍然临界，允许GPU试跑，失败自动回退")
+                return@withContext SelectionResult(
+                    processorType = ILutProcessor.ProcessorType.GPU,
+                    reason = "内存临界，尝试GPU处理，失败回退CPU",
+                    fallbackReason = FallbackReason.MEMORY_INSUFFICIENT,
+                    shouldShowToast = false
+                )
+            }
             Log.w(TAG, "内存不足，预估需要${estimatedMemoryMB}MB，可用${memoryCheckResult.availableMB}MB")
             return@withContext SelectionResult(
                 processorType = ILutProcessor.ProcessorType.CPU,
@@ -185,9 +210,28 @@ class ProcessorSelectionStrategy(private val context: Context) {
         
         // 3. 检查内存可用性
         val estimatedMemoryMB = estimateMemoryUsage(width, height)
-        val memoryCheckResult = checkMemoryAvailability(estimatedMemoryMB)
+        val memoryCheckResult = checkMemoryAvailability(estimatedMemoryMB, pixels)
         
         if (!memoryCheckResult.isSafe) {
+            if (memoryCheckResult.isBorderline) {
+                Log.w(TAG, "内存临界，尝试清理后再评估")
+                aggressiveMemoryCleanup()
+                val recheck = checkMemoryAvailability(estimatedMemoryMB, pixels)
+                if (recheck.isSafe) {
+                    Log.i(TAG, "清理后内存足够，允许GPU处理")
+                    return@withContext SelectionResult(
+                        processorType = ILutProcessor.ProcessorType.GPU,
+                        reason = "内存临界但清理后可用，尝试GPU处理"
+                    )
+                }
+                Log.w(TAG, "内存仍然临界，允许GPU试跑，失败自动回退")
+                return@withContext SelectionResult(
+                    processorType = ILutProcessor.ProcessorType.GPU,
+                    reason = "内存临界，尝试GPU处理，失败回退CPU",
+                    fallbackReason = FallbackReason.MEMORY_INSUFFICIENT,
+                    shouldShowToast = false
+                )
+            }
             Log.w(TAG, "内存不足，预估需要${estimatedMemoryMB}MB，可用${memoryCheckResult.availableMB}MB")
             return@withContext SelectionResult(
                 processorType = ILutProcessor.ProcessorType.CPU,
@@ -299,34 +343,66 @@ class ProcessorSelectionStrategy(private val context: Context) {
         val isSafe: Boolean,
         val availableMB: Long,
         val usedMB: Long,
-        val maxMB: Long
+        val maxMB: Long,
+        val requiredWithBufferMB: Long,
+        val totalPssMB: Long,
+        val systemAvailableMB: Long,
+        val heapAvailableMB: Long,
+        val isBorderline: Boolean
     )
     
     /**
      * 检查内存可用性
      */
-    private fun checkMemoryAvailability(requiredMB: Long): MemoryCheckResult {
+    private fun checkMemoryAvailability(requiredMB: Long, pixels: Long): MemoryCheckResult {
         val runtime = Runtime.getRuntime()
         val maxMemory = runtime.maxMemory()
         val usedMemory = runtime.totalMemory() - runtime.freeMemory()
         val availableMemory = maxMemory - usedMemory
-        
+
         val maxMB = maxMemory / (1024 * 1024)
         val usedMB = usedMemory / (1024 * 1024)
-        val availableMB = availableMemory / (1024 * 1024)
-        
-        // 需要至少1.5倍的内存空间作为安全缓冲
-        val requiredWithBuffer = (requiredMB * 1.5).toLong()
-        val isSafe = availableMB > requiredWithBuffer
-        
-        Log.d(TAG, "内存状态: 最大=${maxMB}MB, 已用=${usedMB}MB, 可用=${availableMB}MB")
-        Log.d(TAG, "内存需求: 预估=${requiredMB}MB, 含缓冲=${requiredWithBuffer}MB, 安全=${isSafe}")
-        
+        val heapAvailableMB = availableMemory / (1024 * 1024)
+
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+        val systemAvailableMB = memoryInfo.availMem / (1024 * 1024)
+
+        val debugMemoryInfo = Debug.MemoryInfo()
+        Debug.getMemoryInfo(debugMemoryInfo)
+        val totalPssMB = debugMemoryInfo.totalPss / 1024L
+
+        val safetyMultiplier = when {
+            pixels > 40_000_000L -> 1.5
+            pixels > 25_000_000L -> 1.35
+            pixels > 15_000_000L -> 1.25
+            else -> 1.2
+        }
+
+        // 允许一定比例的系统可回收内存参与判断，避免过度保守
+        val extraFromSystem = (systemAvailableMB - heapAvailableMB).coerceAtLeast(0) * 0.7
+        val effectiveAvailableMB = (heapAvailableMB + extraFromSystem).toLong().coerceAtMost(systemAvailableMB)
+
+        val requiredWithBuffer = (requiredMB * safetyMultiplier).toLong()
+        val isSafe = effectiveAvailableMB > requiredWithBuffer
+
+        val delta = requiredWithBuffer - effectiveAvailableMB
+        val isBorderline = !isSafe && (delta <= BORDERLINE_MARGIN_MB || (delta.toDouble() / requiredWithBuffer.toDouble()) <= BORDERLINE_RATIO)
+
+        Log.d(TAG, "内存状态: Heap可用=${heapAvailableMB}MB, 系统可用=${systemAvailableMB}MB, PSS=${totalPssMB}MB, 有效可用=${effectiveAvailableMB}MB")
+        Log.d(TAG, "内存需求: 预估=${requiredMB}MB, 缓冲倍率=${"%.2f".format(safetyMultiplier)}, 含缓冲=${requiredWithBuffer}MB, 安全=${isSafe}, 临界=${isBorderline}")
+
         return MemoryCheckResult(
             isSafe = isSafe,
-            availableMB = availableMB,
+            availableMB = effectiveAvailableMB,
             usedMB = usedMB,
-            maxMB = maxMB
+            maxMB = maxMB,
+            requiredWithBufferMB = requiredWithBuffer,
+            totalPssMB = totalPssMB,
+            systemAvailableMB = systemAvailableMB,
+            heapAvailableMB = heapAvailableMB,
+            isBorderline = isBorderline
         )
     }
     

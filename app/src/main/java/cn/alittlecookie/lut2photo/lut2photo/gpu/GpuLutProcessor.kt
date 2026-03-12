@@ -478,6 +478,18 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         return isSafe
     }
     
+    private fun aggressiveMemoryCleanup() {
+        try {
+            if (bufferCache.isNotEmpty()) {
+                bufferCache.clear()
+            }
+            System.gc()
+            System.runFinalization()
+        } catch (e: Exception) {
+            Log.w(TAG, "GPU内存清理失败", e)
+        }
+    }
+
     /**
      * 显示回退提示Toast（已废弃，使用ProcessorSelectionStrategy统一处理）
      */
@@ -882,15 +894,18 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         if (maxDimension > maxTextureSize) {
             Log.w(TAG, "图片尺寸超过GPU纹理限制: $maxDimension > $maxTextureSize，直接回退到CPU")
             throw RuntimeException("图片尺寸超过GPU纹理限制")
-        }
-        
-        // 2. 预检查：内存可用性
+        }        // 2. 预检查：内存可用性
         val estimatedMemoryMB = estimateMemoryUsage(bitmap.width, bitmap.height)
         if (!checkMemoryAvailability(estimatedMemoryMB)) {
-            Log.w(TAG, "预估内存不足(${estimatedMemoryMB}MB)，直接回退到CPU")
-            throw OutOfMemoryError("预估内存不足")
+            Log.w(TAG, "预估内存不足(${estimatedMemoryMB}MB)，尝试清理后继续GPU")
+            aggressiveMemoryCleanup()
+            if (!checkMemoryAvailability(estimatedMemoryMB)) {
+                Log.w(TAG, "内存仍紧张，继续尝试GPU；若失败将回退CPU")
+            } else {
+                Log.i(TAG, "清理后内存充足，继续GPU处理")
+            }
         }
-        
+
         // 检查是否需要 GPU 处理（LUT 或颗粒效果）
         val hasLut = currentLut != null || currentLut2 != null
         val hasGrain = currentGrainConfig?.isEnabled == true && (currentGrainConfig?.globalStrength ?: 0f) > 0f

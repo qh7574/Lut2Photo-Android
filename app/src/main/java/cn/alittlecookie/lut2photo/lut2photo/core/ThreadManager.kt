@@ -230,7 +230,7 @@ class ThreadManager(context: Context) {
                         task.onProgress?.invoke("Processing on GPU...")
                         val result = gpuProcessor.processImage(task.bitmap, task.params)
                         task.onComplete(Result.success(result))
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         Log.e(TAG, "GPU processing failed for task ${task.id}", e)
                         // Fallback to CPU processing
                         processCpuFallback(task)
