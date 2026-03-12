@@ -1,9 +1,11 @@
 package cn.alittlecookie.lut2photo.lut2photo.ui
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -28,6 +30,9 @@ class FullscreenImageActivity : AppCompatActivity() {
         const val EXTRA_IMAGE_URI = "extra_image_uri"
         const val EXTRA_IS_PROCESSED_IMAGE = "extra_is_processed_image"
         const val EXTRA_DRAWABLE_RES_ID = "extra_drawable_res_id"
+
+        private const val MAX_ESTIMATED_BYTES: Long = 150L * 1024L * 1024L
+        private const val MAX_LONG_EDGE_PX = 6000
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,18 +77,11 @@ class FullscreenImageActivity : AppCompatActivity() {
                 // content:// URI
                 imageUriString.startsWith("content://") -> {
                     val uri = imageUriString.toUri()
-                    // 使用 ContentResolver 加载图片
-                    contentResolver.openInputStream(uri)?.use { inputStream ->
-                        val bitmap = BitmapFactory.decodeStream(inputStream)
-                        if (bitmap != null) {
-                            binding.zoomImageView.setImageBitmap(bitmap)
-                        } else {
-                            Toast.makeText(this, "无法解码图片", Toast.LENGTH_SHORT).show()
-                            finish()
-                            return
-                        }
-                    } ?: run {
-                        Toast.makeText(this, "无法打开图片文件", Toast.LENGTH_SHORT).show()
+                    val bitmap = decodeBitmapWithGuard(uri)
+                    if (bitmap != null) {
+                        binding.zoomImageView.setImageBitmap(bitmap)
+                    } else {
+                        Toast.makeText(this, "无法解码图片", Toast.LENGTH_SHORT).show()
                         finish()
                         return
                     }
@@ -96,12 +94,26 @@ class FullscreenImageActivity : AppCompatActivity() {
                         Uri.parse(imageUriString)
                     }
                     tempImageFile = File(uri.path ?: "")
-                    binding.zoomImageView.setImageURI(uri)
+                    val bitmap = decodeBitmapWithGuard(uri)
+                    if (bitmap != null) {
+                        binding.zoomImageView.setImageBitmap(bitmap)
+                    } else {
+                        Toast.makeText(this, "无法解码图片", Toast.LENGTH_SHORT).show()
+                        finish()
+                        return
+                    }
                 }
                 // 其他情况尝试作为 URI 解析
                 else -> {
                     val uri = Uri.parse(imageUriString)
-                    binding.zoomImageView.setImageURI(uri)
+                    val bitmap = decodeBitmapWithGuard(uri)
+                    if (bitmap != null) {
+                        binding.zoomImageView.setImageBitmap(bitmap)
+                    } else {
+                        Toast.makeText(this, "无法解码图片", Toast.LENGTH_SHORT).show()
+                        finish()
+                        return
+                    }
                 }
             }
 
@@ -134,6 +146,129 @@ class FullscreenImageActivity : AppCompatActivity() {
             Toast.makeText(this, "加载图片失败: ${e.message}", Toast.LENGTH_SHORT).show()
             finish()
         }
+    }
+
+    private fun decodeBitmapWithGuard(uri: Uri): Bitmap? {
+        val isFileUri = uri.scheme == null || uri.scheme == "file"
+        return if (isFileUri) {
+            val path = uri.path
+            if (path.isNullOrBlank()) null else decodeBitmapFromFile(path)
+        } else {
+            decodeBitmapFromContent(uri)
+        }
+    }
+
+    private fun decodeBitmapFromFile(path: String): Bitmap? {
+        val boundsOptions = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+
+        BitmapFactory.decodeFile(path, boundsOptions)
+
+        val width = boundsOptions.outWidth
+        val height = boundsOptions.outHeight
+        if (width <= 0 || height <= 0) {
+            Log.w("FullscreenImageActivity", "decodeFile bounds failed: path=$path, w=$width, h=$height")
+            return null
+        }
+
+        val estimatedBytes = estimateBitmapBytes(width, height)
+        val shouldDownsample = estimatedBytes > MAX_ESTIMATED_BYTES
+        val sampleSize = if (shouldDownsample) {
+            val rawSampleSize = calculateInSampleSize(width, height, MAX_LONG_EDGE_PX)
+            maxOf(2, rawSampleSize)
+        } else {
+            1
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply {
+            inJustDecodeBounds = false
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+
+        val bitmap = BitmapFactory.decodeFile(path, decodeOptions)
+
+        if (bitmap != null && shouldDownsample) {
+            Toast.makeText(this, "图片过大，已降采样显示", Toast.LENGTH_SHORT).show()
+        }
+
+        return bitmap
+    }
+
+    private fun decodeBitmapFromContent(uri: Uri): Bitmap? {
+        val boundsOptions = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+
+        val usedFileDescriptor = contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+            BitmapFactory.decodeFileDescriptor(pfd.fileDescriptor, null, boundsOptions)
+            true
+        } ?: run {
+            Log.w("FullscreenImageActivity", "openFileDescriptor failed for uri=$uri, fallback to InputStream")
+            false
+        }
+
+        if (!usedFileDescriptor) {
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream, null, boundsOptions)
+            } ?: run {
+                Log.w("FullscreenImageActivity", "openInputStream failed for uri=$uri")
+                return null
+            }
+        }
+
+        val width = boundsOptions.outWidth
+        val height = boundsOptions.outHeight
+        if (width <= 0 || height <= 0) {
+            Log.w("FullscreenImageActivity", "decode bounds failed: uri=$uri, w=$width, h=$height")
+            return null
+        }
+
+        val estimatedBytes = estimateBitmapBytes(width, height)
+        val shouldDownsample = estimatedBytes > MAX_ESTIMATED_BYTES
+        val sampleSize = if (shouldDownsample) {
+            val rawSampleSize = calculateInSampleSize(width, height, MAX_LONG_EDGE_PX)
+            maxOf(2, rawSampleSize)
+        } else {
+            1
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply {
+            inJustDecodeBounds = false
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+
+        val bitmap = if (usedFileDescriptor) {
+            contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                BitmapFactory.decodeFileDescriptor(pfd.fileDescriptor, null, decodeOptions)
+            }
+        } else {
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream, null, decodeOptions)
+            }
+        }
+
+        if (bitmap != null && shouldDownsample) {
+            Toast.makeText(this, "图片过大，已降采样显示", Toast.LENGTH_SHORT).show()
+        }
+
+        return bitmap
+    }
+
+    private fun estimateBitmapBytes(width: Int, height: Int): Long {
+        return width.toLong() * height.toLong() * 4L
+    }
+
+    private fun calculateInSampleSize(width: Int, height: Int, maxLongEdgePx: Int): Int {
+        val longEdge = maxOf(width, height)
+        if (longEdge <= maxLongEdgePx) {
+            return 1
+        }
+        val ratio = longEdge.toFloat() / maxLongEdgePx.toFloat()
+        val rawSample = kotlin.math.ceil(ratio).toInt()
+        return maxOf(1, rawSample)
     }
     
     /**
