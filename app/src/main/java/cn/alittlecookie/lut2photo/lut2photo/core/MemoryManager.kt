@@ -36,11 +36,15 @@ class MemoryManager private constructor(private val context: Context) {
         // 监控间隔
         private const val MONITORING_INTERVAL_MS = 5000L    // 5秒
         private const val FAST_MONITORING_INTERVAL_MS = 1000L // 1秒（高压力时）
+
+        // GC触发的最小PSS增量（MB）
+        private const val MIN_PSS_DELTA_FOR_GC_MB = 32L
     }
 
     // 内存配置
     data class MemoryConfig(
         val maxHeapSizeMB: Int,
+        val maxPssMB: Int = maxHeapSizeMB,
         val warningThreshold: Float = DEFAULT_WARNING_THRESHOLD,
         val criticalThreshold: Float = DEFAULT_CRITICAL_THRESHOLD,
         val enableAutoGC: Boolean = true,
@@ -54,6 +58,7 @@ class MemoryManager private constructor(private val context: Context) {
         val usedHeapMB: Long,
         val freeHeapMB: Long,
         val maxHeapMB: Long,
+        val totalPssMB: Long,
         val nativeHeapMB: Long,
         val usageRatio: Float,
         val isWarning: Boolean,
@@ -77,6 +82,7 @@ class MemoryManager private constructor(private val context: Context) {
     private val listeners = mutableSetOf<MemoryListener>()
     private val isMonitoring = AtomicBoolean(false)
     private val lastGCTime = AtomicLong(0)
+    private val lastGcTriggerPssMB = AtomicLong(0)
     private var monitoringJob: Job? = null
 
     // 内存统计
@@ -92,6 +98,7 @@ class MemoryManager private constructor(private val context: Context) {
 
         memoryConfig = MemoryConfig(
             maxHeapSizeMB = maxOf(1024, (maxHeapSize * DEFAULT_MAX_HEAP_RATIO).toInt()),
+            maxPssMB = activityManager.memoryClass,
             maxCacheSize = min(deviceMemoryMB.toInt() / 8, 200) // 设备内存的1/8或200MB
         )
 
@@ -191,11 +198,16 @@ class MemoryManager private constructor(private val context: Context) {
 
         val nativeHeapMB = Debug.getNativeHeapAllocatedSize() / (1024 * 1024)
 
+        val debugMemoryInfo = Debug.MemoryInfo()
+        Debug.getMemoryInfo(debugMemoryInfo)
+        val totalPssMB = debugMemoryInfo.totalPss / 1024L
+
         activityManager.getMemoryInfo(memoryInfo)
         val availableMemoryMB = memoryInfo.availMem / (1024 * 1024)
 
-        // 使用配置的内存限制来计算使用率
-        val usageRatio = usedHeapMB.toFloat() / configuredMaxHeapMB.toFloat()
+        // 使用配置的PSS限制来计算使用率（更接近系统实际内存压力）
+        val configuredMaxPssMB = memoryConfig.maxPssMB.toLong()
+        val usageRatio = totalPssMB.toFloat() / configuredMaxPssMB.toFloat()
         val isWarning = usageRatio >= memoryConfig.warningThreshold
         val isCritical = usageRatio >= memoryConfig.criticalThreshold
 
@@ -208,6 +220,7 @@ class MemoryManager private constructor(private val context: Context) {
             usedHeapMB = usedHeapMB,
             freeHeapMB = freeHeapMB,
             maxHeapMB = configuredMaxHeapMB, // 使用配置的内存限制
+            totalPssMB = totalPssMB,
             nativeHeapMB = nativeHeapMB,
             usageRatio = usageRatio,
             isWarning = isWarning,
@@ -230,8 +243,15 @@ class MemoryManager private constructor(private val context: Context) {
             return false
         }
 
+        // 使用PSS估算分配后的整体压力
+        val projectedPssUsage = status.totalPssMB + sizeMB
+        if (projectedPssUsage > memoryConfig.maxPssMB) {
+            Log.w(TAG, "分配${sizeMB}MB将超过配置的最大PSS使用限制")
+            return false
+        }
+
         // 检查是否会导致内存压力（使用配置的内存限制）
-        val projectedRatio = projectedUsage.toFloat() / memoryConfig.maxHeapSizeMB.toFloat()
+        val projectedRatio = projectedPssUsage.toFloat() / memoryConfig.maxPssMB.toFloat()
         if (projectedRatio > memoryConfig.criticalThreshold) {
             Log.w(TAG, "分配${sizeMB}MB将导致内存压力")
             return false
@@ -247,7 +267,12 @@ class MemoryManager private constructor(private val context: Context) {
         if (!canAllocate(sizeBytes)) {
             // 尝试释放内存
             if (memoryConfig.enableAutoGC) {
-                performGarbageCollection()
+                val status = getCurrentMemoryStatus()
+                if (shouldTriggerGc(status)) {
+                    performGarbageCollection()
+                } else {
+                    Log.d(TAG, "跳过GC，PSS变化不足或未达临界阈值")
+                }
 
                 // 再次检查
                 if (!canAllocate(sizeBytes)) {
@@ -287,7 +312,8 @@ class MemoryManager private constructor(private val context: Context) {
             Thread.sleep(100)
 
             val afterStatus = getCurrentMemoryStatus()
-            val freedMB = beforeStatus.usedHeapMB - afterStatus.usedHeapMB
+            val freedMB = beforeStatus.totalPssMB - afterStatus.totalPssMB
+            lastGcTriggerPssMB.set(afterStatus.totalPssMB)
 
             gcCount.incrementAndGet()
             Log.i(TAG, "GC完成，释放了${freedMB}MB内存")
@@ -321,6 +347,7 @@ class MemoryManager private constructor(private val context: Context) {
             "currentUsedHeapMB" to status.usedHeapMB,
             "currentNativeHeapMB" to status.nativeHeapMB,
             "maxHeapMB" to status.maxHeapMB,
+            "currentTotalPssMB" to status.totalPssMB,
             "usageRatio" to status.usageRatio,
             "peakMemoryUsageMB" to peakMemoryUsage.get(),
             "totalAllocations" to totalAllocations.get(),
@@ -343,6 +370,15 @@ class MemoryManager private constructor(private val context: Context) {
     }
 
     /**
+     * 判断是否应该触发GC（基于PSS变化与阈值）
+     */
+    private fun shouldTriggerGc(status: MemoryStatus): Boolean {
+        val lastPss = lastGcTriggerPssMB.get()
+        val delta = status.totalPssMB - lastPss
+        return delta >= MIN_PSS_DELTA_FOR_GC_MB || status.usageRatio >= memoryConfig.criticalThreshold
+    }
+
+    /**
      * 处理内存状态变化
      */
     private fun handleMemoryStatus(status: MemoryStatus) {
@@ -352,7 +388,7 @@ class MemoryManager private constructor(private val context: Context) {
                     when {
                         status.isCritical -> {
                             listener.onMemoryCritical(status)
-                            if (memoryConfig.enableAutoGC) {
+                            if (memoryConfig.enableAutoGC && shouldTriggerGc(status)) {
                                 performGarbageCollection()
                             }
                         }
@@ -375,7 +411,7 @@ class MemoryManager private constructor(private val context: Context) {
         if (status.isWarning || status.isCritical) {
             Log.w(
                 TAG,
-                "内存状态: 使用${status.usedHeapMB}MB/${status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%), Native: ${status.nativeHeapMB}MB"
+                "内存状态: PSS ${status.totalPssMB}MB/${memoryConfig.maxPssMB}MB (${(status.usageRatio * 100).toInt()}%), Heap: ${status.usedHeapMB}MB, Native: ${status.nativeHeapMB}MB"
             )
         }
     }

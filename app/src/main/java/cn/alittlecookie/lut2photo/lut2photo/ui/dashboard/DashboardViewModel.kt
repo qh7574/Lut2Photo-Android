@@ -491,6 +491,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 for ((index, imageItem) in images.withIndex()) {
                     if (!isActive) break
 
+                    var originalBitmap: Bitmap? = null
+                    var processedBitmap: Bitmap? = null
+                    var finalBitmap: Bitmap? = null
+
                     try {
                         _statusMessage.postValue(
                             getApplication<Application>().getString(
@@ -503,6 +507,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
                         // 修复后的异步处理逻辑
                         val bitmap = loadImageBitmap(imageItem)
+                        originalBitmap = bitmap
                         // 在 startProcessing 方法中修复硬编码日志
                         if (bitmap != null) {
                             // 获取实际将要使用的处理器类型
@@ -515,7 +520,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             )
 
                             // 使用suspendCoroutine正确处理异步回调
-                            val processedBitmap = suspendCoroutine { continuation ->
+                            processedBitmap = suspendCoroutine { continuation ->
                                 threadManager.submitTask(
                                     bitmap = bitmap,
                                     params = params,
@@ -550,7 +555,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                 Log.d("DashboardViewModel", "开始保存处理后的图片")
 
                                 // 应用水印（如果启用）
-                                val finalBitmap =
+                                val finalBitmapLocal =
                                     if (preferencesManager.dashboardWatermarkEnabled) {  // 使用分离的开关
                                         try {
                                             val watermarkConfig =
@@ -580,8 +585,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                                     }
                                 
                                 // 修改saveProcessedImage方法调用
+                                finalBitmap = finalBitmapLocal
+
                                 val outputPath = saveProcessedImage(
-                                    finalBitmap,
+                                    finalBitmapLocal,
                                     imageItem,
                                     outputFolderUri,
                                     params,
@@ -631,6 +638,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                     } catch (e: Exception) {
                         handleProcessingError(imageItem, lutItem, lut2Item, params, e)
+                    } finally {
+                        recycleBitmaps(finalBitmap, processedBitmap, originalBitmap)
                     }
                 }
 
@@ -814,6 +823,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         processingJob = null
         _isProcessing.value = false
         _statusMessage.value = getApplication<Application>().getString(R.string.status_ready)
+    }
+
+    private fun recycleBitmaps(vararg bitmaps: Bitmap?) {
+        val seen = HashSet<Bitmap>()
+        for (bitmap in bitmaps) {
+            if (bitmap != null && !bitmap.isRecycled && seen.add(bitmap)) {
+                bitmap.recycle()
+            }
+        }
     }
 
     override fun onCleared() {

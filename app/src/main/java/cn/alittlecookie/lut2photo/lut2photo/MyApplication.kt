@@ -99,6 +99,7 @@ class MyApplication : Application() {
 
             val config = MemoryManager.MemoryConfig(
                 maxHeapSizeMB = targetMemoryMB,
+                maxPssMB = targetMemoryMB,
                 warningThreshold = 0.75f, // 75%时警告
                 criticalThreshold = 0.9f, // 90%时临界
                 enableAutoGC = true,

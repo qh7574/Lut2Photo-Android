@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onMemoryWarning(status: cn.alittlecookie.lut2photo.lut2photo.core.MemoryManager.MemoryStatus) {
                         Log.w(
                             "MainActivity",
-                            "内存警告: 当前使用 ${status.usedHeapMB}MB / ${status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%)"
+                            "内存警告: PSS ${status.totalPssMB}MB / ${MyApplication.getMemoryManager()?.getMemoryConfig()?.maxPssMB ?: status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%)"
                         )
                         // 可以在这里触发UI更新或其他响应
                     }
@@ -229,7 +229,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onMemoryCritical(status: cn.alittlecookie.lut2photo.lut2photo.core.MemoryManager.MemoryStatus) {
                         Log.e(
                             "MainActivity",
-                            "内存临界: 当前使用 ${status.usedHeapMB}MB / ${status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%)"
+                            "内存临界: PSS ${status.totalPssMB}MB / ${MyApplication.getMemoryManager()?.getMemoryConfig()?.maxPssMB ?: status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%)"
                         )
                         // 触发紧急内存清理
                         runOnUiThread {
@@ -240,7 +240,7 @@ class MainActivity : AppCompatActivity() {
                     override fun onMemoryNormal(status: cn.alittlecookie.lut2photo.lut2photo.core.MemoryManager.MemoryStatus) {
                         Log.i(
                             "MainActivity",
-                            "内存正常: 当前使用 ${status.usedHeapMB}MB / ${status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%)"
+                            "内存正常: PSS ${status.totalPssMB}MB / ${MyApplication.getMemoryManager()?.getMemoryConfig()?.maxPssMB ?: status.maxHeapMB}MB (${(status.usageRatio * 100).toInt()}%)"
                         )
                     }
 

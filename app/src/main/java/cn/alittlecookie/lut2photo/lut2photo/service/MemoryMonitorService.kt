@@ -144,11 +144,13 @@ class MemoryMonitorService : Service() {
     private fun setupMemoryListener() {
         memoryManager?.addMemoryListener(object : MemoryManager.MemoryListener {
             override fun onMemoryWarning(status: MemoryManager.MemoryStatus) {
-                handleMemoryWarning(status.usedHeapMB, status.maxHeapMB)
+                val maxPssMB = memoryManager?.getMemoryConfig()?.maxPssMB?.toLong() ?: status.maxHeapMB
+                handleMemoryWarning(status.totalPssMB, maxPssMB)
             }
 
             override fun onMemoryCritical(status: MemoryManager.MemoryStatus) {
-                handleMemoryCritical(status.usedHeapMB, status.maxHeapMB)
+                val maxPssMB = memoryManager?.getMemoryConfig()?.maxPssMB?.toLong() ?: status.maxHeapMB
+                handleMemoryCritical(status.totalPssMB, maxPssMB)
             }
 
             override fun onMemoryNormal(status: MemoryManager.MemoryStatus) {
@@ -267,13 +269,13 @@ class MemoryMonitorService : Service() {
         lastWarningTime = currentTime
         stats = stats.copy(warningCount = stats.warningCount + 1)
 
-        Log.w(TAG, "内存警告: ${currentUsage}MB / ${maxMemory}MB")
+        Log.w(TAG, "内存警告(PSS): ${currentUsage}MB / ${maxMemory}MB")
 
         // 更新通知
         val usagePercent = (currentUsage.toDouble() / maxMemory * 100).toInt()
         updateNotification(
             "内存使用警告",
-            "内存使用率: ${usagePercent}% (${currentUsage}MB/${maxMemory}MB)"
+            "PSS使用率: ${usagePercent}% (${currentUsage}MB/${maxMemory}MB)"
         )
 
         // 触发自动优化
@@ -286,13 +288,13 @@ class MemoryMonitorService : Service() {
     private fun handleMemoryCritical(currentUsage: Long, maxMemory: Long) {
         stats = stats.copy(criticalCount = stats.criticalCount + 1)
 
-        Log.e(TAG, "内存临界: ${currentUsage}MB / ${maxMemory}MB")
+        Log.e(TAG, "内存临界(PSS): ${currentUsage}MB / ${maxMemory}MB")
 
         // 更新通知
         val usagePercent = (currentUsage.toDouble() / maxMemory * 100).toInt()
         updateNotification(
             "内存临界警告",
-            "内存使用率: ${usagePercent}% - 正在优化..."
+            "PSS使用率: ${usagePercent}% - 正在优化..."
         )
 
         // 立即触发优化
@@ -324,7 +326,7 @@ class MemoryMonitorService : Service() {
         val usagePercent = (memoryStatus.usageRatio * 100f).toInt()
         updateNotification(
             "内存监控运行中",
-            "内存使用率: ${usagePercent}% - 状态正常"
+            "PSS使用率: ${usagePercent}% (${memoryStatus.totalPssMB}MB) - 状态正常"
         )
     }
 

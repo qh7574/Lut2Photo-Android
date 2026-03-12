@@ -1365,94 +1365,94 @@ class FolderMonitorService : Service() {
         try {
             Log.d(TAG, "开始处理文件: ${inputFile.name}")
 
-            val inputStream = contentResolver.openInputStream(inputFile.uri)
-            if (inputStream != null) {
-                // 首先读取EXIF信息
-                val exif = ExifInterface(inputStream)
-                val orientation = exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL
-                )
-                inputStream.close()
+            var decodedBitmap: Bitmap? = null
+            var correctedBitmap: Bitmap? = null
+            var lutProcessedBitmap: Bitmap? = null
+            var finalBitmap: Bitmap? = null
 
-                // 重新打开流来解码图像
-                val decodeStream = contentResolver.openInputStream(inputFile.uri)
-                if (decodeStream != null) {
-                    val bitmap = BitmapFactory.decodeStream(decodeStream)
-                    decodeStream.close()
+            try {
+                val orientation = contentResolver.openInputStream(inputFile.uri)?.use { stream ->
+                    ExifInterface(stream).getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL
+                    )
+                } ?: ExifInterface.ORIENTATION_NORMAL
 
-                    if (bitmap != null) {
-                        // 应用EXIF方向变换
-                        val correctedBitmap = applyExifOrientation(bitmap, orientation)
+                decodedBitmap = contentResolver.openInputStream(inputFile.uri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
 
-                        // 使用submitTask处理图片（LUT处理）
-                        val lutProcessedBitmap = suspendCoroutine { continuation ->
-                            threadManager.submitTask(
-                                bitmap = correctedBitmap,
-                                params = params,
-                                onComplete = { result ->
-                                    continuation.resume(result.getOrNull())
-                                }
-                            )
-                        }
+                if (decodedBitmap != null) {
+                    // 应用EXIF方向变换
+                    correctedBitmap = applyExifOrientation(decodedBitmap!!, orientation)
 
-                        if (lutProcessedBitmap != null) {
-                            // 检查是否需要添加水印
-                            val watermarkConfig =
-                                preferencesManager.getWatermarkConfig(forFolderMonitor = true)  // 明确指定是文件夹监控
-                            var processedBitmap =
-                                if (watermarkConfig.isEnabled) {  // 这里会使用folderMonitorWatermarkEnabled
-                                    Log.d(TAG, "开始添加水印: ${inputFile.name}")
-                                    try {
-                                        val watermarkedBitmap = watermarkProcessor.addWatermark(
-                                            lutProcessedBitmap,
-                                            watermarkConfig,
-                                            inputFile.uri,
-                                            currentLutName,
-                                            if (currentLut2Name.isNotEmpty()) currentLut2Name else null,
-                                            params.strength,
-                                            params.lut2Strength
-                                        )
-                                        Log.d(TAG, "水印添加完成: ${inputFile.name}")
-                                        watermarkedBitmap
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "添加水印失败: ${inputFile.name}", e)
-                                        lutProcessedBitmap
-                                    }
-                                } else {
+                    // 使用submitTask处理图片（LUT处理）
+                    lutProcessedBitmap = suspendCoroutine { continuation ->
+                        threadManager.submitTask(
+                            bitmap = correctedBitmap!!,
+                            params = params,
+                            onComplete = { result ->
+                                continuation.resume(result.getOrNull())
+                            }
+                        )
+                    }
+
+                    if (lutProcessedBitmap != null) {
+                        // 检查是否需要添加水印
+                        val watermarkConfig =
+                            preferencesManager.getWatermarkConfig(forFolderMonitor = true)  // 明确指定是文件夹监控
+                        finalBitmap =
+                            if (watermarkConfig.isEnabled) {  // 这里会使用folderMonitorWatermarkEnabled
+                                Log.d(TAG, "开始添加水印: ${inputFile.name}")
+                                try {
+                                    val watermarkedBitmap = watermarkProcessor.addWatermark(
+                                        lutProcessedBitmap!!,
+                                        watermarkConfig,
+                                        inputFile.uri,
+                                        currentLutName,
+                                        if (currentLut2Name.isNotEmpty()) currentLut2Name else null,
+                                        params.strength,
+                                        params.lut2Strength
+                                    )
+                                    Log.d(TAG, "水印添加完成: ${inputFile.name}")
+                                    watermarkedBitmap
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "添加水印失败: ${inputFile.name}", e)
                                     lutProcessedBitmap
                                 }
-
-                            val finalBitmap = processedBitmap
-
-                            // 修复：使用正确的文件命名格式
-                            val originalName = inputFile.name?.substringBeforeLast(".") ?: "unknown"
-                            val outputFileName = "${originalName}-${currentLutName}.jpg"
-                            val outputFile = outputDir.createFile("image/jpeg", outputFileName)
-
-                            // 在processDocumentFile方法中，替换原来的保存逻辑
-                            outputFile?.let { file ->
-                                // 直接保存带EXIF信息的图片，而不是分两步
-                                saveBitmapWithExif(
-                                    finalBitmap,
-                                    inputFile.uri,
-                                    file.uri,
-                                    params.quality,
-                                    outputFileName
-                                )
-                                
-                                // 保存处理记录到历史
-                                saveProcessingRecord(
-                                    fileName = inputFile.name ?: "unknown",
-                                    inputPath = inputFile.uri.toString(),
-                                    outputPath = file.uri.toString(),
-                                    lutFileName = currentLutName,
-                                    params = params
-                                )
+                            } else {
+                                lutProcessedBitmap
                             }
+
+                        // 修复：使用正确的文件命名格式
+                        val originalName = inputFile.name?.substringBeforeLast(".") ?: "unknown"
+                        val outputFileName = "${originalName}-${currentLutName}.jpg"
+                        val outputFile = outputDir.createFile("image/jpeg", outputFileName)
+
+                        // 在processDocumentFile方法中，替换原来的保存逻辑
+                        outputFile?.let { file ->
+                            // 直接保存带EXIF信息的图片，而不是分两步
+                            saveBitmapWithExif(
+                                finalBitmap!!,
+                                inputFile.uri,
+                                file.uri,
+                                params.quality,
+                                outputFileName
+                            )
+
+                            // 保存处理记录到历史
+                            saveProcessingRecord(
+                                fileName = inputFile.name ?: "unknown",
+                                inputPath = inputFile.uri.toString(),
+                                outputPath = file.uri.toString(),
+                                lutFileName = currentLutName,
+                                params = params
+                            )
                         }
                     }
                 }
+            } finally {
+                recycleBitmaps(finalBitmap, lutProcessedBitmap, correctedBitmap, decodedBitmap)
             }
         } catch (e: Exception) {
             Log.e(TAG, "处理文档文件失败: ${inputFile.name}", e)
@@ -1571,6 +1571,15 @@ class FolderMonitorService : Service() {
 
         stopMonitoring()
         serviceScope.cancel()
+    }
+
+    private fun recycleBitmaps(vararg bitmaps: Bitmap?) {
+        val seen = HashSet<Bitmap>()
+        for (bitmap in bitmaps) {
+            if (bitmap != null && !bitmap.isRecycled && seen.add(bitmap)) {
+                bitmap.recycle()
+            }
+        }
     }
 
     private fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
