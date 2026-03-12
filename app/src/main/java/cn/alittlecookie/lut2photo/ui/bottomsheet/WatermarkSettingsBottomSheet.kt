@@ -594,6 +594,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                         binding.layoutManualColor.visibility = View.GONE
                         binding.layoutAutoColor.visibility = View.VISIBLE
                         binding.layoutMaterialColor.visibility = View.GONE
+                        // 显示调色板网格（即使没有选择图片也显示默认颜色）
+                        binding.gridPaletteColors.visibility = View.VISIBLE
                     }
 
                     binding.buttonMaterialColor.id -> {
@@ -709,6 +711,52 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             false
         }
         
+        // 为可用变量文字段落设置触摸事件处理，防止滑动时关闭BottomSheet
+        binding.textAvailableVariables.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+        
+        // 为Palette颜色按钮设置触摸事件处理
+        val paletteColorButtons = listOf(
+            binding.buttonPaletteColor1,
+            binding.buttonPaletteColor2,
+            binding.buttonPaletteColor3,
+            binding.buttonPaletteColor4,
+            binding.buttonPaletteColor5,
+            binding.buttonPaletteColor6
+        )
+        
+        paletteColorButtons.forEach { button ->
+            button.setOnTouchListener { view, event ->
+                view.parent.requestDisallowInterceptTouchEvent(true)
+                false
+            }
+        }
+        
+        // 为Material颜色按钮设置触摸事件处理
+        val materialColorButtons = listOf(
+            binding.buttonMaterialRed,
+            binding.buttonMaterialPink,
+            binding.buttonMaterialPurple,
+            binding.buttonMaterialDeepPurple,
+            binding.buttonMaterialIndigo,
+            binding.buttonMaterialBlue,
+            binding.buttonMaterialLightBlue,
+            binding.buttonMaterialCyan,
+            binding.buttonMaterialTeal,
+            binding.buttonMaterialGreen,
+            binding.buttonMaterialOrange,
+            binding.buttonMaterialBrown
+        )
+        
+        materialColorButtons.forEach { button ->
+            button.setOnTouchListener { view, event ->
+                view.parent.requestDisallowInterceptTouchEvent(true)
+                false
+            }
+        }
+        
         // 为水印预览区域设置触摸事件处理，防止下滑时意外关闭BottomSheet
         binding.watermarkPreview.setOnTouchListener { view, event ->
             // 阻止触摸事件传递给BottomSheet
@@ -783,6 +831,29 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.dropdownTextPositionReference.setOnTouchListener { view, event ->
             view.parent.requestDisallowInterceptTouchEvent(true)
             false
+        }
+        
+        // 设置下拉框选择监听器，同时处理滚动位置和预览刷新
+        binding.dropdownImagePositionReference.setOnItemClickListener { _, _, _, _ ->
+            // 记录当前滚动位置
+            val currentScrollY = binding.scrollviewContent.scrollY
+            // 先触发预览更新
+            updatePreview()
+            // 延迟恢复滚动位置，避免被下拉框的自动滚动覆盖
+            binding.scrollviewContent.postDelayed({
+                binding.scrollviewContent.scrollTo(0, currentScrollY)
+            }, 100)
+        }
+        
+        binding.dropdownTextPositionReference.setOnItemClickListener { _, _, _, _ ->
+            // 记录当前滚动位置
+            val currentScrollY = binding.scrollviewContent.scrollY
+            // 先触发预览更新
+            updatePreview()
+            // 延迟恢复滚动位置，避免被下拉框的自动滚动覆盖
+            binding.scrollviewContent.postDelayed({
+                binding.scrollviewContent.scrollTo(0, currentScrollY)
+            }, 100)
         }
     }
 
@@ -914,7 +985,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
 
         // 设置图片文字间距
-        binding.sliderTextImageSpacing.value = config.textImageSpacing.coerceIn(-500f, 500f)
+        binding.sliderTextImageSpacing.value = config.textImageSpacing.coerceIn(0f, 100f)
 
         // 更新UI显示状态
         updateTextFollowModeVisibility(config.enableTextFollowMode)
@@ -941,6 +1012,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                 binding.layoutManualColor.visibility = View.GONE
                 binding.layoutAutoColor.visibility = View.VISIBLE
                 binding.layoutMaterialColor.visibility = View.GONE
+                // 显示调色板网格（即使没有选择图片也显示默认颜色）
+                binding.gridPaletteColors.visibility = View.VISIBLE
             }
 
             cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> {
@@ -1372,7 +1445,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         binding.toggleGroupTextFollowDirection.check(followDirectionButtonId)
 
         // 设置图片文字间距
-        binding.sliderTextImageSpacing.value = config.textImageSpacing.coerceIn(-500f, 500f)
+        binding.sliderTextImageSpacing.value = config.textImageSpacing.coerceIn(0f, 100f)
 
         // 更新UI显示状态
         updateTextFollowModeVisibility(config.enableTextFollowMode)
@@ -1399,6 +1472,8 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                 binding.layoutManualColor.visibility = View.GONE
                 binding.layoutAutoColor.visibility = View.VISIBLE
                 binding.layoutMaterialColor.visibility = View.GONE
+                // 显示调色板网格（即使没有选择图片也显示默认颜色）
+                binding.gridPaletteColors.visibility = View.VISIBLE
             }
 
             cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode.MATERIAL -> {
@@ -1692,11 +1767,14 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 文字跟随模式变化
         binding.switchTextFollowMode.setOnCheckedChangeListener { _, isChecked ->
             updateTextFollowModeVisibility(isChecked)
+            updatePreview()
         }
         binding.toggleGroupTextFollowDirection.addOnButtonCheckedListener { _, _, _ -> updatePreview() }
 
         // 文本对齐方式变化
         binding.toggleGroupTextAlignment.addOnButtonCheckedListener { _, _, _ -> updatePreview() }
+        
+        // 注意：定位参考系的监听器已在setupPositionReferenceDropdowns()中设置
     }
 
     /**
@@ -2042,6 +2120,19 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                     updatePreview()
                 }
             }
+        }
+        
+        // 初始化时显示默认的Material颜色作为占位
+        if (paletteColors.isEmpty()) {
+            paletteColors = listOf(
+                Color.parseColor("#619AC3"), // 主色
+                Color.parseColor("#2196F3"), // 鲜艳
+                Color.parseColor("#4CAF50"), // 柔和
+                Color.parseColor("#322F3B"), // 深色
+                Color.parseColor("#CDD1D3"), // 浅色
+                Color.parseColor("#795548")  // 侘寂
+            )
+            updatePaletteColorButtons()
         }
     }
 

@@ -757,7 +757,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
         // 目标宽度：图片宽度的百分比
         val targetWidth = bitmap.width * config.textSize / 100f
         
-        // 优化的二分查找：减少迭代次数，提高性能
+        // 优化的二分查找：建议3：考虑字间距
         var minSize = 1f
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
@@ -766,7 +766,15 @@ class WatermarkPreviewView @JvmOverloads constructor(
         for (i in 0 until 10) {
             val testSize = (minSize + maxSize) / 2f
             paint.textSize = testSize
-            paint.letterSpacing = 0f
+            
+            // 建议3：在二分查找时就设置字间距
+            if (config.letterSpacing != 0f) {
+                val singleCharWidth = paint.measureText("字")
+                val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
+                paint.letterSpacing = letterSpacingPx / testSize
+            } else {
+                paint.letterSpacing = 0f
+            }
             
             // 找到实际渲染宽度最宽的行
             val maxLineWidth = lines.maxOfOrNull { line -> 
@@ -785,26 +793,27 @@ class WatermarkPreviewView @JvmOverloads constructor(
             finalTextSize = (minSize + maxSize) / 2f
         }
 
-        // 设置最终的字体大小
+        // 设置最终的字体大小和字间距
         paint.textSize = finalTextSize
-
-        // 测量单个文字的宽度
-        paint.letterSpacing = 0f
-        val singleCharWidth = paint.measureText("字")
         
-        // 设置字间距（基于单个文字宽度的百分比）
-        if (config.letterSpacing != 0f && finalTextSize > 0 && singleCharWidth > 0) {
+        if (config.letterSpacing != 0f) {
+            val singleCharWidth = paint.measureText("字")
             val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
             paint.letterSpacing = letterSpacingPx / finalTextSize
         } else {
             paint.letterSpacing = 0f
         }
 
-        // 计算行间距（基于单个文字高度的百分比）
-        val singleCharHeight = finalTextSize
-        val baseLineHeight = singleCharHeight * 1.2f
+        // 建议1和建议2：使用真实字体度量计算行间距和基线偏移
+        val fontMetrics = paint.fontMetrics
+        val actualCharHeight = fontMetrics.descent - fontMetrics.ascent
+        val baselineOffset = -fontMetrics.ascent
+        
+        // 使用字体推荐的行高（包含leading）
+        val recommendedLineHeight = actualCharHeight + fontMetrics.leading
+        val baseLineHeight = recommendedLineHeight
         val additionalLineSpacing = if (config.lineSpacing != 0f) {
-            singleCharHeight * config.lineSpacing / 100f
+            actualCharHeight * config.lineSpacing / 100f
         } else {
             0f
         }
@@ -819,9 +828,9 @@ class WatermarkPreviewView @JvmOverloads constructor(
         } ?: 0f
         
         // 文字段落的视觉中心：最小外接矩形的中心
-        // 垂直方向：使用总高度的中心，考虑文字基线
+        // 垂直方向：使用真实基线位置计算
         val textCenterY = y
-        val startY = textCenterY - totalHeight / 2 + singleCharHeight * 0.8f
+        val startY = textCenterY - totalHeight / 2 + baselineOffset
         
         // 水平方向：根据对齐方式计算，但锚点始终在段落视觉中心
         val textCenterX = x
@@ -876,11 +885,18 @@ class WatermarkPreviewView @JvmOverloads constructor(
         config: WatermarkConfig,
         text: String
     ): PointF {
-        // 计算单个文字的高度（使用与WatermarkProcessor一致的方法）
-        val singleCharHeight = calculateSingleCharHeight(bitmap, config, text)
-        
-        // 计算间距（基于单个文字高度的百分比）
-        val spacing = singleCharHeight * spacingPercent / 100f
+        // 计算间距（基于增加边框后的图片尺寸的百分比）
+        // 上方和下方使用图片高度百分比，左侧和右侧使用图片宽度百分比
+        val spacing = when (followDirection) {
+            TextFollowDirection.TOP, TextFollowDirection.BOTTOM -> {
+                // 上方和下方：使用增加边框后的图片高度百分比
+                bitmap.height * spacingPercent / 100f
+            }
+            TextFollowDirection.LEFT, TextFollowDirection.RIGHT -> {
+                // 左侧和右侧：使用增加边框后的图片宽度百分比
+                bitmap.width * spacingPercent / 100f
+            }
+        }
 
         // 计算文字段落视觉中心的位置
         // 文字跟随模式下，锚点始终在文字段落的视觉中心，不受对齐方式影响
@@ -944,7 +960,7 @@ class WatermarkPreviewView @JvmOverloads constructor(
         // 目标宽度：图片宽度的百分比
         val targetWidth = bitmap.width * config.textSize / 100f
         
-        // 二分查找合适的字体大小（优化迭代次数）
+        // 二分查找合适的字体大小（建议3：考虑字间距）
         var minSize = 1f
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
@@ -952,7 +968,15 @@ class WatermarkPreviewView @JvmOverloads constructor(
         for (i in 0 until 10) {
             val testSize = (minSize + maxSize) / 2f
             tempPaint.textSize = testSize
-            tempPaint.letterSpacing = 0f
+            
+            // 建议3：在二分查找时就设置字间距
+            if (config.letterSpacing != 0f) {
+                val singleCharWidth = tempPaint.measureText("字")
+                val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
+                tempPaint.letterSpacing = letterSpacingPx / testSize
+            } else {
+                tempPaint.letterSpacing = 0f
+            }
             
             // 找到实际渲染宽度最宽的行
             val maxLineWidth = lines.maxOfOrNull { line -> 
@@ -971,8 +995,20 @@ class WatermarkPreviewView @JvmOverloads constructor(
             finalTextSize = (minSize + maxSize) / 2f
         }
         
-        // 文字高度约等于字体大小
-        return finalTextSize
+        tempPaint.textSize = finalTextSize
+        
+        // 设置最终的字间距
+        if (config.letterSpacing != 0f) {
+            val singleCharWidth = tempPaint.measureText("字")
+            val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
+            tempPaint.letterSpacing = letterSpacingPx / finalTextSize
+        } else {
+            tempPaint.letterSpacing = 0f
+        }
+        
+        // 建议1：使用真实字体度量获取字符高度
+        val fontMetrics = tempPaint.fontMetrics
+        return fontMetrics.descent - fontMetrics.ascent
     }
 
     /**

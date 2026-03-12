@@ -384,6 +384,7 @@
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/text_available_variables"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
@@ -752,7 +753,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="4dp"
-                        android:text="图片文字间距 (单个文字宽度百分比)"
+                        android:text="图片文字间距 (画布高/宽度百分比)"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:visibility="gone" />
 
@@ -772,10 +773,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:layout_weight="1"
-                            android:stepSize="50"
-                            android:value="100"
-                            android:valueFrom="-500"
-                            android:valueTo="500" />
+                            android:stepSize="1"
+                            android:value="10"
+                            android:valueFrom="0"
+                            android:valueTo="100" />
 
                         <TextView
                             android:id="@+id/text_text_image_spacing_value"
@@ -783,7 +784,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:minWidth="48dp"
-                            android:text="100%"
+                            android:text="10%"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
                     </LinearLayout>
 
@@ -1102,7 +1103,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="自动" />
+                            android:text="Palette" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_material_color"
@@ -1153,8 +1154,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:text="点击预览图选择图片以取色"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                            android:text="@string/palette_description"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                         <!-- Palette颜色选择网格 -->
                         <GridLayout
@@ -1234,8 +1235,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:text="Material"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+                            android:text="Material预设颜色"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                         <!-- Material颜色选择网格 -->
                         <GridLayout

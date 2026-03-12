@@ -701,7 +701,8 @@ class WatermarkProcessor(private val context: Context) {
                 config.textAlignment,
                 config.textSize,
                 processedText,
-                config.fontPath
+                config.fontPath,
+                config.letterSpacing
             )
 
             // 绘制文字水印
@@ -796,7 +797,8 @@ class WatermarkProcessor(private val context: Context) {
         bitmap: Bitmap,
         textSizePercent: Float,
         text: String,
-        fontPath: String
+        fontPath: String,
+        letterSpacing: Float = 0f
     ): Pair<Float, Float> {
         val lines = text.split("\n")
         if (lines.isEmpty()) return Pair(0f, 0f)
@@ -818,7 +820,7 @@ class WatermarkProcessor(private val context: Context) {
         // 目标宽度：图片宽度的百分比
         val targetWidth = bitmap.width * textSizePercent / 100f
         
-        // 二分查找合适的字体大小
+        // 二分查找合适的字体大小（建议3：考虑字间距）
         var minSize = 1f
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
@@ -826,7 +828,15 @@ class WatermarkProcessor(private val context: Context) {
         for (i in 0 until 10) { // 优化迭代次数到10次，提升性能
             val testSize = (minSize + maxSize) / 2f
             tempPaint.textSize = testSize
-            tempPaint.letterSpacing = 0f // 测量时不考虑字间距
+            
+            // 建议3：在二分查找时就设置字间距
+            if (letterSpacing != 0f) {
+                val singleCharWidth = tempPaint.measureText("字")
+                val letterSpacingPx = singleCharWidth * letterSpacing / 100f
+                tempPaint.letterSpacing = letterSpacingPx / testSize
+            } else {
+                tempPaint.letterSpacing = 0f
+            }
             
             // 找到实际渲染宽度最宽的行
             val maxLineWidth = lines.maxOfOrNull { line -> 
@@ -849,7 +859,15 @@ class WatermarkProcessor(private val context: Context) {
         }
         
         tempPaint.textSize = finalTextSize
-        tempPaint.letterSpacing = 0f
+        
+        // 设置最终的字间距
+        if (letterSpacing != 0f) {
+            val singleCharWidth = tempPaint.measureText("字")
+            val letterSpacingPx = singleCharWidth * letterSpacing / 100f
+            tempPaint.letterSpacing = letterSpacingPx / finalTextSize
+        } else {
+            tempPaint.letterSpacing = 0f
+        }
         
         // 找到实际渲染宽度最宽的行（用于日志）
         val longestLine = lines.maxByOrNull { line -> 
@@ -858,11 +876,15 @@ class WatermarkProcessor(private val context: Context) {
         val maxLineWidth = if (longestLine.isEmpty()) 0f else tempPaint.measureText(longestLine)
         
         val charWidth = tempPaint.measureText("字")
-        val charHeight = finalTextSize // 文字高度约等于字体大小
+        
+        // 建议1：使用真实字体度量获取字符高度
+        val fontMetrics = tempPaint.fontMetrics
+        val charHeight = fontMetrics.descent - fontMetrics.ascent
         
         android.util.Log.d(TAG, "calculateSingleCharSize - 图片宽度: ${bitmap.width}px, 目标百分比: $textSizePercent%, 目标宽度: ${targetWidth}px")
         android.util.Log.d(TAG, "calculateSingleCharSize - 最宽行: \"$longestLine\", 实际宽度: ${maxLineWidth}px")
-        android.util.Log.d(TAG, "calculateSingleCharSize - 最终字体大小: ${finalTextSize}px, 单字宽度: ${charWidth}px, 单字高度: ${charHeight}px")
+        android.util.Log.d(TAG, "calculateSingleCharSize - 最终字体大小: ${finalTextSize}px, 单字宽度: ${charWidth}px")
+        android.util.Log.d(TAG, "calculateSingleCharSize - 真实字符高度: ${charHeight}px (ascent: ${fontMetrics.ascent}, descent: ${fontMetrics.descent})")
         
         return Pair(charWidth, charHeight)
     }
@@ -880,13 +902,21 @@ class WatermarkProcessor(private val context: Context) {
         textAlignment: cn.alittlecookie.lut2photo.lut2photo.model.TextAlignment,
         textSizePercent: Float,
         text: String,
-        fontPath: String
+        fontPath: String,
+        letterSpacing: Float = 0f
     ): PointF {
-        // 计算单个文字的尺寸
-        val (_, singleCharHeight) = calculateSingleCharSize(bitmap, textSizePercent, text, fontPath)
-        
-        // 计算间距（基于单个文字高度的百分比）
-        val spacing = singleCharHeight * spacingPercent / 100f
+        // 计算间距（基于增加边框后的图片尺寸的百分比）
+        // 上方和下方使用图片高度百分比，左侧和右侧使用图片宽度百分比
+        val spacing = when (followDirection) {
+            TextFollowDirection.TOP, TextFollowDirection.BOTTOM -> {
+                // 上方和下方：使用增加边框后的图片高度百分比
+                bitmap.height * spacingPercent / 100f
+            }
+            TextFollowDirection.LEFT, TextFollowDirection.RIGHT -> {
+                // 左侧和右侧：使用增加边框后的图片宽度百分比
+                bitmap.width * spacingPercent / 100f
+            }
+        }
 
         // 计算文字段落视觉中心的位置
         // 文字跟随模式下，锚点始终在文字段落的视觉中心，不受对齐方式影响
@@ -1030,6 +1060,7 @@ class WatermarkProcessor(private val context: Context) {
         }
         
         // 二分查找合适的字体大小，使最宽行的实际渲染宽度等于目标宽度
+        // 建议3：在二分查找时就考虑字间距
         var minSize = 1f
         var maxSize = bitmap.width.toFloat()
         var finalTextSize = minSize
@@ -1038,7 +1069,15 @@ class WatermarkProcessor(private val context: Context) {
         for (i in 0 until 10) { // 优化迭代次数到10次，提升性能
             val testSize = (minSize + maxSize) / 2f
             paint.textSize = testSize
-            paint.letterSpacing = 0f // 先不考虑字间距
+            
+            // 建议3：在二分查找时就设置字间距
+            if (config.letterSpacing != 0f) {
+                val singleCharWidth = paint.measureText("字")
+                val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
+                paint.letterSpacing = letterSpacingPx / testSize
+            } else {
+                paint.letterSpacing = 0f
+            }
             
             // 找到实际渲染宽度最宽的行
             val maxLineWidth = lines.maxOfOrNull { line -> 
@@ -1064,8 +1103,16 @@ class WatermarkProcessor(private val context: Context) {
             finalTextSize = (minSize + maxSize) / 2f
         }
 
-        // 设置最终的字体大小
+        // 设置最终的字体大小和字间距
         paint.textSize = finalTextSize
+        
+        if (config.letterSpacing != 0f) {
+            val singleCharWidth = paint.measureText("字")
+            val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
+            paint.letterSpacing = letterSpacingPx / finalTextSize
+        } else {
+            paint.letterSpacing = 0f
+        }
         
         // 找到实际渲染宽度最宽的行（用于日志）
         val longestLine = lines.maxByOrNull { line -> 
@@ -1078,23 +1125,16 @@ class WatermarkProcessor(private val context: Context) {
         android.util.Log.d(TAG, "目标宽度: ${targetWidth}px, 误差: ${longestLineWidth - targetWidth}px (${((longestLineWidth - targetWidth) / targetWidth * 100)}%)")
         android.util.Log.d(TAG, "========== 文字大小计算完成 ==========\n")
 
-        // 测量单个文字的宽度（使用一个标准字符，如"字"）
-        paint.letterSpacing = 0f // 确保测量时没有字间距
-        val singleCharWidth = paint.measureText("字")
+        // 建议1和建议2：使用真实字体度量计算行间距和基线偏移
+        val fontMetrics = paint.fontMetrics
+        val actualCharHeight = fontMetrics.descent - fontMetrics.ascent
+        val baselineOffset = -fontMetrics.ascent
         
-        // 设置字间距（基于单个文字宽度的百分比）
-        if (config.letterSpacing != 0f && finalTextSize > 0 && singleCharWidth > 0) {
-            val letterSpacingPx = singleCharWidth * config.letterSpacing / 100f
-            paint.letterSpacing = letterSpacingPx / finalTextSize
-        } else {
-            paint.letterSpacing = 0f
-        }
-
-        // 计算行间距（基于单个文字高度的百分比）
-        val singleCharHeight = finalTextSize  // 文字高度约等于字体大小
-        val baseLineHeight = singleCharHeight * 1.2f  // 基础行高为字符高度的1.2倍
+        // 使用字体推荐的行高（包含leading）
+        val recommendedLineHeight = actualCharHeight + fontMetrics.leading
+        val baseLineHeight = recommendedLineHeight
         val additionalLineSpacing = if (config.lineSpacing != 0f) {
-            singleCharHeight * config.lineSpacing / 100f
+            actualCharHeight * config.lineSpacing / 100f
         } else {
             0f
         }
@@ -1109,9 +1149,16 @@ class WatermarkProcessor(private val context: Context) {
         } ?: 0f
         
         // 文字段落的视觉中心：最小外接矩形的中心
-        // 垂直方向：使用总高度的中心，考虑文字基线
+        // 垂直方向：使用真实基线位置计算
         val textCenterY = centerY
-        val startY = textCenterY - totalHeight / 2 + singleCharHeight * 0.8f
+        val startY = textCenterY - totalHeight / 2 + baselineOffset
+        
+        android.util.Log.d(TAG, "========== 文字锚点计算 ==========")
+        android.util.Log.d(TAG, "字体度量 - ascent: ${fontMetrics.ascent}, descent: ${fontMetrics.descent}, leading: ${fontMetrics.leading}")
+        android.util.Log.d(TAG, "实际字符高度: ${actualCharHeight}px, 基线偏移: ${baselineOffset}px")
+        android.util.Log.d(TAG, "推荐行高: ${recommendedLineHeight}px, 最终行高: ${lineHeight}px")
+        android.util.Log.d(TAG, "总高度: ${totalHeight}px, 起始Y: ${startY}px")
+        android.util.Log.d(TAG, "========== 锚点计算完成 ==========\n")
         
         // 水平方向：根据对齐方式计算，但锚点始终在段落视觉中心
         val textCenterX = centerX
