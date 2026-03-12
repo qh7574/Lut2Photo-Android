@@ -11,6 +11,7 @@ import android.opengl.EGLSurface
 import android.opengl.GLES30
 import android.opengl.GLUtils
 import android.util.Log
+import android.widget.Toast
 import androidx.core.graphics.createBitmap
 import cn.alittlecookie.lut2photo.lut2photo.core.CpuLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
@@ -286,6 +287,9 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
 
     // ByteBuffer缓存池，复用内存
     private val bufferCache = mutableMapOf<String, ByteBuffer>()
+    
+    // GPU纹理尺寸缓存
+    private var cachedMaxTextureSize: Int? = null
 
     // 删除这行：private var egl: EGL10? = null
     private var eglDisplay: EGLDisplay? = null
@@ -410,6 +414,77 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     private fun clearBufferCache() {
         bufferCache.clear()
         Log.d(TAG, "清理所有ByteBuffer缓存")
+    }
+
+    /**
+     * 获取GPU最大纹理尺寸
+     */
+    private fun getMaxTextureSize(): Int {
+        cachedMaxTextureSize?.let { return it }
+        
+        return try {
+            val maxTextureSizeArray = IntArray(1)
+            GLES30.glGetIntegerv(GLES30.GL_MAX_TEXTURE_SIZE, maxTextureSizeArray, 0)
+            val maxSize = maxTextureSizeArray[0]
+            
+            // 使用保守值，确保兼容性
+            val safeSize = minOf(maxSize, 8192)
+            cachedMaxTextureSize = safeSize
+            
+            Log.d(TAG, "GPU最大纹理尺寸: $maxSize, 使用安全值: $safeSize")
+            safeSize
+        } catch (e: Exception) {
+            Log.w(TAG, "无法获取GPU纹理尺寸，使用默认值4096", e)
+            val defaultSize = 4096
+            cachedMaxTextureSize = defaultSize
+            defaultSize
+        }
+    }
+    
+    /**
+     * 估算内存使用量（MB）
+     */
+    private fun estimateMemoryUsage(width: Int, height: Int): Long {
+        val pixels = width.toLong() * height
+        // ARGB_8888 = 4字节/像素，GPU处理需要额外的缓冲区
+        val bitmapMemoryMB = (pixels * 4) / (1024 * 1024)
+        val bufferMemoryMB = (pixels * 4) / (1024 * 1024) // ByteBuffer
+        val totalMemoryMB = bitmapMemoryMB + bufferMemoryMB + 50 // 额外开销
+        
+        Log.d(TAG, "内存估算: Bitmap=${bitmapMemoryMB}MB, Buffer=${bufferMemoryMB}MB, 总计=${totalMemoryMB}MB")
+        return totalMemoryMB
+    }
+    
+    /**
+     * 检查内存可用性
+     */
+    private fun checkMemoryAvailability(requiredMB: Long): Boolean {
+        val runtime = Runtime.getRuntime()
+        val maxMemory = runtime.maxMemory()
+        val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+        val availableMemory = maxMemory - usedMemory
+        
+        val maxMB = maxMemory / (1024 * 1024)
+        val usedMB = usedMemory / (1024 * 1024)
+        val availableMB = availableMemory / (1024 * 1024)
+        
+        // 需要至少1.5倍的内存空间作为安全缓冲
+        val requiredWithBuffer = (requiredMB * 1.5).toLong()
+        val isSafe = availableMB > requiredWithBuffer
+        
+        Log.d(TAG, "内存状态: 最大=${maxMB}MB, 已用=${usedMB}MB, 可用=${availableMB}MB")
+        Log.d(TAG, "内存需求: 预估=${requiredMB}MB, 含缓冲=${requiredWithBuffer}MB, 安全=${isSafe}")
+        
+        return isSafe
+    }
+    
+    /**
+     * 显示回退提示Toast（已废弃，使用ProcessorSelectionStrategy统一处理）
+     */
+    @Deprecated("使用ProcessorSelectionStrategy.showFallbackToast代替")
+    private suspend fun showFallbackToast(reason: String) {
+        // 不再显示Toast，由ProcessorSelectionStrategy统一处理
+        Log.i(TAG, "GPU回退原因: $reason（Toast由ProcessorSelectionStrategy统一显示）")
     }
 
 
@@ -801,6 +876,21 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     ): Bitmap? {
         Log.d(TAG, "开始GPU处理，图片尺寸: ${bitmap.width}x${bitmap.height}")
         
+        // 1. 预检查：GPU纹理尺寸限制
+        val maxDimension = maxOf(bitmap.width, bitmap.height)
+        val maxTextureSize = getMaxTextureSize()
+        if (maxDimension > maxTextureSize) {
+            Log.w(TAG, "图片尺寸超过GPU纹理限制: $maxDimension > $maxTextureSize，直接回退到CPU")
+            throw RuntimeException("图片尺寸超过GPU纹理限制")
+        }
+        
+        // 2. 预检查：内存可用性
+        val estimatedMemoryMB = estimateMemoryUsage(bitmap.width, bitmap.height)
+        if (!checkMemoryAvailability(estimatedMemoryMB)) {
+            Log.w(TAG, "预估内存不足(${estimatedMemoryMB}MB)，直接回退到CPU")
+            throw OutOfMemoryError("预估内存不足")
+        }
+        
         // 检查是否需要 GPU 处理（LUT 或颗粒效果）
         val hasLut = currentLut != null || currentLut2 != null
         val hasGrain = currentGrainConfig?.isEnabled == true && (currentGrainConfig?.globalStrength ?: 0f) > 0f
@@ -849,6 +939,9 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
         params: ILutProcessor.ProcessingParams
     ): Bitmap? {
         return try {
+            // 不显示Toast，由ProcessorSelectionStrategy统一处理
+            Log.w(TAG, "GPU OOM回退到CPU处理: 内存不足")
+            
             // 清理GPU资源
             cleanupGpu()
             System.gc()
@@ -893,6 +986,9 @@ class GpuLutProcessor(private val context: Context) : ILutProcessor {
     ): Bitmap? {
         return try {
             Log.d(TAG, "GPU处理错误，准备CPU回退: ${originalError.message}")
+            
+            // 不显示Toast，由ProcessorSelectionStrategy统一处理
+            Log.w(TAG, "GPU错误回退到CPU处理: ${originalError.message}")
             
             // 确保CPU处理器有正确的LUT数据
             if (currentLut != null) {

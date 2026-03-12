@@ -47,6 +47,9 @@ class ThreadManager(context: Context) {
     private val cpuProcessor = CpuLutProcessor()
     private val gpuProcessor = GpuLutProcessor(context)
     private val filmGrainProcessor = FilmGrainProcessor()
+    
+    // 智能处理器选择策略
+    private val processorSelectionStrategy = ProcessorSelectionStrategy(context)
 
     // Preferred processor type
     private var preferredProcessor = ILutProcessor.ProcessorType.CPU
@@ -352,38 +355,90 @@ class ThreadManager(context: Context) {
         val taskId = "task_${taskCounter.incrementAndGet()}_${System.currentTimeMillis()}"
         val task = ProcessingTask(taskId, bitmap, params, currentGrainConfig, onProgress, onComplete)
 
-        val processorType = forceProcessor ?: preferredProcessor
-
-        // 增强日志记录
-        Log.d(TAG, "========== 提交任务 $taskId ==========")
-        Log.d(TAG, "强制处理器: $forceProcessor")
-        Log.d(TAG, "首选处理器: $preferredProcessor")
-        Log.d(TAG, "实际使用: $processorType")
-        Log.d(TAG, "GPU可用: $isGpuAvailable")
-        Log.d(TAG, "用户设置: ${preferencesManager.processorType}")
-        Log.d(TAG, "处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}")
-        Log.d(TAG, "========================================")
-        
-        val job = when (processorType) {
-            ILutProcessor.ProcessorType.GPU -> {
-                if (isGpuAvailable) {
-                    Log.d(TAG, "任务 $taskId 提交给GPU处理")
-                    managerScope.launch {
-                        gpuChannel.send(task)
-                    }
-                } else {
-                    Log.w(TAG, "GPU请求但不可用，任务 $taskId 回退到CPU")
-                    submitCpuTask(task)
+        // 使用智能处理器选择策略
+        managerScope.launch {
+            try {
+                val userPreferenceString = when (forceProcessor) {
+                    ILutProcessor.ProcessorType.GPU -> "GPU"
+                    ILutProcessor.ProcessorType.CPU -> "CPU"
+                    null -> preferencesManager.processorType
                 }
-            }
+                
+                Log.d(TAG, "开始智能处理器选择，用户偏好: $userPreferenceString")
+                
+                val selectionResult = processorSelectionStrategy.selectOptimalProcessor(
+                    bitmap = bitmap,
+                    userPreferenceString = userPreferenceString,
+                    isGpuAvailable = isGpuAvailable
+                )
+                
+                val processorType = selectionResult.processorType
 
-            ILutProcessor.ProcessorType.CPU -> {
-                Log.d(TAG, "任务 $taskId 提交给CPU处理")
-                submitCpuTask(task)
+                // 增强日志记录
+                Log.d(TAG, "========== 提交任务 $taskId ==========")
+                Log.d(TAG, "强制处理器: $forceProcessor")
+                Log.d(TAG, "首选处理器: $preferredProcessor")
+                Log.d(TAG, "用户偏好字符串: $userPreferenceString")
+                Log.d(TAG, "智能选择: $processorType")
+                Log.d(TAG, "选择原因: ${selectionResult.reason}")
+                Log.d(TAG, "需要显示Toast: ${selectionResult.shouldShowToast}")
+                Log.d(TAG, "回退原因: ${selectionResult.fallbackReason?.message}")
+                Log.d(TAG, "GPU可用: $isGpuAvailable")
+                Log.d(TAG, "用户设置: ${preferencesManager.processorType}")
+                Log.d(TAG, "处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}")
+                Log.d(TAG, "========================================")
+                
+                // 显示回退提示Toast
+                if (selectionResult.shouldShowToast && selectionResult.fallbackReason != null) {
+                    Log.d(TAG, "准备显示回退Toast: ${selectionResult.fallbackReason.message}")
+                    try {
+                        processorSelectionStrategy.showFallbackToast(selectionResult.fallbackReason)
+                        Log.d(TAG, "Toast显示调用完成")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Toast显示失败", e)
+                    }
+                }
+                
+                val job = when (processorType) {
+                    ILutProcessor.ProcessorType.GPU -> {
+                        Log.d(TAG, "任务 $taskId 提交给GPU处理")
+                        managerScope.launch {
+                            gpuChannel.send(task)
+                        }
+                    }
+
+                    ILutProcessor.ProcessorType.CPU -> {
+                        Log.d(TAG, "任务 $taskId 提交给CPU处理")
+                        submitCpuTask(task)
+                    }
+                }
+
+                activeTasks[taskId] = job
+            } catch (e: Exception) {
+                Log.e(TAG, "智能处理器选择失败，回退到原逻辑", e)
+                // 回退到原来的逻辑
+                val processorType = forceProcessor ?: preferredProcessor
+                val job = when (processorType) {
+                    ILutProcessor.ProcessorType.GPU -> {
+                        if (isGpuAvailable) {
+                            Log.d(TAG, "任务 $taskId 提交给GPU处理")
+                            managerScope.launch {
+                                gpuChannel.send(task)
+                            }
+                        } else {
+                            Log.w(TAG, "GPU请求但不可用，任务 $taskId 回退到CPU")
+                            submitCpuTask(task)
+                        }
+                    }
+                    ILutProcessor.ProcessorType.CPU -> {
+                        Log.d(TAG, "任务 $taskId 提交给CPU处理")
+                        submitCpuTask(task)
+                    }
+                }
+                activeTasks[taskId] = job
             }
         }
-
-        activeTasks[taskId] = job
+        
         return taskId
     }
 
