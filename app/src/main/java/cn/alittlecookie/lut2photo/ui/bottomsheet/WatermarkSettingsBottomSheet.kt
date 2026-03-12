@@ -2125,12 +2125,12 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 初始化时显示默认的Material颜色作为占位
         if (paletteColors.isEmpty()) {
             paletteColors = listOf(
-                Color.parseColor("#619AC3"), // 主色
-                Color.parseColor("#2196F3"), // 鲜艳
-                Color.parseColor("#4CAF50"), // 柔和
-                Color.parseColor("#322F3B"), // 深色
-                Color.parseColor("#CDD1D3"), // 浅色
-                Color.parseColor("#795548")  // 侘寂
+                Color.parseColor("#2196F3"), // Vibrant
+                Color.parseColor("#619AC3"), // Light Vibrant
+                Color.parseColor("#4CAF50"), // Dark Vibrant
+                Color.parseColor("#CDD1D3"), // Muted
+                Color.parseColor("#322F3B"), // Light Muted
+                Color.parseColor("#795548")  // Dark Muted
             )
             updatePaletteColorButtons()
         }
@@ -2171,7 +2171,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.buttonPaletteColor6
         )
 
-        val labels = listOf("主色", "鲜艳", "柔和", "深色", "浅色", "侘寂")
+        val labels = listOf("炽烈", "清曜", "棠梨", "尘霭", "霜月", "侘寂")
 
         println("更新调色板按钮，颜色数量: ${paletteColors.size}")
 

@@ -30,8 +30,13 @@ class MemoryMonitorService : Service() {
         private const val CHANNEL_ID = "memory_monitor_channel"
         private const val MONITORING_INTERVAL_MS = 5000L // 5秒监控间隔
         private const val WARNING_NOTIFICATION_INTERVAL_MS = 30000L // 30秒警告间隔
+        private val isServiceStarted = AtomicBoolean(false)
 
         fun startService(context: Context) {
+            if (isServiceStarted.get()) {
+                Log.d(TAG, "服务已在运行，跳过重复启动")
+                return
+            }
             val intent = Intent(context, MemoryMonitorService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -48,6 +53,7 @@ class MemoryMonitorService : Service() {
 
     private var monitoringJob: Job? = null
     private val isMonitoring = AtomicBoolean(false)
+    private val isForegroundStarted = AtomicBoolean(false)
     private var lastWarningTime = 0L
     private var errorHandler: ErrorHandler? = null
     private var memoryManager: MemoryManager? = null
@@ -72,21 +78,33 @@ class MemoryMonitorService : Service() {
         // 创建通知渠道
         createNotificationChannel()
 
+        // 尽快启动前台服务，避免超时
+        ensureForegroundStarted(
+            "内存监控已启动",
+            "正在监控应用内存使用情况"
+        )
+
         // 初始化组件
         errorHandler = ErrorHandler(this)
         memoryManager = MyApplication.getMemoryManager()
 
         // 设置内存监听器
         setupMemoryListener()
+
+        isServiceStarted.set(true)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(TAG, "内存监控服务启动")
 
-        // 启动前台服务
-        startForeground(
-            NOTIFICATION_ID,
-            createNotification("内存监控已启动", "正在监控应用内存使用情况")
+        // 确保前台服务已启动，并更新通知
+        ensureForegroundStarted(
+            "内存监控已启动",
+            "正在监控应用内存使用情况"
+        )
+        updateNotification(
+            "内存监控已启动",
+            "正在监控应用内存使用情况"
         )
 
         // 开始监控
@@ -101,6 +119,9 @@ class MemoryMonitorService : Service() {
 
         // 停止监控
         stopMonitoring()
+
+        isForegroundStarted.set(false)
+        isServiceStarted.set(false)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -136,6 +157,18 @@ class MemoryMonitorService : Service() {
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+    }
+
+    /**
+     * 确保前台服务已启动，避免超时异常
+     */
+    private fun ensureForegroundStarted(title: String, content: String) {
+        if (isForegroundStarted.compareAndSet(false, true)) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(title, content)
+            )
+        }
     }
 
     /**

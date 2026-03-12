@@ -187,8 +187,10 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // 停止内存监控服务
-        stopMemoryMonitoringService()
+        // 仅在Activity真正结束时停止内存监控服务，避免重建时频繁启停
+        if (isFinishing) {
+            stopMemoryMonitoringService()
+        }
 
         // 释放Native处理器资源
         nativeProcessor?.let {
