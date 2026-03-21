@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ActivityFullscreenImageBinding
 import java.io.File
+import java.io.FileNotFoundException
 
 /**
  * 全屏图片查看 Activity
@@ -151,8 +152,22 @@ class FullscreenImageActivity : AppCompatActivity() {
     private fun loadImageAsync(uri: Uri) {
         showLoadingIndicator()
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                decodeBitmapWithGuard(uri)
+            val (result, error) = withContext(Dispatchers.IO) {
+                try {
+                    Pair(decodeBitmapWithGuard(uri), null)
+                } catch (t: Throwable) {
+                    Pair(DecodeResult(null, false), t)
+                }
+            }
+            if (error != null) {
+                hideLoadingIndicator()
+                if (isMissingFileException(error)) {
+                    Toast.makeText(this@FullscreenImageActivity, "文件已被删除或移动", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@FullscreenImageActivity, "加载图片失败", Toast.LENGTH_SHORT).show()
+                }
+                finish()
+                return@launch
             }
             val bitmap = result.bitmap
             if (bitmap != null) {
@@ -167,6 +182,18 @@ class FullscreenImageActivity : AppCompatActivity() {
                 finish()
             }
         }
+    }
+
+    private fun isMissingFileException(t: Throwable): Boolean {
+        var current: Throwable? = t
+        while (current != null) {
+            if (current is FileNotFoundException) {
+                return true
+            }
+            current = current.cause
+        }
+        val message = t.message ?: return false
+        return message.contains("Missing file", ignoreCase = true)
     }
 
     private fun decodeBitmapWithGuard(uri: Uri): DecodeResult {
