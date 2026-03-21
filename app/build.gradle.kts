@@ -11,8 +11,8 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 29
         targetSdk = 36
-        versionCode = 100321
-        versionName = "3.2.1"
+        versionCode = 100330
+        versionName = "3.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         renderscriptTargetApi = 21
