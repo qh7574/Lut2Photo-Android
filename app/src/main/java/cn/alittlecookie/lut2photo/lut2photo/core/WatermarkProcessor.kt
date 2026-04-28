@@ -39,6 +39,7 @@ class WatermarkProcessor(private val context: Context) {
     private val exifReader = ExifReader(context)
     private val density = context.resources.displayMetrics.density
     private val memoryManager = MemoryManager.getInstance(context)
+    private val preferencesManager = cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager(context)
 
     /**
      * 在主线程显示Toast提示
@@ -193,9 +194,16 @@ class WatermarkProcessor(private val context: Context) {
                 memoryManager.performGarbageCollection()
 
                 if (!memoryManager.canAllocate(requiredMemoryBytes)) {
-                    android.util.Log.w(TAG, "即使在GC后仍无法分配内存，返回处理后的图片")
-                    showToast("超出像素限制，已返回无边框图片")
-                    return@withContext processedBitmap
+                    // 检查是否启用了保持原始分辨率
+                    if (preferencesManager.keepOriginalResolution) {
+                        android.util.Log.w(TAG, "保持原始分辨率已启用，返回无边框图片")
+                        showToast("内存不足，已返回无边框图片")
+                        return@withContext processedBitmap
+                    } else {
+                        // 未启用保持原始分辨率，尝试缩放后添加边框
+                        android.util.Log.i(TAG, "尝试缩放图片以适应内存限制")
+                        return@withContext tryScaleAndAddBorder(processedBitmap, config, originalBitmap)
+                    }
                 }
             }
 
@@ -258,6 +266,137 @@ class WatermarkProcessor(private val context: Context) {
                 return@withContext processedBitmap
             }
         }
+
+    /**
+     * 尝试缩放图片并添加边框
+     * 当内存不足且未启用保持原始分辨率时调用
+     */
+    private suspend fun tryScaleAndAddBorder(
+        bitmap: Bitmap,
+        config: WatermarkConfig,
+        originalBitmap: Bitmap
+    ): Bitmap = withContext(Dispatchers.Default) {
+        // 获取当前内存状态和PSS限制
+        val memoryStatus = memoryManager.getCurrentMemoryStatus()
+        val memoryConfig = memoryManager.getMemoryConfig()
+        
+        // 计算可用的PSS空间（最大PSS的80%减去当前PSS）
+        val maxPssMB = memoryConfig.maxPssMB
+        val currentPssMB = memoryStatus.totalPssMB
+        val availablePssMB = (maxPssMB * 0.8 - currentPssMB).toLong().coerceAtLeast(100)
+        val targetMemoryBytes = availablePssMB * 1024 * 1024
+        
+        android.util.Log.i(TAG, "内存状态: 当前PSS=${currentPssMB}MB, 最大PSS=${maxPssMB}MB, 可用PSS=${availablePssMB}MB")
+        
+        // 计算边框占用的像素比例
+        val borderTopRatio = config.borderTopWidth / 100.0
+        val borderBottomRatio = config.borderBottomWidth / 100.0
+        val borderLeftRatio = config.borderLeftWidth / 100.0
+        val borderRightRatio = config.borderRightWidth / 100.0
+        
+        // 计算包含边框的总尺寸比例
+        val widthRatio = 1.0 + borderLeftRatio + borderRightRatio
+        val heightRatio = 1.0 + borderTopRatio + borderBottomRatio
+        
+        // 计算原始总像素数（包含边框）
+        val originalTotalPixels = bitmap.width.toDouble() * bitmap.height.toDouble() * 
+                                  widthRatio * heightRatio
+        
+        // 计算缩放比例（需要缩放的平方根，因为像素数与尺寸的平方成正比）
+        val scaleRatio = Math.sqrt(targetMemoryBytes.toDouble() / (originalTotalPixels * 4.0))
+        val finalScale = minOf(scaleRatio, 1.0).toFloat()  // 不放大
+        
+        android.util.Log.i(TAG, "缩放比例: $finalScale (目标内存: ${targetMemoryBytes / (1024 * 1024)}MB, 原始总像素: $originalTotalPixels)")
+        
+        // 如果缩放比例太小，直接返回原图
+        if (finalScale < 0.1f) {
+            android.util.Log.w(TAG, "缩放比例太小($finalScale)，返回原图")
+            showToast("内存严重不足，已返回无边框图片")
+            return@withContext bitmap
+        }
+        
+        // 缩放图片
+        val scaledWidth = (bitmap.width * finalScale).toInt()
+        val scaledHeight = (bitmap.height * finalScale).toInt()
+        
+        if (scaledWidth <= 0 || scaledHeight <= 0) {
+            android.util.Log.w(TAG, "缩放后尺寸无效，返回原图")
+            showToast("内存不足，已返回无边框图片")
+            return@withContext bitmap
+        }
+        
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true)
+        
+        // 重新计算边框（使用相同比例）
+        val scaledShortSide = min(scaledWidth, scaledHeight)
+        val borderTopPx = (scaledShortSide * config.borderTopWidth / 100).toInt()
+        val borderBottomPx = (scaledShortSide * config.borderBottomWidth / 100).toInt()
+        val borderLeftPx = (scaledShortSide * config.borderLeftWidth / 100).toInt()
+        val borderRightPx = (scaledShortSide * config.borderRightWidth / 100).toInt()
+        
+        val newWidth = scaledWidth + borderLeftPx + borderRightPx
+        val newHeight = scaledHeight + borderTopPx + borderBottomPx
+        val requiredMemoryBytes = newWidth.toLong() * newHeight.toLong() * 4
+        
+        android.util.Log.i(TAG, "缩放后尺寸: ${scaledWidth}x${scaledHeight}, 含边框: ${newWidth}x${newHeight}, 需要内存: ${requiredMemoryBytes / (1024 * 1024)}MB")
+        
+        // 检查缩放后是否能分配内存
+        if (!memoryManager.canAllocate(requiredMemoryBytes)) {
+            android.util.Log.w(TAG, "缩放后仍无法分配内存，返回缩放后的图片（无边框）")
+            showToast("内存不足，已返回缩放后的无边框图片")
+            return@withContext scaledBitmap
+        }
+        
+        try {
+            // 请求内存分配
+            if (!memoryManager.requestAllocation(requiredMemoryBytes)) {
+                android.util.Log.w(TAG, "内存分配请求被拒绝")
+                showToast("内存分配被拒绝")
+                return@withContext scaledBitmap
+            }
+            
+            val resultBitmap = createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(resultBitmap)
+            
+            // 获取边框颜色
+            val borderColor = when (config.borderColorMode) {
+                BorderColorMode.PALETTE -> {
+                    extractDominantColorFromBitmap(scaledBitmap) ?: config.getBorderColorInt()
+                }
+                else -> config.getBorderColorInt()
+            }
+            
+            // 绘制边框背景
+            val borderPaint = Paint().apply {
+                color = borderColor
+                style = Paint.Style.FILL
+            }
+            canvas.drawRect(0f, 0f, newWidth.toFloat(), newHeight.toFloat(), borderPaint)
+            
+            // 绘制缩放后的图片
+            canvas.drawBitmap(scaledBitmap, borderLeftPx.toFloat(), borderTopPx.toFloat(), null)
+            
+            // 释放临时bitmap
+            if (scaledBitmap != bitmap && !scaledBitmap.isRecycled) {
+                scaledBitmap.recycle()
+            }
+            
+            android.util.Log.i(TAG, "缩放并添加边框成功: ${newWidth}x${newHeight}")
+            showToast("已缩放图片并添加边框")
+            return@withContext resultBitmap
+            
+        } catch (e: OutOfMemoryError) {
+            android.util.Log.e(TAG, "缩放后添加边框仍OOM", e)
+            showToast("内存不足，已返回缩放后的无边框图片")
+            return@withContext scaledBitmap
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "缩放并添加边框失败", e)
+            if (scaledBitmap != bitmap && !scaledBitmap.isRecycled) {
+                scaledBitmap.recycle()
+            }
+            return@withContext bitmap
+        }
+    }
 
     /**
      * 压缩图片防止处理时OOM

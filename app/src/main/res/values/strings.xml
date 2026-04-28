@@ -18,8 +18,8 @@
     <string name="processor_auto">自动</string>
     <string name="processor_gpu">Vulkan</string>
     <string name="processor_cpu">CPU</string>
-    <string name="keep_original_resolution">保持原始分辨率</string>
-    <string name="keep_original_resolution_description">启用后将保持图片原始分辨率，可能增加内存使用</string>
+    <string name="keep_original_resolution">保持原图原始分辨率</string>
+    <string name="keep_original_resolution_description">启用后图片超出限制时将尝试保持图片原始分辨率并放弃添加边框，关闭则根据可用内存智能缩放</string>
 
     <!-- 文件夹监控 -->
     <string name="folder_monitoring">文件夹监控</string>
