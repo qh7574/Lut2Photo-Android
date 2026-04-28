@@ -41,7 +41,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
@@ -516,7 +515,7 @@ class FolderMonitorService : Service() {
                 } else if (lutFilePath.isEmpty()) {
                     // 未选择LUT文件，使用恒等LUT（与手动处理逻辑相同）
                     Log.d(TAG, "未选择LUT文件，将使用恒等LUT进行后续处理")
-                    currentLutName = "无LUT"
+                    currentLutName = "noLUT"
                 } else {
                     Log.e(TAG, "LUT文件不存在: $lutFilePath")
                     return@launch
@@ -1050,7 +1049,7 @@ class FolderMonitorService : Service() {
             } else {
                 // 未选择LUT文件，使用恒等LUT
                 Log.d(TAG, "未选择LUT文件，将使用恒等LUT进行后续处理")
-                currentLutName = "无LUT"
+                currentLutName = "noLUT"
             }
 
             // 加载第二个LUT文件（如果提供）
