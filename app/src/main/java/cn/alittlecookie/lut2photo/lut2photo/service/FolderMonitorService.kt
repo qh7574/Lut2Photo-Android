@@ -152,7 +152,7 @@ class FolderMonitorService : Service() {
                     val processorInfo = threadManager.getProcessorInfo()
                     Log.d(TAG, "处理器设置已更新:")
                     Log.d(TAG, "  - 首选处理器: ${processorInfo.preferredProcessor}")
-                    Log.d(TAG, "  - GPU 可用: ${processorInfo.isGpuAvailable}")
+                    Log.d(TAG, "  - Vulkan 可用: ${processorInfo.isVulkanAvailable}")
                     Log.d(TAG, "============================================")
                 }
 
@@ -228,7 +228,7 @@ class FolderMonitorService : Service() {
         
         // 记录当前处理器信息
         val processorInfo = threadManager.getProcessorInfo()
-        Log.d(TAG, "当前处理器配置: 首选=${processorInfo.preferredProcessor}, GPU可用=${processorInfo.isGpuAvailable}")
+        Log.d(TAG, "当前处理器配置: 首选=${processorInfo.preferredProcessor}, Vulkan可用=${processorInfo.isVulkanAvailable}")
 
         // 获取WakeLock以防止系统休眠
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
@@ -450,9 +450,9 @@ class FolderMonitorService : Service() {
         val processorInfo = threadManager.getProcessorInfo()
         Log.d(TAG, "监控开始时的处理器配置:")
         Log.d(TAG, "  - 首选处理器: ${processorInfo.preferredProcessor}")
-        Log.d(TAG, "  - GPU 可用: ${processorInfo.isGpuAvailable}")
+        Log.d(TAG, "  - Vulkan 可用: ${processorInfo.isVulkanAvailable}")
         Log.d(TAG, "  - CPU 信息: ${processorInfo.cpuInfo}")
-        Log.d(TAG, "  - GPU 信息: ${processorInfo.gpuInfo}")
+        Log.d(TAG, "  - Vulkan 信息: ${processorInfo.vulkanInfo}")
         Log.d(TAG, "==============================================")
 
         // 保存参数

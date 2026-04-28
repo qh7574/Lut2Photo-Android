@@ -94,17 +94,26 @@ class MemoryManager private constructor(private val context: Context) {
         // 获取设备内存信息并设置默认配置
         activityManager.getMemoryInfo(memoryInfo)
         val deviceMemoryMB = memoryInfo.totalMem / (1024 * 1024)
+        val availableMemoryMB = memoryInfo.availMem / (1024 * 1024)
         val maxHeapSize = Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        
+        // 使用可用内存的70%作为PSS限制，但不超过maxHeapSize的2倍
+        // 这样既不会太保守，也不会导致系统杀进程
+        val availableBasedPssLimit = (availableMemoryMB * 0.7).toLong()
+        val maxPssLimit = minOf(
+            maxOf(availableBasedPssLimit, maxHeapSize, 1024L),
+            maxHeapSize * 2  // 不超过堆内存的2倍
+        )
 
         memoryConfig = MemoryConfig(
-            maxHeapSizeMB = maxOf(1024, (maxHeapSize * DEFAULT_MAX_HEAP_RATIO).toInt()),
-            maxPssMB = activityManager.memoryClass,
+            maxHeapSizeMB = maxHeapSize.toInt(),
+            maxPssMB = maxPssLimit.toInt(),
             maxCacheSize = min(deviceMemoryMB.toInt() / 8, 200) // 设备内存的1/8或200MB
         )
 
         Log.i(TAG, "内存管理器初始化完成")
-        Log.i(TAG, "设备总内存: ${deviceMemoryMB}MB, 最大堆内存: ${maxHeapSize}MB")
-        Log.i(TAG, "配置的最大堆使用: ${memoryConfig.maxHeapSizeMB}MB")
+        Log.i(TAG, "设备总内存: ${deviceMemoryMB}MB, 可用内存: ${availableMemoryMB}MB, 最大堆内存: ${maxHeapSize}MB")
+        Log.i(TAG, "配置的最大堆使用: ${memoryConfig.maxHeapSizeMB}MB, 最大PSS: ${memoryConfig.maxPssMB}MB")
     }
 
     /**

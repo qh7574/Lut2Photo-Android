@@ -90,12 +90,7 @@ class VltFileManager(private val context: Context) {
      */
     fun getVltName(cubeName: String): String? {
         val mappings = loadMappings()
-        Log.d(TAG, "查询映射: $cubeName")
-        Log.d(TAG, "  - 映射文件路径: ${mappingFile.absolutePath}")
-        Log.d(TAG, "  - 映射文件存在: ${mappingFile.exists()}")
-        Log.d(TAG, "  - 当前所有映射: $mappings")
         val result = mappings[cubeName]
-        Log.d(TAG, "  - 查询结果: $result")
         return result
     }
 
@@ -128,9 +123,7 @@ class VltFileManager(private val context: Context) {
             val mappings = loadMappings().toMutableMap()
             mappings.remove(cubeName)
             saveMappings(mappings)
-            Log.d(TAG, "删除映射: $cubeName")
         } catch (e: Exception) {
-            Log.e(TAG, "删除映射失败", e)
         }
     }
 
@@ -141,20 +134,16 @@ class VltFileManager(private val context: Context) {
         return try {
             Log.d(TAG, "加载映射文件: ${mappingFile.absolutePath}")
             if (!mappingFile.exists()) {
-                Log.d(TAG, "映射文件不存在，返回空映射")
                 return emptyMap()
             }
             val content = mappingFile.readText()
-            Log.d(TAG, "映射文件内容: $content")
             val json = JSONObject(content)
             val map = mutableMapOf<String, String>()
             json.keys().forEach { key ->
                 map[key] = json.getString(key)
             }
-            Log.d(TAG, "加载了 ${map.size} 个映射关系")
             map
         } catch (e: Exception) {
-            Log.e(TAG, "加载映射失败", e)
             emptyMap()
         }
     }

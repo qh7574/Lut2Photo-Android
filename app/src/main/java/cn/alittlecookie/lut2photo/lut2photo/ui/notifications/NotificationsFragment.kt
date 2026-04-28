@@ -151,7 +151,7 @@ class NotificationsFragment : Fragment() {
     private fun setupProcessorDropdown() {
         val processors = listOf(
             getString(R.string.processor_auto) to "AUTO",  // 改为大写
-            getString(R.string.processor_gpu) to "GPU",    // 改为大写
+            getString(R.string.processor_gpu) to "VULKAN",    // 改为VULKAN
             getString(R.string.processor_cpu) to "CPU"     // 改为大写
         )
 
@@ -167,7 +167,7 @@ class NotificationsFragment : Fragment() {
         // 设置当前处理器类型 - 需要处理大小写兼容
         val currentProcessor = preferencesManager.processorType.uppercase()  // 转换为大写
         val currentProcessorName = when (currentProcessor) {
-            "GPU" -> getString(R.string.processor_gpu)
+            "GPU", "VULKAN" -> getString(R.string.processor_gpu)
             "CPU" -> getString(R.string.processor_cpu)
             else -> getString(R.string.processor_auto)
         }
