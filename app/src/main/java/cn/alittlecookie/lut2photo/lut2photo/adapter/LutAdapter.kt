@@ -2,6 +2,7 @@ package cn.alittlecookie.lut2photo.lut2photo.adapter
 
 import android.text.format.Formatter
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -9,16 +10,24 @@ import androidx.recyclerview.widget.RecyclerView
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ItemLutBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class LutAdapter(
-    private val onItemClick: (LutItem) -> Unit,
-    private val onDeleteClick: (LutItem) -> Unit
+    private val selectionCallback: SelectionCallback? = null
 ) : ListAdapter<LutItem, LutAdapter.LutViewHolder>(LutDiffCallback()) {
-    
-    // 移除单选相关的属性
-    // private var selectedLutId: String? = null
-    
+
+    // 多选状态
+    var isSelectionMode = false
+        private set
+    private val selectedPositions = mutableSetOf<Int>()
+
+    interface SelectionCallback {
+        fun onSelectionModeChanged(enabled: Boolean)
+        fun onSelectionCountChanged(count: Int)
+        fun onItemClick(lutItem: LutItem)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LutViewHolder {
         val binding = ItemLutBinding.inflate(
             LayoutInflater.from(parent.context),
@@ -27,48 +36,81 @@ class LutAdapter(
         )
         return LutViewHolder(binding)
     }
-    
+
     override fun onBindViewHolder(holder: LutViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), position)
     }
-    
-    // 移除单选相关的方法
-    // fun setSelectedLut(lutItem: LutItem) {
-    //     selectedLutId = lutItem.id
-    //     notifyDataSetChanged()
-    // }
-    // fun getSelectedLut(): LutItem? {
-    //     return currentList.find { it.id == selectedLutId }
-    // }
-    
-    fun getSelectedLuts(): List<LutItem> {
-        val selected = currentList.filter { it.isSelected }
-        android.util.Log.d("LutAdapter", "获取选中的 LUT: ${selected.size} 个")
-        selected.forEach { lut ->
-            android.util.Log.d("LutAdapter", "  - ${lut.name}, vltFileName=${lut.vltFileName}")
+
+    // 进入多选模式
+    fun enterSelectionMode(initialPosition: Int) {
+        if (!isSelectionMode) {
+            isSelectionMode = true
+            selectedPositions.clear()
+            selectedPositions.add(initialPosition)
+            notifyDataSetChanged()
+            selectionCallback?.onSelectionModeChanged(true)
+            selectionCallback?.onSelectionCountChanged(1)
         }
-        return selected
     }
-    
-    fun toggleSelection(lutItem: LutItem) {
-        val oldState = lutItem.isSelected
-        lutItem.isSelected = !lutItem.isSelected
-        android.util.Log.d("LutAdapter", "切换选择状态: ${lutItem.name}, $oldState -> ${lutItem.isSelected}")
-        android.util.Log.d("LutAdapter", "  - vltFileName: ${lutItem.vltFileName}")
-        android.util.Log.d("LutAdapter", "  - uploadName: ${lutItem.uploadName}")
+
+    // 退出多选模式
+    fun exitSelectionMode() {
+        if (isSelectionMode) {
+            isSelectionMode = false
+            selectedPositions.clear()
+            notifyDataSetChanged()
+            selectionCallback?.onSelectionModeChanged(false)
+        }
+    }
+
+    // 切换选中状态
+    fun toggleSelection(position: Int) {
+        if (selectedPositions.contains(position)) {
+            selectedPositions.remove(position)
+        } else {
+            selectedPositions.add(position)
+        }
+        notifyItemChanged(position)
+        selectionCallback?.onSelectionCountChanged(selectedPositions.size)
+    }
+
+    // 全选
+    fun selectAll() {
+        selectedPositions.clear()
+        for (i in 0 until itemCount) {
+            selectedPositions.add(i)
+        }
         notifyDataSetChanged()
+        selectionCallback?.onSelectionCountChanged(selectedPositions.size)
     }
-    
+
+    // 取消全选
+    fun deselectAll() {
+        selectedPositions.clear()
+        notifyDataSetChanged()
+        selectionCallback?.onSelectionCountChanged(0)
+    }
+
+    // 获取选中的LUT
+    fun getSelectedLuts(): List<LutItem> {
+        return selectedPositions.mapNotNull { position ->
+            if (position < itemCount) getItem(position) else null
+        }
+    }
+
+    // 获取选中数量
+    fun getSelectedCount(): Int = selectedPositions.size
+
     inner class LutViewHolder(private val binding: ItemLutBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        
-        fun bind(lutItem: LutItem) {
+
+        fun bind(lutItem: LutItem, position: Int) {
             binding.apply {
                 textLutName.text = lutItem.name
                 textLutSize.text = Formatter.formatFileSize(root.context, lutItem.size)
                 textLutDate.text = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
                     .format(Date(lutItem.lastModified))
-                
+
                 // 显示 VLT 上传状态
                 if (lutItem.vltFileName != null && lutItem.uploadName != null) {
                     textVltStatus.text = "VLT：${lutItem.uploadName}"
@@ -77,36 +119,40 @@ class LutAdapter(
                     textVltStatus.text = "无 VLT"
                     textVltStatus.setTextColor(root.context.getColor(android.R.color.darker_gray))
                 }
-                
-                // 先移除旧的监听器，避免重复触发
-                checkboxSelect.setOnCheckedChangeListener(null)
-                // 设置复选框状态
-                checkboxSelect.isChecked = lutItem.isSelected
-                
-                // 点击整个项目切换选择状态
+
+                // 选中状态指示器
+                imageSelectionIndicator.visibility =
+                    if (isSelectionMode && selectedPositions.contains(position)) {
+                        View.VISIBLE
+                    } else {
+                        View.GONE
+                    }
+
+                // 点击事件
                 root.setOnClickListener {
-                    onItemClick(lutItem)
-                }
-                
-                // 点击复选框也切换选择状态
-                checkboxSelect.setOnCheckedChangeListener { _, isChecked ->
-                    if (lutItem.isSelected != isChecked) {
-                        onItemClick(lutItem)
+                    if (isSelectionMode) {
+                        toggleSelection(position)
+                    } else {
+                        selectionCallback?.onItemClick(lutItem)
                     }
                 }
-                
-                buttonDelete.setOnClickListener {
-                    onDeleteClick(lutItem)
+
+                // 长按事件 - 进入多选模式
+                root.setOnLongClickListener {
+                    if (!isSelectionMode) {
+                        enterSelectionMode(position)
+                    }
+                    true
                 }
             }
         }
     }
-    
+
     private class LutDiffCallback : DiffUtil.ItemCallback<LutItem>() {
         override fun areItemsTheSame(oldItem: LutItem, newItem: LutItem): Boolean {
             return oldItem.id == newItem.id
         }
-        
+
         override fun areContentsTheSame(oldItem: LutItem, newItem: LutItem): Boolean {
             return oldItem == newItem
         }

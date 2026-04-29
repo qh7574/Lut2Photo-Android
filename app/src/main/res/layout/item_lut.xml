@@ -12,18 +12,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingLeft="8dp"
+        android:paddingLeft="16dp"
         android:paddingRight="16dp"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
         android:gravity="center_vertical">
 
-        <!-- 保留复选框用于多选 -->
-        <CheckBox
-            android:id="@+id/checkbox_select"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp" />
+        <!-- 选中状态指示器 -->
+        <ImageView
+            android:id="@+id/image_selection_indicator"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="12dp"
+            android:src="@drawable/ic_check_circle_24"
+            android:visibility="gone"
+            app:tint="?attr/colorPrimary" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -72,14 +75,6 @@
                 android:textColor="?android:attr/textColorSecondary" />
 
         </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_delete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="删除"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            app:iconTint="?attr/colorError" />
 
     </LinearLayout>
 
