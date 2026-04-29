@@ -11,12 +11,10 @@ android {
         applicationId = "cn.alittlecookie.lut2photo.lut2photo"
         minSdk = 29
         targetSdk = 36
-        versionCode = 100321
-        versionName = "3.2.1"
+        versionCode = 100330
+        versionName = "3.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        renderscriptTargetApi = 21
-        renderscriptSupportModeEnabled = true
 
         // NDK配置
         ndk {
@@ -30,7 +28,8 @@ android {
                 abiFilters += listOf("arm64-v8a", "armeabi-v7a")
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
-                    "-DANDROID_PLATFORM=android-31"
+                    "-DANDROID_PLATFORM=android-31",
+                    "-DVULKAN_SUPPORT=ON"
                 )
             }
         }
@@ -106,6 +105,9 @@ dependencies {
 
     // GPU相关依赖
     implementation(libs.glide)
+
+    // Vulkan验证层（调试时可选启用）
+    // implementation("com.google.vulkan:vulkan:1.3.0")
 
     // 水印处理相关依赖
     implementation(libs.coil)

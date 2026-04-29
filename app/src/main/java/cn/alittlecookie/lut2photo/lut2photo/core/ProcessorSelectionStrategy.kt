@@ -3,7 +3,6 @@ package cn.alittlecookie.lut2photo.lut2photo.core
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.opengl.GLES30
 import android.os.Debug
 import android.util.Log
 import android.widget.Toast
@@ -27,12 +26,24 @@ class ProcessorSelectionStrategy(private val context: Context) {
         private const val BORDERLINE_MARGIN_MB = 64L
         private const val BORDERLINE_RATIO = 0.05f
         
-        // 像素数阈值
-        private const val SAFE_GPU_PIXELS = 30_000_000L // 3000万像素
-        private const val MAX_CPU_PIXELS = 50_000_000L  // 5000万像素
-        
         // GPU纹理尺寸缓存
         private var cachedMaxTextureSize: Int? = null
+        
+        // Native方法声明（用于查询GPU信息）
+        @JvmStatic
+        external fun nativeCreateForQuery(): Long
+        @JvmStatic
+        external fun nativeDestroyForQuery(handle: Long)
+        @JvmStatic
+        external fun nativeGetMaxTextureSize(handle: Long): Int
+        
+        init {
+            try {
+                System.loadLibrary("native_lut_processor")
+            } catch (e: Exception) {
+                // 忽略，可能已经加载
+            }
+        }
     }
     
     /**
@@ -41,7 +52,7 @@ class ProcessorSelectionStrategy(private val context: Context) {
     enum class FallbackReason(val message: String) {
         TEXTURE_SIZE_LIMIT("图片尺寸超过GPU纹理限制"),
         MEMORY_INSUFFICIENT("内存不足"),
-        OPENGL_ERROR("OpenGL错误"),
+        VULKAN_ERROR("Vulkan错误"),
         PIXEL_COUNT_LIMIT("像素数量过大"),
         GPU_UNAVAILABLE("GPU不可用"),
         DEVICE_PERFORMANCE("设备性能限制")
@@ -63,7 +74,7 @@ class ProcessorSelectionStrategy(private val context: Context) {
     suspend fun selectOptimalProcessor(
         bitmap: Bitmap,
         userPreference: ILutProcessor.ProcessorType,
-        isGpuAvailable: Boolean
+        isVulkanAvailable: Boolean
     ): SelectionResult = withContext(Dispatchers.Default) {
         
         val width = bitmap.width
@@ -76,16 +87,16 @@ class ProcessorSelectionStrategy(private val context: Context) {
         Log.d(TAG, "像素总数: $pixels")
         Log.d(TAG, "最大边长: $maxDimension")
         Log.d(TAG, "用户偏好: $userPreference")
-        Log.d(TAG, "GPU可用: $isGpuAvailable")
+        Log.d(TAG, "Vulkan可用: $isVulkanAvailable")
         
-        // 1. 检查GPU基本可用性
-        if (!isGpuAvailable) {
-            Log.w(TAG, "GPU不可用，选择CPU处理器")
+        // 1. 检查Vulkan基本可用性
+        if (!isVulkanAvailable) {
+            Log.w(TAG, "Vulkan不可用，选择CPU处理器")
             return@withContext SelectionResult(
                 processorType = ILutProcessor.ProcessorType.CPU,
-                reason = "GPU不可用",
+                reason = "Vulkan不可用",
                 fallbackReason = FallbackReason.GPU_UNAVAILABLE,
-                shouldShowToast = userPreference == ILutProcessor.ProcessorType.GPU
+                shouldShowToast = userPreference == ILutProcessor.ProcessorType.VULKAN
             )
         }
         
@@ -97,7 +108,7 @@ class ProcessorSelectionStrategy(private val context: Context) {
                 processorType = ILutProcessor.ProcessorType.CPU,
                 reason = "图片尺寸超过GPU纹理限制($maxDimension > $maxTextureSize)",
                 fallbackReason = FallbackReason.TEXTURE_SIZE_LIMIT,
-                shouldShowToast = userPreference == ILutProcessor.ProcessorType.GPU
+                shouldShowToast = userPreference == ILutProcessor.ProcessorType.VULKAN
             )
         }
         
@@ -111,16 +122,16 @@ class ProcessorSelectionStrategy(private val context: Context) {
                 aggressiveMemoryCleanup()
                 val recheck = checkMemoryAvailability(estimatedMemoryMB, pixels)
                 if (recheck.isSafe) {
-                    Log.i(TAG, "清理后内存足够，允许GPU处理")
+                    Log.i(TAG, "清理后内存足够，允许Vulkan处理")
                     return@withContext SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.GPU,
-                        reason = "内存临界但清理后可用，尝试GPU处理"
+                        processorType = ILutProcessor.ProcessorType.VULKAN,
+                        reason = "内存临界但清理后可用，尝试Vulkan处理"
                     )
                 }
-                Log.w(TAG, "内存仍然临界，允许GPU试跑，失败自动回退")
+                Log.w(TAG, "内存仍然临界，允许Vulkan试跑，失败自动回退")
                 return@withContext SelectionResult(
-                    processorType = ILutProcessor.ProcessorType.GPU,
-                    reason = "内存临界，尝试GPU处理，失败回退CPU",
+                    processorType = ILutProcessor.ProcessorType.VULKAN,
+                    reason = "内存临界，尝试Vulkan处理，失败回退CPU",
                     fallbackReason = FallbackReason.MEMORY_INSUFFICIENT,
                     shouldShowToast = false
                 )
@@ -130,28 +141,18 @@ class ProcessorSelectionStrategy(private val context: Context) {
                 processorType = ILutProcessor.ProcessorType.CPU,
                 reason = "内存不足(需要${estimatedMemoryMB}MB，可用${memoryCheckResult.availableMB}MB)",
                 fallbackReason = FallbackReason.MEMORY_INSUFFICIENT,
-                shouldShowToast = userPreference == ILutProcessor.ProcessorType.GPU
+                shouldShowToast = userPreference == ILutProcessor.ProcessorType.VULKAN
             )
         }
         
-        // 4. 根据像素数量和用户偏好选择
+        // 4. 根据用户偏好选择
         return@withContext when (userPreference) {
-            ILutProcessor.ProcessorType.GPU -> {
-                if (pixels > SAFE_GPU_PIXELS) {
-                    Log.w(TAG, "像素数量过大($pixels > $SAFE_GPU_PIXELS)，建议使用CPU")
-                    SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.CPU,
-                        reason = "像素数量过大，为避免OOM使用CPU处理",
-                        fallbackReason = FallbackReason.PIXEL_COUNT_LIMIT,
-                        shouldShowToast = true
-                    )
-                } else {
-                    Log.d(TAG, "选择GPU处理器")
-                    SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.GPU,
-                        reason = "GPU处理器可用且图片适合GPU处理"
-                    )
-                }
+            ILutProcessor.ProcessorType.VULKAN -> {
+                Log.d(TAG, "选择Vulkan处理器")
+                SelectionResult(
+                    processorType = ILutProcessor.ProcessorType.VULKAN,
+                    reason = "Vulkan处理器可用且图片适合Vulkan处理"
+                )
             }
             
             ILutProcessor.ProcessorType.CPU -> {
@@ -170,7 +171,7 @@ class ProcessorSelectionStrategy(private val context: Context) {
     suspend fun selectOptimalProcessor(
         bitmap: Bitmap,
         userPreferenceString: String,
-        isGpuAvailable: Boolean
+        isVulkanAvailable: Boolean
     ): SelectionResult = withContext(Dispatchers.Default) {
         
         val width = bitmap.width
@@ -183,16 +184,16 @@ class ProcessorSelectionStrategy(private val context: Context) {
         Log.d(TAG, "像素总数: $pixels")
         Log.d(TAG, "最大边长: $maxDimension")
         Log.d(TAG, "用户偏好: $userPreferenceString")
-        Log.d(TAG, "GPU可用: $isGpuAvailable")
+        Log.d(TAG, "Vulkan可用: $isVulkanAvailable")
         
-        // 1. 检查GPU基本可用性
-        if (!isGpuAvailable) {
-            Log.w(TAG, "GPU不可用，选择CPU处理器")
+        // 1. 检查Vulkan基本可用性
+        if (!isVulkanAvailable) {
+            Log.w(TAG, "Vulkan不可用，选择CPU处理器")
             return@withContext SelectionResult(
                 processorType = ILutProcessor.ProcessorType.CPU,
-                reason = "GPU不可用",
+                reason = "Vulkan不可用",
                 fallbackReason = FallbackReason.GPU_UNAVAILABLE,
-                shouldShowToast = userPreferenceString.uppercase() == "GPU"
+                shouldShowToast = userPreferenceString.uppercase() == "VULKAN"
             )
         }
         
@@ -204,7 +205,7 @@ class ProcessorSelectionStrategy(private val context: Context) {
                 processorType = ILutProcessor.ProcessorType.CPU,
                 reason = "图片尺寸超过GPU纹理限制($maxDimension > $maxTextureSize)",
                 fallbackReason = FallbackReason.TEXTURE_SIZE_LIMIT,
-                shouldShowToast = userPreferenceString.uppercase() == "GPU"
+                shouldShowToast = userPreferenceString.uppercase() == "VULKAN"
             )
         }
         
@@ -218,16 +219,16 @@ class ProcessorSelectionStrategy(private val context: Context) {
                 aggressiveMemoryCleanup()
                 val recheck = checkMemoryAvailability(estimatedMemoryMB, pixels)
                 if (recheck.isSafe) {
-                    Log.i(TAG, "清理后内存足够，允许GPU处理")
+                    Log.i(TAG, "清理后内存足够，允许Vulkan处理")
                     return@withContext SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.GPU,
-                        reason = "内存临界但清理后可用，尝试GPU处理"
+                        processorType = ILutProcessor.ProcessorType.VULKAN,
+                        reason = "内存临界但清理后可用，尝试Vulkan处理"
                     )
                 }
-                Log.w(TAG, "内存仍然临界，允许GPU试跑，失败自动回退")
+                Log.w(TAG, "内存仍然临界，允许Vulkan试跑，失败自动回退")
                 return@withContext SelectionResult(
-                    processorType = ILutProcessor.ProcessorType.GPU,
-                    reason = "内存临界，尝试GPU处理，失败回退CPU",
+                    processorType = ILutProcessor.ProcessorType.VULKAN,
+                    reason = "内存临界，尝试Vulkan处理，失败回退CPU",
                     fallbackReason = FallbackReason.MEMORY_INSUFFICIENT,
                     shouldShowToast = false
                 )
@@ -237,28 +238,18 @@ class ProcessorSelectionStrategy(private val context: Context) {
                 processorType = ILutProcessor.ProcessorType.CPU,
                 reason = "内存不足(需要${estimatedMemoryMB}MB，可用${memoryCheckResult.availableMB}MB)",
                 fallbackReason = FallbackReason.MEMORY_INSUFFICIENT,
-                shouldShowToast = userPreferenceString.uppercase() == "GPU"
+                shouldShowToast = userPreferenceString.uppercase() == "VULKAN"
             )
         }
         
-        // 4. 根据像素数量和用户偏好选择
+        // 4. 根据用户偏好选择
         return@withContext when (userPreferenceString.uppercase()) {
-            "GPU" -> {
-                if (pixels > SAFE_GPU_PIXELS) {
-                    Log.w(TAG, "像素数量过大($pixels > $SAFE_GPU_PIXELS)，强制回退到CPU")
-                    SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.CPU,
-                        reason = "像素数量过大，为避免OOM使用CPU处理",
-                        fallbackReason = FallbackReason.PIXEL_COUNT_LIMIT,
-                        shouldShowToast = true  // 用户明确选择GPU但被强制回退，需要提示
-                    )
-                } else {
-                    Log.d(TAG, "选择GPU处理器")
-                    SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.GPU,
-                        reason = "GPU处理器可用且图片适合GPU处理"
-                    )
-                }
+            "VULKAN" -> {
+                Log.d(TAG, "选择Vulkan处理器")
+                SelectionResult(
+                    processorType = ILutProcessor.ProcessorType.VULKAN,
+                    reason = "Vulkan处理器可用且图片适合Vulkan处理"
+                )
             }
             
             "CPU" -> {
@@ -270,21 +261,12 @@ class ProcessorSelectionStrategy(private val context: Context) {
             }
             
             "AUTO" -> {
-                if (pixels > SAFE_GPU_PIXELS) {
-                    Log.d(TAG, "自动模式：像素数量大，选择CPU")
-                    SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.CPU,
-                        reason = "自动模式：像素数量大，选择CPU处理",
-                        fallbackReason = FallbackReason.PIXEL_COUNT_LIMIT,
-                        shouldShowToast = false  // 自动模式不需要提示用户
-                    )
-                } else {
-                    Log.d(TAG, "自动模式：选择GPU")
-                    SelectionResult(
-                        processorType = ILutProcessor.ProcessorType.GPU,
-                        reason = "自动模式：选择GPU处理"
-                    )
-                }
+                // 自动模式：优先使用Vulkan
+                Log.d(TAG, "自动模式：选择Vulkan")
+                SelectionResult(
+                    processorType = ILutProcessor.ProcessorType.VULKAN,
+                    reason = "自动模式：选择Vulkan处理"
+                )
             }
             
             else -> {
@@ -299,27 +281,35 @@ class ProcessorSelectionStrategy(private val context: Context) {
     
     /**
      * 获取GPU最大纹理尺寸
+     * 通过Vulkan获取实际硬件限制
      */
-    private suspend fun getMaxTextureSize(): Int = withContext(Dispatchers.Main) {
+    private suspend fun getMaxTextureSize(): Int = withContext(Dispatchers.Default) {
         cachedMaxTextureSize?.let { return@withContext it }
         
-        return@withContext try {
-            val maxTextureSizeArray = IntArray(1)
-            GLES30.glGetIntegerv(GLES30.GL_MAX_TEXTURE_SIZE, maxTextureSizeArray, 0)
-            val maxSize = maxTextureSizeArray[0]
-            
-            // 使用保守值，确保兼容性
-            val safeSize = minOf(maxSize, 8192)
-            cachedMaxTextureSize = safeSize
-            
-            Log.d(TAG, "GPU最大纹理尺寸: $maxSize, 使用安全值: $safeSize")
-            safeSize
+        // 尝试通过Vulkan获取实际纹理尺寸
+        try {
+            // 调用native方法获取最大纹理尺寸
+            val nativeHandle = nativeCreateForQuery()
+            if (nativeHandle != 0L) {
+                val maxSize = nativeGetMaxTextureSize(nativeHandle)
+                nativeDestroyForQuery(nativeHandle)
+                
+                if (maxSize > 0) {
+                    cachedMaxTextureSize = maxSize
+                    Log.d(TAG, "从Vulkan获取GPU纹理尺寸: $maxSize")
+                    return@withContext maxSize
+                }
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "无法获取GPU纹理尺寸，使用默认值4096", e)
-            val defaultSize = 4096
-            cachedMaxTextureSize = defaultSize
-            defaultSize
+            Log.w(TAG, "无法从Vulkan获取纹理尺寸: ${e.message}")
         }
+        
+        // 回退到保守的默认值
+        val defaultSize = 8192  // 大多数现代GPU支持至少8192
+        cachedMaxTextureSize = defaultSize
+        
+        Log.d(TAG, "使用默认GPU纹理尺寸: $defaultSize")
+        return@withContext defaultSize
     }
     
     /**

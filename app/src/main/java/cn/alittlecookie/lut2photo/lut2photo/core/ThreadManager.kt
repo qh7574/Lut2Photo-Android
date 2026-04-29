@@ -3,7 +3,7 @@ package cn.alittlecookie.lut2photo.lut2photo.core
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import cn.alittlecookie.lut2photo.lut2photo.gpu.GpuLutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.gpu.VulkanLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.utils.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +45,7 @@ class ThreadManager(context: Context) {
 
     // Processors
     private val cpuProcessor = CpuLutProcessor()
-    private val gpuProcessor = GpuLutProcessor(context)
+    private val vulkanProcessor = VulkanLutProcessor(context)
     private val filmGrainProcessor = FilmGrainProcessor()
     
     // 智能处理器选择策略
@@ -53,7 +53,7 @@ class ThreadManager(context: Context) {
 
     // Preferred processor type
     private var preferredProcessor = ILutProcessor.ProcessorType.CPU
-    private var isGpuAvailable = false
+    private var isVulkanAvailable = false
     
     // 当前颗粒配置
     private var currentGrainConfig: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig? = null
@@ -112,26 +112,26 @@ class ThreadManager(context: Context) {
         // 添加：立即启动GPU处理循环
         startGpuProcessingLoop()
 
-        // 在协程中同步检查GPU可用性，然后配置处理器
+        // 在协程中同步检查Vulkan可用性，然后配置处理器
         managerScope.launch {
             try {
-                Log.d(TAG, "检查GPU可用性")
-                val gpuAvailable = gpuProcessor.isAvailable()
-                Log.d(TAG, "GPU可用性检查结果: $gpuAvailable")
+                Log.d(TAG, "检查Vulkan可用性")
+                val vulkanAvailable = vulkanProcessor.isAvailable()
+                Log.d(TAG, "Vulkan可用性检查结果: $vulkanAvailable")
 
-                // 修复：正确更新isGpuAvailable变量
-                isGpuAvailable = gpuAvailable
+                // 修复：正确更新isVulkanAvailable变量
+                isVulkanAvailable = vulkanAvailable
 
-                if (!gpuAvailable) {
-                    Log.w(TAG, "GPU不可用，回退到CPU处理器")
+                if (!vulkanAvailable) {
+                    Log.w(TAG, "Vulkan不可用，回退到CPU处理器")
                 }
 
-                // GPU检查完成后再根据用户设置配置处理器
+                // Vulkan检查完成后再根据用户设置配置处理器
                 configureProcessorFromSettings()
 
             } catch (e: Exception) {
                 Log.e(TAG, "初始化处理器时发生错误", e)
-                isGpuAvailable = false  // 修复：确保错误时也更新变量
+                isVulkanAvailable = false  // 修复：确保错误时也更新变量
                 // 即使出错也要配置处理器，确保有默认设置
                 configureProcessorFromSettings()
             }
@@ -146,15 +146,15 @@ class ThreadManager(context: Context) {
             // 将设置值转换为大写以确保兼容性
             val processorTypeSetting = preferencesManager.processorType.uppercase()
             
-            Log.d(TAG, "配置处理器: 用户设置=$processorTypeSetting, GPU可用=$isGpuAvailable")
+            Log.d(TAG, "配置处理器: 用户设置=$processorTypeSetting, Vulkan可用=$isVulkanAvailable")
 
             val userProcessorType = when (processorTypeSetting) {
-                "GPU" -> {
-                    if (isGpuAvailable) {
-                        Log.d(TAG, "用户选择 GPU 且 GPU 可用，使用 GPU 处理器")
-                        ILutProcessor.ProcessorType.GPU
+                "GPU", "VULKAN" -> {
+                    if (isVulkanAvailable) {
+                        Log.d(TAG, "用户选择 Vulkan 且 Vulkan 可用，使用 Vulkan 处理器")
+                        ILutProcessor.ProcessorType.VULKAN
                     } else {
-                        Log.w(TAG, "用户选择 GPU 但 GPU 不可用，回退到 CPU 处理器")
+                        Log.w(TAG, "用户选择 Vulkan 但 Vulkan 不可用，回退到 CPU 处理器")
                         ILutProcessor.ProcessorType.CPU
                     }
                 }
@@ -165,9 +165,9 @@ class ThreadManager(context: Context) {
                 }
                 
                 "AUTO" -> {
-                    // 自动模式：如果GPU可用则使用GPU，否则使用CPU
-                    val selected = if (isGpuAvailable) ILutProcessor.ProcessorType.GPU else ILutProcessor.ProcessorType.CPU
-                    Log.d(TAG, "自动模式: GPU可用=$isGpuAvailable, 选择=$selected")
+                    // 自动模式：如果Vulkan可用则使用Vulkan，否则使用CPU
+                    val selected = if (isVulkanAvailable) ILutProcessor.ProcessorType.VULKAN else ILutProcessor.ProcessorType.CPU
+                    Log.d(TAG, "自动模式: Vulkan可用=$isVulkanAvailable, 选择=$selected")
                     selected
                 }
 
@@ -187,28 +187,29 @@ class ThreadManager(context: Context) {
 
     /**
      * 更新处理器设置（用于响应设置变化）
-     * 注意：这个方法会立即更新 preferredProcessor，但如果需要重新检查 GPU，会在后台异步进行
+     * 注意：这个方法会立即更新 preferredProcessor，但如果需要重新检查 Vulkan，会在后台异步进行
      */
     fun updateProcessorFromSettings() {
         Log.d(TAG, "========== 更新处理器设置 ==========")
         Log.d(TAG, "当前用户设置: ${preferencesManager.processorType}")
-        Log.d(TAG, "当前 GPU 可用性: $isGpuAvailable")
+        Log.d(TAG, "当前 Vulkan 可用性: $isVulkanAvailable")
         Log.d(TAG, "当前首选处理器: $preferredProcessor")
 
-        // 如果用户选择GPU但当前不可用，重新检查GPU可用性
-        if (preferencesManager.processorType.uppercase() == "GPU" && !isGpuAvailable) {
-            Log.d(TAG, "用户选择 GPU 但当前不可用，重新检查 GPU 可用性...")
+        // 如果用户选择Vulkan但当前不可用，重新检查Vulkan可用性
+        if ((preferencesManager.processorType.uppercase() == "GPU" || 
+             preferencesManager.processorType.uppercase() == "VULKAN") && !isVulkanAvailable) {
+            Log.d(TAG, "用户选择 Vulkan 但当前不可用，重新检查 Vulkan 可用性...")
             managerScope.launch {
                 try {
-                    val gpuAvailable = gpuProcessor.isAvailable()
-                    Log.d(TAG, "GPU 重新检查结果: $gpuAvailable")
-                    isGpuAvailable = gpuAvailable
+                    val vulkanAvailable = vulkanProcessor.isAvailable()
+                    Log.d(TAG, "Vulkan 重新检查结果: $vulkanAvailable")
+                    isVulkanAvailable = vulkanAvailable
 
                     // 重新配置处理器
                     configureProcessorFromSettings()
-                    Log.d(TAG, "GPU 重新检查后，首选处理器已更新为: $preferredProcessor")
+                    Log.d(TAG, "Vulkan 重新检查后，首选处理器已更新为: $preferredProcessor")
                 } catch (e: Exception) {
-                    Log.e(TAG, "GPU 重新检查失败", e)
+                    Log.e(TAG, "Vulkan 重新检查失败", e)
                     configureProcessorFromSettings()
                 }
             }
@@ -226,12 +227,12 @@ class ThreadManager(context: Context) {
             try {
                 for (task in gpuChannel) {
                     try {
-                        gpuProcessor.setFilmGrainConfig(task.grainConfigSnapshot)
-                        task.onProgress?.invoke("Processing on GPU...")
-                        val result = gpuProcessor.processImage(task.bitmap, task.params)
+                        vulkanProcessor.setFilmGrainConfig(task.grainConfigSnapshot)
+                        task.onProgress?.invoke("Processing on Vulkan...")
+                        val result = vulkanProcessor.processImage(task.bitmap, task.params)
                         task.onComplete(Result.success(result))
                     } catch (e: Throwable) {
-                        Log.e(TAG, "GPU processing failed for task ${task.id}", e)
+                        Log.e(TAG, "Vulkan processing failed for task ${task.id}", e)
                         // Fallback to CPU processing
                         processCpuFallback(task)
                     } finally {
@@ -239,7 +240,7 @@ class ThreadManager(context: Context) {
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "GPU processing loop error", e)
+                Log.e(TAG, "Vulkan processing loop error", e)
             }
         }
     }
@@ -275,17 +276,17 @@ class ThreadManager(context: Context) {
             val cpuLoaded = cpuProcessor.loadCubeLut(cpuInputStream)
             cpuInputStream.close()
 
-            // 为GPU处理器创建新的输入流
-            val gpuLoaded = if (isGpuAvailable) {
-                val gpuInputStream = ByteArrayInputStream(lutData)
-                val result = gpuProcessor.loadCubeLut(gpuInputStream)
-                gpuInputStream.close()
+            // 为Vulkan处理器创建新的输入流
+            val vulkanLoaded = if (isVulkanAvailable) {
+                val vulkanInputStream = ByteArrayInputStream(lutData)
+                val result = vulkanProcessor.loadCubeLut(vulkanInputStream)
+                vulkanInputStream.close()
                 result
             } else {
-                true // Skip GPU loading if not available
+                true // Skip Vulkan loading if not available
             }
 
-            cpuLoaded && gpuLoaded
+            cpuLoaded && vulkanLoaded
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load LUT", e)
             false
@@ -307,29 +308,29 @@ class ThreadManager(context: Context) {
             val cpuLoaded = cpuProcessor.loadSecondCubeLut(cpuInputStream)
             cpuInputStream.close()
 
-            // 为GPU处理器创建新的输入流
-            val gpuLoaded = if (isGpuAvailable) {
-                val gpuInputStream = ByteArrayInputStream(lut2Data)
-                val result = gpuProcessor.loadSecondCubeLut(gpuInputStream)
-                gpuInputStream.close()
+            // 为Vulkan处理器创建新的输入流
+            val vulkanLoaded = if (isVulkanAvailable) {
+                val vulkanInputStream = ByteArrayInputStream(lut2Data)
+                val result = vulkanProcessor.loadSecondCubeLut(vulkanInputStream)
+                vulkanInputStream.close()
                 result
             } else {
-                true // Skip GPU loading if not available
+                true // Skip Vulkan loading if not available
             }
 
-            Log.d(TAG, "Second LUT loading result: CPU=$cpuLoaded, GPU=$gpuLoaded")
+            Log.d(TAG, "Second LUT loading result: CPU=$cpuLoaded, Vulkan=$vulkanLoaded")
             // 添加更详细的日志
-            if (cpuLoaded && gpuLoaded) {
-                Log.d(TAG, "第二个LUT成功加载到CPU和GPU处理器")
+            if (cpuLoaded && vulkanLoaded) {
+                Log.d(TAG, "第二个LUT成功加载到CPU和Vulkan处理器")
             } else if (cpuLoaded) {
                 Log.d(TAG, "第二个LUT仅成功加载到CPU处理器")
-            } else if (gpuLoaded) {
-                Log.d(TAG, "第二个LUT仅成功加载到GPU处理器")
+            } else if (vulkanLoaded) {
+                Log.d(TAG, "第二个LUT仅成功加载到Vulkan处理器")
             } else {
                 Log.e(TAG, "第二个LUT加载失败")
             }
 
-            cpuLoaded && gpuLoaded
+            cpuLoaded && vulkanLoaded
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load second LUT", e)
             false
@@ -359,7 +360,7 @@ class ThreadManager(context: Context) {
         managerScope.launch {
             try {
                 val userPreferenceString = when (forceProcessor) {
-                    ILutProcessor.ProcessorType.GPU -> "GPU"
+                    ILutProcessor.ProcessorType.VULKAN -> "VULKAN"
                     ILutProcessor.ProcessorType.CPU -> "CPU"
                     null -> preferencesManager.processorType
                 }
@@ -369,7 +370,7 @@ class ThreadManager(context: Context) {
                 val selectionResult = processorSelectionStrategy.selectOptimalProcessor(
                     bitmap = bitmap,
                     userPreferenceString = userPreferenceString,
-                    isGpuAvailable = isGpuAvailable
+                    isVulkanAvailable = isVulkanAvailable
                 )
                 
                 val processorType = selectionResult.processorType
@@ -383,7 +384,7 @@ class ThreadManager(context: Context) {
                 Log.d(TAG, "选择原因: ${selectionResult.reason}")
                 Log.d(TAG, "需要显示Toast: ${selectionResult.shouldShowToast}")
                 Log.d(TAG, "回退原因: ${selectionResult.fallbackReason?.message}")
-                Log.d(TAG, "GPU可用: $isGpuAvailable")
+                Log.d(TAG, "Vulkan可用: $isVulkanAvailable")
                 Log.d(TAG, "用户设置: ${preferencesManager.processorType}")
                 Log.d(TAG, "处理参数: 强度=${params.strength}, LUT2强度=${params.lut2Strength}, 质量=${params.quality}, 抖动=${params.ditherType}")
                 Log.d(TAG, "========================================")
@@ -400,8 +401,8 @@ class ThreadManager(context: Context) {
                 }
                 
                 val job = when (processorType) {
-                    ILutProcessor.ProcessorType.GPU -> {
-                        Log.d(TAG, "任务 $taskId 提交给GPU处理")
+                    ILutProcessor.ProcessorType.VULKAN -> {
+                        Log.d(TAG, "任务 $taskId 提交给Vulkan处理")
                         managerScope.launch {
                             gpuChannel.send(task)
                         }
@@ -419,14 +420,14 @@ class ThreadManager(context: Context) {
                 // 回退到原来的逻辑
                 val processorType = forceProcessor ?: preferredProcessor
                 val job = when (processorType) {
-                    ILutProcessor.ProcessorType.GPU -> {
-                        if (isGpuAvailable) {
-                            Log.d(TAG, "任务 $taskId 提交给GPU处理")
+                    ILutProcessor.ProcessorType.VULKAN -> {
+                        if (isVulkanAvailable) {
+                            Log.d(TAG, "任务 $taskId 提交给Vulkan处理")
                             managerScope.launch {
                                 gpuChannel.send(task)
                             }
                         } else {
-                            Log.w(TAG, "GPU请求但不可用，任务 $taskId 回退到CPU")
+                            Log.w(TAG, "Vulkan请求但不可用，任务 $taskId 回退到CPU")
                             submitCpuTask(task)
                         }
                     }
@@ -509,9 +510,9 @@ class ThreadManager(context: Context) {
     fun getProcessorInfo(): ProcessorInfo {
         return ProcessorInfo(
             cpuInfo = cpuProcessor.getProcessorInfo(),
-            gpuInfo = if (isGpuAvailable) gpuProcessor.getProcessorInfo() else "GPU not available",
+            vulkanInfo = if (isVulkanAvailable) vulkanProcessor.getProcessorInfo() else "Vulkan not available",
             preferredProcessor = preferredProcessor,
-            isGpuAvailable = isGpuAvailable
+            isVulkanAvailable = isVulkanAvailable
         )
     }
     
@@ -521,8 +522,8 @@ class ThreadManager(context: Context) {
      */
     fun setFilmGrainConfig(config: cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig?) {
         currentGrainConfig = config
-        // 同步到GPU处理器
-        gpuProcessor.setFilmGrainConfig(config)
+        // 同步到Vulkan处理器
+        vulkanProcessor.setFilmGrainConfig(config)
         Log.d(TAG, "设置胶片颗粒配置: ${if (config?.isEnabled == true) "启用，强度=${config.globalStrength}" else "禁用"}")
     }
     
@@ -557,9 +558,9 @@ class ThreadManager(context: Context) {
             // 清除 CPU 处理器的主 LUT
             cpuProcessor.clearMainLut()
             
-            // 清除 GPU 处理器的主 LUT
-            if (isGpuAvailable) {
-                gpuProcessor.clearMainLut()
+            // 清除 Vulkan 处理器的主 LUT
+            if (isVulkanAvailable) {
+                vulkanProcessor.clearMainLut()
             }
             
             Log.d(TAG, "主 LUT 已清除")
@@ -577,9 +578,9 @@ class ThreadManager(context: Context) {
             // 清除 CPU 处理器的第二个 LUT
             cpuProcessor.clearSecondLut()
             
-            // 清除 GPU 处理器的第二个 LUT
-            if (isGpuAvailable) {
-                gpuProcessor.clearSecondLut()
+            // 清除 Vulkan 处理器的第二个 LUT
+            if (isVulkanAvailable) {
+                vulkanProcessor.clearSecondLut()
             }
             
             Log.d(TAG, "第二个 LUT 已清除")
@@ -609,8 +610,8 @@ class ThreadManager(context: Context) {
 
         // Release processors
         cpuProcessor.release()
-        if (isGpuAvailable) {
-            gpuProcessor.release()
+        if (isVulkanAvailable) {
+            vulkanProcessor.release()
         }
 
         // 释放Native处理器资源
@@ -631,9 +632,9 @@ class ThreadManager(context: Context) {
      */
     data class ProcessorInfo(
         val cpuInfo: String,
-        val gpuInfo: String,
+        val vulkanInfo: String,
         val preferredProcessor: ILutProcessor.ProcessorType,
-        val isGpuAvailable: Boolean
+        val isVulkanAvailable: Boolean
     )
 
     /**

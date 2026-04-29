@@ -5,7 +5,7 @@ import java.io.InputStream
 
 /**
  * LUT处理器统一接口
- * 支持CPU和GPU两种处理方式
+ * 支持CPU和Vulkan两种处理方式
  */
 interface ILutProcessor {
 
@@ -33,7 +33,7 @@ interface ILutProcessor {
      */
     enum class ProcessorType {
         CPU,
-        GPU
+        VULKAN
     }
 
     /**

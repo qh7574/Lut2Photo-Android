@@ -26,6 +26,7 @@ include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/utils
         ${CMAKE_CURRENT_SOURCE_DIR}/tests
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/vulkan
 )
 
 # 核心源文件列表
@@ -47,6 +48,14 @@ set(ENHANCED_SOURCES
         lut_image_processor.cpp
 )
 
+# Vulkan源文件
+set(VULKAN_SOURCES
+        vulkan/vk_context.cpp
+        vulkan/vk_memory_pool.cpp
+        vulkan/vk_compute_pipeline.cpp
+        jni/native_vulkan_processor.cpp
+)
+
 # 测试源文件（可选编译）
 set(TEST_SOURCES
         tests/performance_test.cpp
@@ -54,7 +63,7 @@ set(TEST_SOURCES
 )
 
 # 合并所有源文件
-set(SOURCES ${CORE_SOURCES} ${ENHANCED_SOURCES})
+set(SOURCES ${CORE_SOURCES} ${ENHANCED_SOURCES} ${VULKAN_SOURCES})
 
 # 如果启用测试，添加测试源文件
 option(ENABLE_PERFORMANCE_TESTS "Enable performance testing" OFF)
@@ -88,6 +97,16 @@ find_library(
         android-lib
         android
 )
+
+# 查找Vulkan库
+find_package(vulkan REQUIRED)
+if (VULKAN_FOUND)
+    message(STATUS "Vulkan found: ${VULKAN_LIBRARIES}")
+    target_link_libraries(native_lut_processor vulkan)
+    target_compile_definitions(native_lut_processor PRIVATE VULKAN_ENABLED)
+else ()
+    message(WARNING "Vulkan not found, Vulkan support will be disabled")
+endif ()
 
 # 查找OpenMP（可选）
 find_package(OpenMP)

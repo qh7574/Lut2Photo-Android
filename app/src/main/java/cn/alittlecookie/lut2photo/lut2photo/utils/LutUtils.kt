@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import cn.alittlecookie.lut2photo.lut2photo.core.CpuLutProcessor
 import cn.alittlecookie.lut2photo.lut2photo.core.ILutProcessor
-import cn.alittlecookie.lut2photo.lut2photo.gpu.GpuLutProcessor
+import cn.alittlecookie.lut2photo.lut2photo.gpu.VulkanLutProcessor
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileInputStream
@@ -65,7 +65,7 @@ object LutUtils {
     }
 
     /**
-     * 为图片应用双LUT效果（GPU加速）
+     * 为图片应用双LUT效果（Vulkan加速）
      * @param bitmap 原始图片
      * @param lutPath 第一个LUT文件路径
      * @param intensity 第一个LUT强度 (0.0 - 1.0)
@@ -84,26 +84,26 @@ object LutUtils {
         return try {
             Log.d(
                 TAG,
-                "GPU双LUT处理开始 - 强度参数: intensity=$intensity, lut2Intensity=$lut2Intensity"
+                "Vulkan双LUT处理开始 - 强度参数: intensity=$intensity, lut2Intensity=$lut2Intensity"
             )
-            Log.d(TAG, "GPU双LUT处理开始 - LUT路径: lutPath=$lutPath, lut2Path=$lut2Path")
+            Log.d(TAG, "Vulkan双LUT处理开始 - LUT路径: lutPath=$lutPath, lut2Path=$lut2Path")
 
-            // 创建GPU LUT处理器
-            val processor = GpuLutProcessor(context)
+            // 创建Vulkan LUT处理器
+            val processor = VulkanLutProcessor(context)
 
-            // 检查GPU是否可用
-            val gpuAvailable = processor.isAvailable()
-            Log.d(TAG, "GPU可用性检查结果: $gpuAvailable")
+            // 检查Vulkan是否可用
+            val vulkanAvailable = processor.isAvailable()
+            Log.d(TAG, "Vulkan可用性检查结果: $vulkanAvailable")
 
-            if (!gpuAvailable) {
-                Log.w(TAG, "GPU处理器不可用，回退到CPU处理")
+            if (!vulkanAvailable) {
+                Log.w(TAG, "Vulkan处理器不可用，回退到CPU处理")
                 processor.release()
 
                 // 回退到CPU处理
                 return applyDualLutCpu(bitmap, lutPath, intensity, lut2Path, lut2Intensity)
             }
 
-            Log.d(TAG, "GPU处理器可用，继续GPU处理")
+            Log.d(TAG, "Vulkan处理器可用，继续Vulkan处理")
 
             // 加载第一个LUT
             if (!lutPath.isNullOrEmpty() && File(lutPath).exists()) {
@@ -134,13 +134,13 @@ object LutUtils {
             )
             Log.d(
                 TAG,
-                "GPU处理参数创建完成: strength=${params.strength}, lut2Strength=${params.lut2Strength}"
+                "Vulkan处理参数创建完成: strength=${params.strength}, lut2Strength=${params.lut2Strength}"
             )
 
             // 应用LUT效果
             val processedBitmap = processor.processImage(bitmap, params)
 
-            Log.d(TAG, "GPU处理完成")
+            Log.d(TAG, "Vulkan处理完成")
 
             // 清理资源
             processor.release()
@@ -150,7 +150,7 @@ object LutUtils {
         } catch (e: Exception) {
             Log.e(
                 TAG,
-                "GPU应用双LUT时发生错误: lutPath=$lutPath, lut2Path=$lut2Path, intensity=$intensity, lut2Intensity=$lut2Intensity",
+                "Vulkan应用双LUT时发生错误: lutPath=$lutPath, lut2Path=$lut2Path, intensity=$intensity, lut2Intensity=$lut2Intensity",
                 e
             )
             bitmap
