@@ -33,13 +33,32 @@
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="8dp">
 
-            <TextView
-                android:id="@+id/text_history_count"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="共 0 条处理记录"
-                android:textSize="14sp" />
+                android:gravity="bottom"
+                android:orientation="vertical"
+                android:paddingTop="2dp">
+
+
+                <TextView
+                    android:id="@+id/text_history_count"
+                    style="@style/TextAppearance.Material3.BodyLarge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="共 0 条处理记录"
+                    android:textSize="16sp" />
+
+                <TextView
+                    style="@style/TextAppearance.Material3.DisplaySmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/LongPressShare"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_clear_history"

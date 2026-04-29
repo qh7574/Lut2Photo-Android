@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginBottom="0dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -30,14 +30,6 @@
                 android:text="LUT管理"
                 android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium" />
 
-            <TextView
-                android:id="@+id/text_lut_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:gravity="end|bottom"
-                android:text="共 0 个LUT文件"
-                android:textSize="14sp" />
 
         </LinearLayout>
 
@@ -46,15 +38,39 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:gravity="right|end"
             android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="bottom"
+                android:orientation="vertical"
+                android:paddingTop="2dp">
+
+                <TextView
+                    android:id="@+id/text_lut_count"
+                    style="@style/TextAppearance.Material3.BodyLarge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="共 0 个LUT文件"
+                    android:textSize="16sp" />
+
+                <TextView
+                    style="@style/TextAppearance.Material3.DisplaySmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/LongPressPrompt"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_import_lut"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="0dp"
                 android:text="导入"
                 app:icon="@drawable/outline_downloading_24" />
 
@@ -76,65 +92,76 @@
         android:layout_height="56dp"
         android:layout_gravity="bottom"
         android:visibility="gone"
-        app:cardBackgroundColor="?attr/colorSurface"
         app:cardCornerRadius="0dp"
+        app:cardBackgroundColor="?attr/colorSurface"
         app:cardElevation="8dp">
 
-        <LinearLayout
+        <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingStart="0dp"
-            android:paddingEnd="0dp">
+            android:fillViewport="true"
+            android:scrollbars="horizontal">
 
-            <!-- 返回按钮 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_exit_selection"
-                style="@style/Widget.Material3.Button.TextButton"
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="返回"
-                app:icon="@drawable/ic_close_24" />
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="4dp"
+                android:paddingEnd="8dp">
 
-            <!-- 全选按钮 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_select_all"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="全选"
-                app:icon="@drawable/ic_select_all_24" />
+                <!-- 返回按钮 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_exit_selection"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="-8dp"
+                    android:text="返回"
+                    app:icon="@drawable/ic_close_24" />
 
-            <!-- 取消选择按钮 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_deselect_all"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="取消"
-                app:icon="@drawable/ic_deselect_24" />
+                <!-- 全选按钮 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_select_all"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="-8dp"
+                    android:text="全选"
+                    app:icon="@drawable/ic_select_all_24" />
 
-            <!-- 导出按钮 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_export"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="导出"
-                app:icon="@drawable/ic_menu_upload" />
+                <!-- 取消选择按钮 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_deselect_all"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="0dp"
+                    android:text="取消"
+                    app:icon="@drawable/ic_deselect_24" />
 
-            <!-- 删除按钮 -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/button_delete"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="删除"
-                app:icon="@drawable/ic_delete_24"
-                app:iconTint="?attr/colorError" />
+                <!-- 导出按钮 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_export"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="导出"
+                    app:icon="@drawable/ic_menu_upload" />
 
-        </LinearLayout>
+                <!-- 删除按钮 -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_delete"
+                    style="@style/Widget.Material3.Button.IconButton.Filled"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="?attr/colorError"
+                    android:text="删除"
+                    app:icon="@drawable/ic_delete_24" />
+
+            </LinearLayout>
+
+        </HorizontalScrollView>
 
     </com.google.android.material.card.MaterialCardView>
 
