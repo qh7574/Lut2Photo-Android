@@ -2,7 +2,6 @@ package cn.alittlecookie.lut2photo.lut2photo.ui.lut
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -21,6 +20,7 @@ import cn.alittlecookie.lut2photo.lut2photo.databinding.FragmentLutManagerBindin
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutManager
 import cn.alittlecookie.lut2photo.lut2photo.utils.VltFileManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -286,7 +286,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
             options.add("导出 VLT 文件")
         }
 
-        AlertDialog.Builder(requireActivity())
+        MaterialAlertDialogBuilder(requireActivity())
             .setTitle("选择导出格式")
             .setItems(options.toTypedArray()) { _, which ->
                 when (which) {
@@ -314,7 +314,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
             return
         }
 
-        AlertDialog.Builder(requireActivity())
+        MaterialAlertDialogBuilder(requireActivity())
             .setTitle("确认删除")
             .setMessage("确定要删除选中的 ${selectedLuts.size} 个LUT文件吗？此操作不可撤销。")
             .setPositiveButton("删除") { _, _ ->
