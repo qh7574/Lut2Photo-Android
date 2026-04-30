@@ -8,9 +8,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingLeft="16dp"
+        android:paddingLeft="0dp"
         android:paddingTop="0dp"
-        android:paddingRight="16dp"
+        android:paddingRight="0dp"
         android:paddingBottom="0dp">
 
         <!-- 标题栏 -->
@@ -19,6 +19,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="0dp"
+            android:paddingHorizontal="16dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -38,6 +39,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
+            android:paddingHorizontal="16dp"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -81,7 +83,9 @@
             android:id="@+id/recycler_view_luts"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:fadeScrollbars="false"
+            android:scrollbars="vertical" />
 
     </LinearLayout>
 
