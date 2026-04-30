@@ -144,9 +144,9 @@ class ProcessingHistoryAdapter(
 
                 // 2. 修改显示格式为 "lut|强度|质量|抖动类型"
                 val lutInfo = buildLutInfo(record)
-                val inputDisplayPath = getSimplifiedPath(record.inputPath)
+                getSimplifiedPath(record.inputPath)
                 val outputDisplayPath = getSimplifiedPath(record.outputPath)
-                textPaths.text = "$lutInfo\n输入: $inputDisplayPath\n输出: $outputDisplayPath"
+                textPaths.text = "$lutInfo\n输出: $outputDisplayPath"
 
                 // 选中状态指示器
                 imageSelectionIndicator.visibility = if (isSelectionMode && selectedPositions.contains(position)) {

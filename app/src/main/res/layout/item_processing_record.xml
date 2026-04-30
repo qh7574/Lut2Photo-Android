@@ -58,6 +58,7 @@
                     android:text="文件名"
                     android:textColor="#ffffffff"
                     android:textSize="14sp"
+                    android:maxLines="1"
                     android:textStyle="bold" />
 
                 <TextView
@@ -114,7 +115,7 @@
             android:shadowDx="0"
             android:shadowDy="2"
             android:shadowRadius="10"
-            app:tint="#ffffffff"
+            app:tint="?attr/colorPrimary"
             android:visibility="gone" />
 
     </FrameLayout>

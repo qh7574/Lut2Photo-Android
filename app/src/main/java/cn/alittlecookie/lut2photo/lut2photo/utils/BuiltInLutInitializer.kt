@@ -20,23 +20,45 @@ class BuiltInLutInitializer(private val context: Context) {
         private const val KEY_LUT_VERSION = "built_in_luts_version"
         
         // LUT文件版本号 - 每次修改内置LUT列表时需要递增此版本号
-        private const val CURRENT_LUT_VERSION = 4
+        private const val CURRENT_LUT_VERSION = 5
         
         // 内置LUT文件列表
         private val BUILT_IN_LUTS = listOf(
+            "CyanOrganic.cube",
+            "Fuji-ACROS.cube",
+            "Fuji-ASTIA.cube",
+            "Fuji-ClassicChrome.cube",
+            "Fuji-ClassicNegative.cube",
+            "Fuji-Eterna.cube",
+            "Fuji-EternaBleachBypass.cube",
+            "Fuji-ProNegStd.cube",
+            "Fuji-PROVIA.cube",
+            "Fuji-REALA.cube",
+            "Fuji-VELVIA.cube",
+            "GR-BleachBypass_V4.cube",
+            "GR-Negative_V4.cube",
+            "GR-Positive_V4.cube",
+            "GR-RetroBlue_V4.cube",
+            "JC-Negative_V4.cube",
+            "JC-Positive_V4.cube",
+            "GR-一键森山大道_V4.cube",
+            "sRGBto709.cube",
+            "VLogto709.cube"
+        )
+
+        // 旧版本内置LUT文件列表 - 版本更新时需要删除的文件
+        // 请在此处添加需要删除的旧版本LUT文件名
+        private val OLD_VERSION_LUTS = listOf<String>(
             "ACROS.cube",
             "ASTIA.cube",
             "ClassicChrome.cube",
             "ClassicNegative.cube",
-            "CyanOrganic.cube",
             "Eterna.cube",
             "EternaBleachBypass.cube",
             "ProNegStd.cube",
             "PROVIA.cube",
             "REALA.cube",
-            "sRGBto709.cube",
-            "VELVIA.cube",
-            "VLogto709.cube"
+            "VELVIA.cube"// 示例: "OldLut1.cube", "OldLut2.cube"
         )
     }
     
@@ -82,6 +104,9 @@ class BuiltInLutInitializer(private val context: Context) {
                     return@withContext false
                 }
             }
+
+            // 删除旧版本LUT文件
+            deleteOldVersionLuts()
             
             var successCount = 0
             var failCount = 0
@@ -92,7 +117,7 @@ class BuiltInLutInitializer(private val context: Context) {
                     val targetFile = File(lutDirectory, fileName)
                     
                     // 从assets/luts读取文件
-                    val assetFileName = fileName.lowercase() // assets中的文件名是小写的
+                    val assetFileName = fileName
                     
                     // 如果文件已存在，覆盖它以确保使用最新版本
                     if (targetFile.exists()) {
@@ -141,5 +166,42 @@ class BuiltInLutInitializer(private val context: Context) {
     fun resetInitializationState() {
         prefs.edit().putBoolean(KEY_INITIALIZED, false).apply()
         Log.i(TAG, "重置初始化状态")
+    }
+
+    /**
+     * 删除旧版本LUT文件
+     * 根据OLD_VERSION_LUTS列表删除指定的旧版本文件
+     */
+    private fun deleteOldVersionLuts() {
+        if (OLD_VERSION_LUTS.isEmpty()) {
+            Log.d(TAG, "没有需要删除的旧版本LUT文件")
+            return
+        }
+
+        Log.i(TAG, "开始删除旧版本LUT文件，共 ${OLD_VERSION_LUTS.size} 个")
+        var deleteCount = 0
+        var notFoundCount = 0
+
+        OLD_VERSION_LUTS.forEach { fileName ->
+            try {
+                val file = File(lutDirectory, fileName)
+                if (file.exists()) {
+                    val deleted = file.delete()
+                    if (deleted) {
+                        Log.d(TAG, "成功删除旧版本LUT文件: $fileName")
+                        deleteCount++
+                    } else {
+                        Log.w(TAG, "删除旧版本LUT文件失败: $fileName")
+                    }
+                } else {
+                    Log.d(TAG, "旧版本LUT文件不存在，跳过: $fileName")
+                    notFoundCount++
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "删除旧版本LUT文件异常: $fileName", e)
+            }
+        }
+
+        Log.i(TAG, "旧版本LUT文件删除完成: 成功删除 $deleteCount 个, 未找到 $notFoundCount 个")
     }
 }
