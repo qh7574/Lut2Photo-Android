@@ -140,6 +140,13 @@ bool VkComputePipeline::initialize() {
         return false;
     }
 
+    // 创建默认的1x1输入输出图像（避免在loadLut时描述符无效）
+    if (!createInOutImages(1, 1)) {
+        LOGE("Failed to create default input/output images");
+        cleanup();
+        return false;
+    }
+
     // 创建命令缓冲区
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -774,21 +781,6 @@ void VkComputePipeline::updateDescriptorSet() {
     lutWrite.descriptorCount = 1;
     lutWrite.pImageInfo = &lutImageInfo;
 
-    // 更新LUT2纹理描述符
-    VkDescriptorImageInfo lut2ImageInfo = {};
-    lut2ImageInfo.imageView = lut2ImageView_;
-    lut2ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    lut2ImageInfo.sampler = lutSampler_;
-
-    VkWriteDescriptorSet lut2Write = {};
-    lut2Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    lut2Write.dstSet = descriptorSet_;
-    lut2Write.dstBinding = 3;
-    lut2Write.dstArrayElement = 0;
-    lut2Write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    lut2Write.descriptorCount = 1;
-    lut2Write.pImageInfo = &lut2ImageInfo;
-
     // 更新Uniform缓冲区描述符
     VkDescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer_;
@@ -805,8 +797,42 @@ void VkComputePipeline::updateDescriptorSet() {
     uniformWrite.pBufferInfo = &bufferInfo;
 
     std::vector<VkWriteDescriptorSet> writes = {
-        inputWrite, outputWrite, lutWrite, lut2Write, uniformWrite
+            inputWrite, outputWrite, lutWrite, uniformWrite
     };
+
+    // 只有当LUT2有效时才更新LUT2描述符
+    VkDescriptorImageInfo lut2ImageInfo = {};
+    VkWriteDescriptorSet lut2Write = {};
+    if (lut2ImageView_ != VK_NULL_HANDLE) {
+        lut2ImageInfo.imageView = lut2ImageView_;
+        lut2ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        lut2ImageInfo.sampler = lutSampler_;
+
+        lut2Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        lut2Write.dstSet = descriptorSet_;
+        lut2Write.dstBinding = 3;
+        lut2Write.dstArrayElement = 0;
+        lut2Write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        lut2Write.descriptorCount = 1;
+        lut2Write.pImageInfo = &lut2ImageInfo;
+
+        writes.push_back(lut2Write);
+    } else {
+        // 使用LUT1作为LUT2的占位符（强度为0时不会实际使用）
+        lut2ImageInfo.imageView = lutImageView_;
+        lut2ImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        lut2ImageInfo.sampler = lutSampler_;
+
+        lut2Write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        lut2Write.dstSet = descriptorSet_;
+        lut2Write.dstBinding = 3;
+        lut2Write.dstArrayElement = 0;
+        lut2Write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        lut2Write.descriptorCount = 1;
+        lut2Write.pImageInfo = &lut2ImageInfo;
+
+        writes.push_back(lut2Write);
+    }
 
     vkUpdateDescriptorSets(
         context_->getDevice(),
