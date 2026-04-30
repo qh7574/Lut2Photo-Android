@@ -446,6 +446,12 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
         backPressedCallback.isEnabled = enabled
 
         binding.textTitle.text = if (enabled) "选择LUT" else "LUT管理"
+
+        val bottomPadding = if (enabled) {
+            (56 * resources.displayMetrics.density).toInt()
+        } else 0
+        binding.recyclerViewLuts.setPadding(0, 0, 0, bottomPadding)
+        binding.recyclerViewLuts.clipToPadding = false
     }
 
     override fun onSelectionCountChanged(count: Int) {
@@ -457,6 +463,28 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
 
     override fun onItemClick(lutItem: LutItem) {
         // 普通点击不做任何操作
+    }
+
+    override fun onLutEnabledStateChanged(lutItem: LutItem, isEnabled: Boolean) {
+        // 切换LUT的启用状态
+        lifecycleScope.launch {
+            try {
+                val newState = withContext(Dispatchers.IO) {
+                    lutManager.toggleLutEnabledState(lutItem)
+                }
+
+                // 更新UI
+                val message = if (newState) "已启用 ${lutItem.name}" else "已禁用 ${lutItem.name}"
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+
+                // 重新加载LUT列表以更新UI
+                loadLutFiles()
+            } catch (e: Exception) {
+                android.util.Log.e("LutManagerFragment", "切换LUT启用状态失败", e)
+                Toast.makeText(requireContext(), "切换状态失败: ${e.message}", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
     }
 
     @SuppressLint("SetTextI18n")

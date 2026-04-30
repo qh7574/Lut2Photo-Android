@@ -8,5 +8,6 @@ data class LutItem(
     val lastModified: Long,
     var isSelected: Boolean = false,
     val vltFileName: String? = null,  // 对应的 VLT 文件名
-    val uploadName: String? = null     // 上传时使用的文件名（6位字符）
+    val uploadName: String? = null,    // 上传时使用的文件名（6位字符）
+    var isEnabled: Boolean = true      // 启用/禁用状态，默认为启用
 )

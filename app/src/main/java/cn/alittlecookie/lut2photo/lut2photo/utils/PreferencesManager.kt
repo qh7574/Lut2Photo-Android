@@ -471,4 +471,51 @@ class PreferencesManager(context: Context) {
     var folderMonitorGrainEnabled: Boolean
         get() = sharedPreferences.getBoolean("folder_monitor_grain_enabled", false)
         set(value) = sharedPreferences.edit { putBoolean("folder_monitor_grain_enabled", value) }
+
+    // ========== LUT启用/禁用状态管理 ==========
+
+    /**
+     * 保存LUT的启用/禁用状态
+     * @param lutId LUT的唯一标识（通常是文件名）
+     * @param isEnabled 是否启用
+     */
+    fun saveLutEnabledState(lutId: String, isEnabled: Boolean) {
+        sharedPreferences.edit { putBoolean("lut_enabled_$lutId", isEnabled) }
+        Log.d("PreferencesManager", "保存LUT启用状态: $lutId = $isEnabled")
+    }
+
+    /**
+     * 获取LUT的启用/禁用状态
+     * @param lutId LUT的唯一标识（通常是文件名）
+     * @return 是否启用，默认为true（启用）
+     */
+    fun getLutEnabledState(lutId: String): Boolean {
+        val enabled = sharedPreferences.getBoolean("lut_enabled_$lutId", true)
+        Log.d("PreferencesManager", "读取LUT启用状态: $lutId = $enabled")
+        return enabled
+    }
+
+    /**
+     * 批量保存LUT的启用/禁用状态
+     * @param lutStates LUT状态映射，key为LUT ID，value为是否启用
+     */
+    fun saveLutEnabledStates(lutStates: Map<String, Boolean>) {
+        sharedPreferences.edit {
+            lutStates.forEach { (lutId, isEnabled) ->
+                putBoolean("lut_enabled_$lutId", isEnabled)
+            }
+        }
+        Log.d("PreferencesManager", "批量保存LUT启用状态: ${lutStates.size}个")
+    }
+
+    /**
+     * 批量获取LUT的启用/禁用状态
+     * @param lutIds LUT ID列表
+     * @return LUT状态映射，key为LUT ID，value为是否启用
+     */
+    fun getLutEnabledStates(lutIds: List<String>): Map<String, Boolean> {
+        return lutIds.associateWith { lutId ->
+            sharedPreferences.getBoolean("lut_enabled_$lutId", true)
+        }
+    }
 }

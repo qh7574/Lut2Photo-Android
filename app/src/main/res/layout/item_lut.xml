@@ -29,6 +29,7 @@
             app:tint="?attr/colorPrimary" />
 
         <LinearLayout
+            android:id="@+id/layout_lut_info"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -75,6 +76,19 @@
                 android:textColor="?android:attr/textColorSecondary" />
 
         </LinearLayout>
+
+        <!-- 启用/禁用按钮 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button_toggle_enabled"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="64dp"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:text="禁用"
+            android:textSize="12sp" />
 
     </LinearLayout>
 

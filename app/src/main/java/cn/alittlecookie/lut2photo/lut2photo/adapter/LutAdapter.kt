@@ -26,6 +26,7 @@ class LutAdapter(
         fun onSelectionModeChanged(enabled: Boolean)
         fun onSelectionCountChanged(count: Int)
         fun onItemClick(lutItem: LutItem)
+        fun onLutEnabledStateChanged(lutItem: LutItem, isEnabled: Boolean)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LutViewHolder {
@@ -127,6 +128,22 @@ class LutAdapter(
                     } else {
                         View.GONE
                     }
+
+                // 启用/禁用按钮设置
+                buttonToggleEnabled.text = if (lutItem.isEnabled) "禁用" else "启用"
+                buttonToggleEnabled.setOnClickListener {
+                    selectionCallback?.onLutEnabledStateChanged(lutItem, !lutItem.isEnabled)
+                }
+
+                // 多选模式下隐藏启用/禁用按钮，不置灰
+                if (isSelectionMode) {
+                    buttonToggleEnabled.visibility = View.GONE
+                    layoutLutInfo.alpha = 1.0f
+                } else {
+                    buttonToggleEnabled.visibility = View.VISIBLE
+                    // 根据启用状态调整内容区透明度（不影响按钮）
+                    layoutLutInfo.alpha = if (lutItem.isEnabled) 1.0f else 0.5f
+                }
 
                 // 点击事件
                 root.setOnClickListener {

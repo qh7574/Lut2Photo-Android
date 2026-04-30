@@ -150,4 +150,15 @@
     <string name="palette_description">Palette自动取色，点击预览图选择图片以预览颜色风格，实际处理时针对每张图片自动取色，预览颜色可能与实际输出有区别。</string>
     <string name="LongPressPrompt">长按进行管理</string>
     <string name="LongPressShare">长按快速分享</string>
+    <string name="ProcessingHistory">处理历史</string>
+    <string name="ProcessingHistoryInfo">共 0 条处理记录</string>
+    <string name="ClearRecord">清空记录</string>
+    <string name="Return">返回</string>
+    <string name="SelectAll">全选</string>
+    <string name="Cancel">取消</string>
+    <string name="Share">分享</string>
+    <string name="StopProcessing">停止处理</string>
+    <string name="ProcessingProgress">已处理: 0 / 0</string>
+    <string name="lut_1">LUT 1</string>
+    <string name="lut_2">LUT 2</string>
 </resources>

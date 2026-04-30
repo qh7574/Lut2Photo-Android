@@ -89,7 +89,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="已处理: 0 / 0"
+                        android:text="@string/ProcessingProgress"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:visibility="gone" />
 
@@ -99,7 +99,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:text="停止处理"
+                        android:text="@string/StopProcessing"
                         android:visibility="gone" />
 
 
@@ -116,7 +116,7 @@
                         android:layout_width="0dp"
                         android:layout_weight="3"
                         android:layout_height="wrap_content"
-                        android:layout_marginRight="8dp"
+                        android:layout_marginEnd="8dp"
                         android:text="@string/select_images_from_gallery"
                         app:icon="@drawable/outline_photo_24"
                         android:paddingTop="8dp"
@@ -132,7 +132,7 @@
                         android:layout_weight="2"
                         android:layout_height="wrap_content"
                         android:text="@string/start_processing"
-                        android:textSize="16dp"
+                        android:textSize="16sp"
                         android:paddingTop="8dp"
                         android:paddingBottom="8dp"/>
 
@@ -152,7 +152,7 @@
                             android:layout_width="0dp"
                             android:layout_weight="3"
                             android:layout_height="wrap_content"
-                            android:layout_marginRight="8dp"
+                            android:layout_marginEnd="8dp"
                             app:icon="@drawable/outline_folder_24"
                             android:text="@string/select_output_folder" />
 
@@ -235,7 +235,7 @@
                             android:layout_height="wrap_content"
                             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                             android:layout_marginBottom="8dp"
-                            android:hint="LUT 1">
+                            android:hint="@string/lut_1">
 
                             <AutoCompleteTextView
                                 android:id="@+id/dropdown_lut"
@@ -253,7 +253,7 @@
                             android:layout_height="wrap_content"
                             style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                             android:layout_marginBottom="8dp"
-                            android:hint="LUT 2">
+                            android:hint="@string/lut_2">
 
                             <AutoCompleteTextView
                                 android:id="@+id/dropdown_lut2"

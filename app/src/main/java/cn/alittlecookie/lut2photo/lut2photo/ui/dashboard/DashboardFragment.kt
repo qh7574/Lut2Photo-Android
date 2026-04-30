@@ -287,7 +287,8 @@ class DashboardFragment : Fragment() {
     private fun setupLutSpinner() {
         lifecycleScope.launch {
             try {
-                availableLuts = lutManager.getAllLuts()
+                // 只获取启用状态的LUT
+                availableLuts = lutManager.getEnabledLuts()
                 val lutNames = mutableListOf<String>()
                 lutNames.add(getString(R.string.no_lut_selected))
                 lutNames.addAll(availableLuts.map { it.name })
@@ -378,6 +379,8 @@ class DashboardFragment : Fragment() {
                     updateProcessButtonState()
                     Log.d("DashboardFragment", "LUT恢复完成，滑块状态已更新: LUT1=${selectedLutItem != null}, LUT2=${selectedLut2Item != null}")
                 }
+
+                Log.d("DashboardFragment", "LUT加载完成，共${availableLuts.size}个启用的文件")
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),

@@ -45,6 +45,11 @@ class LutManager(private val context: Context) {
     private val vltFileManager: VltFileManager by lazy {
         VltFileManager(context)
     }
+
+    // PreferencesManager 实例
+    private val preferencesManager: PreferencesManager by lazy {
+        PreferencesManager(context)
+    }
     
     suspend fun getAllLuts(): List<LutItem> = withContext(Dispatchers.IO) {
         android.util.Log.d("LutManager", "开始扫描 LUT 文件，目录: ${lutDirectory.absolutePath}")
@@ -71,6 +76,10 @@ class LutManager(private val context: Context) {
                 android.util.Log.d("LutManager", "  - 没有对应的 VLT 文件")
                 null
             }
+
+            // 获取LUT的启用状态
+            val isEnabled = preferencesManager.getLutEnabledState(file.name)
+            android.util.Log.d("LutManager", "  - 启用状态: $isEnabled")
             
             LutItem(
                 id = file.name,
@@ -79,7 +88,8 @@ class LutManager(private val context: Context) {
                 size = file.length(),
                 lastModified = file.lastModified(),
                 vltFileName = vltFileName,
-                uploadName = uploadName
+                uploadName = uploadName,
+                isEnabled = isEnabled
             )
         }?.sortedBy { it.name } ?: emptyList()
     }
@@ -261,6 +271,29 @@ class LutManager(private val context: Context) {
         android.util.Log.d("LutManager", "获取LUT文件路径: ${lutItem.filePath} -> $fullPath")
         android.util.Log.d("LutManager", "文件是否存在: ${File(fullPath).exists()}")
         return fullPath
+    }
+
+    /**
+     * 切换LUT的启用/禁用状态
+     * @param lutItem 要切换状态的LUT
+     * @return 切换后的新状态（true为启用，false为禁用）
+     */
+    fun toggleLutEnabledState(lutItem: LutItem): Boolean {
+        val newState = !lutItem.isEnabled
+        preferencesManager.saveLutEnabledState(lutItem.id, newState)
+        android.util.Log.d("LutManager", "切换LUT启用状态: ${lutItem.name} -> $newState")
+        return newState
+    }
+
+    /**
+     * 获取所有启用的LUT
+     * @return 启用状态的LUT列表
+     */
+    suspend fun getEnabledLuts(): List<LutItem> = withContext(Dispatchers.IO) {
+        val allLuts = getAllLuts()
+        val enabledLuts = allLuts.filter { it.isEnabled }
+        android.util.Log.d("LutManager", "获取启用的LUT: ${enabledLuts.size}/${allLuts.size}")
+        return@withContext enabledLuts
     }
 
     private fun getFileName(uri: Uri): String? {

@@ -50,7 +50,6 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
 import com.bumptech.glide.signature.ObjectKey
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -464,7 +463,8 @@ class HomeFragment : Fragment() {
     private fun setupLutSpinner() {
         lifecycleScope.launch {
             try {
-                availableLuts = lutManager.getAllLuts()
+                // 只获取启用状态的LUT
+                availableLuts = lutManager.getEnabledLuts()
                 val lutNames = mutableListOf<String>()
                 lutNames.add(getString(R.string.no_lut_selected))
                 lutNames.addAll(availableLuts.map { it.name })
@@ -573,7 +573,7 @@ class HomeFragment : Fragment() {
                     Log.d("HomeFragment", "滑块状态已更新: LUT1=${selectedLutItem != null}, LUT2=${selectedLut2Item != null}")
                 }
 
-                Log.d("HomeFragment", "LUT加载完成，共${availableLuts.size}个文件")
+                Log.d("HomeFragment", "LUT加载完成，共${availableLuts.size}个启用的文件")
             } catch (e: Exception) {
                 Log.e("HomeFragment", "加载LUT文件失败", e)
                 Toast.makeText(

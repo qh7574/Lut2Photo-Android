@@ -15,7 +15,7 @@
             android:id="@+id/text_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="处理历史"
+            android:text="@string/ProcessingHistory"
             android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
@@ -35,7 +35,7 @@
 
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="bottom"
@@ -48,7 +48,7 @@
                     style="@style/TextAppearance.Material3.BodyLarge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="共 0 条处理记录"
+                    android:text="@string/ProcessingHistoryInfo"
                     android:textSize="16sp" />
 
                 <TextView
@@ -64,7 +64,7 @@
                 android:id="@+id/button_clear_history"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="清空记录"
+                android:text="@string/ClearRecord"
                 app:icon="@drawable/ic_delete_24"
                 style="@style/Widget.Material3.Button.OutlinedButton" />
 
@@ -105,7 +105,7 @@
                 android:id="@+id/button_exit_selection"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="返回"
+                android:text="@string/Return"
                 app:icon="@drawable/ic_close_24"
                 style="@style/Widget.Material3.Button.TextButton" />
 
@@ -114,7 +114,7 @@
                 android:id="@+id/button_select_all"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="全选"
+                android:text="@string/SelectAll"
                 app:icon="@drawable/ic_select_all_24"
                 style="@style/Widget.Material3.Button.TextButton" />
 
@@ -123,7 +123,7 @@
                 android:id="@+id/button_deselect_all"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="取消"
+                android:text="@string/Cancel"
                 app:icon="@drawable/ic_deselect_24"
                 style="@style/Widget.Material3.Button.TextButton" />
 
@@ -132,7 +132,7 @@
                 android:id="@+id/button_share"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="分享"
+                android:text="@string/Share"
                 app:icon="@drawable/ic_share_24"
                 style="@style/Widget.Material3.Button.TextButton" />
 

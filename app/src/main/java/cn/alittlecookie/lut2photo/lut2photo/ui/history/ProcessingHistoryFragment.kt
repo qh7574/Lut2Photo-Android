@@ -108,7 +108,7 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
         // 注销广播接收器
         try {
             requireContext().unregisterReceiver(processingUpdateReceiver)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             // 接收器未注册,忽略异常
             Log.d("ProcessingHistoryFragment", "广播接收器未注册或已注销")
         }
@@ -163,6 +163,12 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
 
         // 更新标题
         binding.textTitle.text = if (enabled) "选择图片" else "处理历史"
+
+        val bottomPadding = if (enabled) {
+            (56 * resources.displayMetrics.density).toInt()
+        } else 0
+        binding.recyclerViewHistory.setPadding(0, 0, 0, bottomPadding)
+        binding.recyclerViewHistory.clipToPadding = false
     }
 
     override fun onSelectionCountChanged(count: Int) {
