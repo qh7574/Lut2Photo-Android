@@ -87,7 +87,10 @@
    - 确认后删除
 
 **内置 LUT**：
-- 内置富士胶片模拟 LUT，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1) 制作（srgb 转 rec2020.flog2）
+
+- 内置富士胶片模拟 LUT 以及 理光仿色 Lut，感谢 [小红书@JC's here](https://xhslink.com/m/2J3vlHM5lH1)
+  制作（srgb 转 rec2020.flog2）
+- 内置 CyanOrganic Lut 由 [小红书@一块小饼干](https://xhslink.com/m/ATC9kacdHYE) 制作
 - 内置 sRGB 转 rec.709 Lut
 - 内置 Vlog 转 rec.709 Lut
 
