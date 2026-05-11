@@ -623,10 +623,25 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
             // 计算水印图片大小（与WatermarkProcessor保持一致）
             val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
+            
+            // 根据水印原图的长边是宽度还是高度来决定缩放方式
+            val targetWidth: Int
+            val targetHeight: Int
+            if (watermarkBitmap.width >= watermarkBitmap.height) {
+                // 宽度是长边，应用横向补偿系数
+                val adjustedLongSide = (imageWatermarkSize * config.landscapeCompensation).toInt()
+                targetWidth = adjustedLongSide
+                targetHeight = (watermarkBitmap.height * adjustedLongSide.toFloat() / watermarkBitmap.width).toInt()
+            } else {
+                // 高度是长边，目标高度 = imageWatermarkSize
+                targetHeight = imageWatermarkSize
+                targetWidth = (watermarkBitmap.width * imageWatermarkSize.toFloat() / watermarkBitmap.height).toInt()
+            }
+            
             val scaledWatermark = Bitmap.createScaledBitmap(
                 watermarkBitmap,
-                imageWatermarkSize,
-                (imageWatermarkSize * watermarkBitmap.height / watermarkBitmap.width),
+                targetWidth,
+                targetHeight,
                 true
             )
 
@@ -692,8 +707,20 @@ class WatermarkPreviewView @JvmOverloads constructor(
         if (!imageFile.exists()) return
 
         val watermarkBitmap = BitmapFactory.decodeFile(config.imagePath) ?: return
-        val imageWidth = imageWatermarkSize
-        val imageHeight = (imageWatermarkSize * watermarkBitmap.height / watermarkBitmap.width)
+        
+        // 根据水印原图的长边是宽度还是高度来决定缩放方式
+        val imageWidth: Int
+        val imageHeight: Int
+        if (watermarkBitmap.width >= watermarkBitmap.height) {
+            // 宽度是长边，应用横向补偿系数
+            val adjustedLongSide = (imageWatermarkSize * config.landscapeCompensation).toInt()
+            imageWidth = adjustedLongSide
+            imageHeight = (watermarkBitmap.height * adjustedLongSide.toFloat() / watermarkBitmap.width).toInt()
+        } else {
+            // 高度是长边，目标高度 = imageWatermarkSize
+            imageHeight = imageWatermarkSize
+            imageWidth = (watermarkBitmap.width * imageWatermarkSize.toFloat() / watermarkBitmap.height).toInt()
+        }
 
         // 使用与WatermarkProcessor一致的位置计算逻辑
         val textPosition = calculateTextFollowPosition(
@@ -866,9 +893,11 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
     /**
      * 计算水印大小
+     * 水印的较长边（宽和高中的较大者）等于背景短边的百分比
      */
     private fun calculateWatermarkSize(bitmap: Bitmap, sizePercent: Float): Int {
-        return (bitmap.width * sizePercent / 100).toInt()
+        val backgroundShortSide = minOf(bitmap.width, bitmap.height)
+        return (backgroundShortSide * sizePercent / 100).toInt()
     }
 
     /**

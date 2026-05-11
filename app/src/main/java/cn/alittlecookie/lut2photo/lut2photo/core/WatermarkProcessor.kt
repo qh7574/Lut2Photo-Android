@@ -513,9 +513,11 @@ class WatermarkProcessor(private val context: Context) {
 
     /**
      * 计算水印大小
+     * 水印的较长边（宽和高中的较大者）等于背景短边的百分比
      */
     private fun calculateWatermarkSize(bitmap: Bitmap, sizePercent: Float): Int {
-        return (bitmap.width * sizePercent / 100).toInt()
+        val backgroundShortSide = minOf(bitmap.width, bitmap.height)
+        return (backgroundShortSide * sizePercent / 100).toInt()
     }
 
     /**
@@ -801,7 +803,7 @@ class WatermarkProcessor(private val context: Context) {
     ) {
         // 首先加载和绘制图片水印，获取其位置和尺寸
         val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
-        val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize)
+        val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize, config.landscapeCompensation)
 
         watermarkImage?.let { image ->
             // 计算图片水印位置（使用图片水印位置参数）
@@ -873,7 +875,7 @@ class WatermarkProcessor(private val context: Context) {
         // 绘制图片水印 - 使用独立的位置和透明度
         if (config.enableImageWatermark && config.imagePath.isNotEmpty()) {
             val imageWatermarkSize = calculateWatermarkSize(bitmap, config.imageSize)
-            val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize)
+            val watermarkImage = loadWatermarkImage(config.imagePath, imageWatermarkSize, config.landscapeCompensation)
             watermarkImage?.let { image ->
                 // 计算图片水印位置
                 val imagePosition = calculateWatermarkPosition(
@@ -1095,8 +1097,11 @@ class WatermarkProcessor(private val context: Context) {
 
     /**
      * 加载水印图片
+     * @param imagePath 水印图片路径
+     * @param targetLongSide 目标长边尺寸（水印的较长边应等于此值）
+     * @param landscapeCompensation 横向图片补偿系数
      */
-    private suspend fun loadWatermarkImage(imagePath: String, targetHeight: Int): Bitmap? =
+    private suspend fun loadWatermarkImage(imagePath: String, targetLongSide: Int, landscapeCompensation: Float = 1f): Bitmap? =
         withContext(Dispatchers.IO) {
             try {
                 val file = File(imagePath)
@@ -1107,9 +1112,22 @@ class WatermarkProcessor(private val context: Context) {
                 }
                 BitmapFactory.decodeFile(imagePath, options)
 
-                // 计算缩放比例
-                val scale = targetHeight.toFloat() / options.outHeight
-                val targetWidth = (options.outWidth * scale).toInt()
+                val originalWidth = options.outWidth
+                val originalHeight = options.outHeight
+
+                // 判断水印原图的长边是宽度还是高度
+                val targetWidth: Int
+                val targetHeight: Int
+                if (originalWidth >= originalHeight) {
+                    // 宽度是长边，应用横向补偿系数
+                    val adjustedLongSide = (targetLongSide * landscapeCompensation).toInt()
+                    targetWidth = adjustedLongSide
+                    targetHeight = (originalHeight * adjustedLongSide.toFloat() / originalWidth).toInt()
+                } else {
+                    // 高度是长边，目标高度 = targetLongSide
+                    targetHeight = targetLongSide
+                    targetWidth = (originalWidth * targetLongSide.toFloat() / originalHeight).toInt()
+                }
 
                 val finalOptions = BitmapFactory.Options().apply {
                     inSampleSize = calculateInSampleSize(options, targetWidth, targetHeight)

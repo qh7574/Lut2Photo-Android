@@ -21,9 +21,10 @@ data class WatermarkConfig(
     val imagePositionY: Float = 10f, // 图片水印Y位置百分比
     val imagePositionReference: WatermarkPositionReference = WatermarkPositionReference.CANVAS, // 图片水印定位参考系
 
-    // 大小设置 (百分比形式，0-100)
+    // 大小设置
     val textSize: Float = 35f, // 文字水印大小百分比
-    val imageSize: Float = 10f, // 图片水印大小百分比
+    val imageSize: Float = 10f, // 图片长边/背景短边百分比 (0-200)
+    val landscapeCompensation: Float = 1.1f, // 横向图片补偿系数 (0.8-2)
 
     // 透明度设置 (百分比形式，0-100)
     val textOpacity: Float = 80f, // 文字水印透明度百分比

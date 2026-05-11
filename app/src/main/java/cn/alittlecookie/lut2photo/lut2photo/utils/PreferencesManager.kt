@@ -242,6 +242,7 @@ class PreferencesManager(context: Context) {
             
             putFloat("watermark_text_size", config.textSize)
             putFloat("watermark_image_size", config.imageSize)
+            putFloat("watermark_landscape_compensation", config.landscapeCompensation)
             putString("watermark_text_content", config.textContent)
             putString("watermark_text_color", config.textColor)
             putString("watermark_font_path", config.fontPath)
@@ -379,6 +380,7 @@ class PreferencesManager(context: Context) {
                 
             textSize = sharedPreferences.getFloat("watermark_text_size", 35f),
             imageSize = sharedPreferences.getFloat("watermark_image_size", 10f),
+            landscapeCompensation = sharedPreferences.getFloat("watermark_landscape_compensation", 1.1f),
             textContent = sharedPreferences.getString(
                 "watermark_text_content",
                 "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"

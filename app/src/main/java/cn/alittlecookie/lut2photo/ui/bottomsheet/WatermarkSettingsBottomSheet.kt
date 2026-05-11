@@ -482,6 +482,15 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             false
         }
 
+        binding.sliderLandscapeCompensation.addOnChangeListener { _, value, _ ->
+            binding.textLandscapeCompensationValue.text = String.format("%.1f", value)
+        }
+
+        binding.sliderLandscapeCompensation.setOnTouchListener { view, event ->
+            view.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
         // 四个方向的边框滑块监听器
         binding.sliderBorderTopWidth.addOnChangeListener { _, value, _ ->
             binding.textBorderTopWidthValue.text = "${value.toInt()}%"
@@ -950,6 +959,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         binding.sliderTextSize.value = config.textSize
         binding.sliderImageSize.value = config.imageSize
+        binding.sliderLandscapeCompensation.value = config.landscapeCompensation
 
         // 加载文字设置
         binding.editTextContent.setText(config.textContent)
@@ -1301,6 +1311,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             imagePositionReference = getImagePositionReference(),
             textSize = binding.sliderTextSize.value,
             imageSize = binding.sliderImageSize.value,
+            landscapeCompensation = binding.sliderLandscapeCompensation.value,
             textOpacity = binding.sliderTextOpacity.value,
             imageOpacity = binding.sliderImageOpacity.value,
             textContent = binding.editTextContent.text.toString(),
@@ -1410,6 +1421,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         binding.sliderTextSize.value = config.textSize.coerceAtLeast(0.1f)
         binding.sliderImageSize.value = config.imageSize
+        binding.sliderLandscapeCompensation.value = config.landscapeCompensation
 
         binding.editTextContent.setText(config.textContent)
         updateTextColorButton(config.textColor)
@@ -1905,6 +1917,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         // 设置大小
         binding.sliderTextSize.value = config.textSize.coerceAtLeast(0.1f)
         binding.sliderImageSize.value = config.imageSize
+        binding.sliderLandscapeCompensation.value = config.landscapeCompensation
 
         // 设置文字内容和颜色
         binding.editTextContent.setText(config.textContent)

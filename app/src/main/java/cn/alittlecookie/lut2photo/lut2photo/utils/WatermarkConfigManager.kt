@@ -162,6 +162,7 @@ class WatermarkConfigManager(private val context: Context) {
 
             put("textSize", config.textSize.toDouble())
             put("imageSize", config.imageSize.toDouble())
+            put("landscapeCompensation", config.landscapeCompensation.toDouble())
             put("textContent", config.textContent)
             put("textColor", config.textColor)
             put("textAlignment", config.textAlignment.name)
@@ -236,6 +237,7 @@ class WatermarkConfigManager(private val context: Context) {
 
             textSize = json.optDouble("textSize", 35.0).toFloat(),
             imageSize = json.optDouble("imageSize", 10.0).toFloat(),
+            landscapeCompensation = json.optDouble("landscapeCompensation", 1.1).toFloat(),
             textContent = json.optString(
                 "textContent",
                 "拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"
