@@ -455,7 +455,7 @@ class CpuLutProcessor : ILutProcessor {
         bitmap: Bitmap,
         params: ILutProcessor.ProcessingParams,
         maxBlockSize: Int
-    ): Bitmap? {
+    ): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
 

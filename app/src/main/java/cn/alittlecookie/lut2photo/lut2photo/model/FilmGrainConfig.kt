@@ -201,8 +201,8 @@ data class FilmGrainConfig(
             return this.copy(isEnabled = true)
         }
 
-        val previewLong = kotlin.math.max(previewWidth, previewHeight).toFloat()
-        val originalLong = kotlin.math.max(originalWidth, originalHeight).toFloat()
+        kotlin.math.max(previewWidth, previewHeight).toFloat()
+        kotlin.math.max(originalWidth, originalHeight).toFloat()
 
         val previewScaleX = screenWidth.toFloat() / previewWidth
         val previewScaleY = screenHeight.toFloat() / previewHeight

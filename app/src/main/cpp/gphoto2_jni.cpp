@@ -1184,7 +1184,8 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_GPhoto2Manager_nativeGetConfig(
     jstring jvalue = createJavaString(env, value ? value : "");
     
     jobject result = env->NewObject(configItemClass, constructor,
-        jname, jlabel, javaType, jvalue, nullptr, 0.0f, 0.0f, 0.0f);
+                                    jname, jlabel, javaType, jvalue, (jobject) nullptr, 0.0f, 0.0f,
+                                    0.0f);
     
     env->DeleteLocalRef(jname);
     env->DeleteLocalRef(jlabel);

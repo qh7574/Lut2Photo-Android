@@ -8,8 +8,8 @@ import cn.alittlecookie.lut2photo.lut2photo.model.FilmGrainConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import kotlin.math.ln
 import kotlin.math.cos
+import kotlin.math.ln
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
@@ -278,7 +278,7 @@ class FilmGrainProcessor {
         offsetY: Int
     ) {
         // 确保 grainSize 不为 0
-        val effectiveGrainSize = if (grainSize <= 0f) 1.5f else grainSize
+        if (grainSize <= 0f) 1.5f else grainSize
 
         for (y in 0 until blockHeight) {
             for (x in 0 until blockWidth) {

@@ -372,7 +372,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_gpu_VulkanLutProcessor_nativeRelease(
  */
 JNIEXPORT jlong JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_ProcessorSelectionStrategy_nativeCreateForQuery(
-    JNIEnv* env, jobject thiz
+        JNIEnv *env, jclass thiz
 ) {
     LOGI("Creating Vulkan context for query...");
     
@@ -395,7 +395,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_ProcessorSelectionStrategy_native
  */
 JNIEXPORT void JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_ProcessorSelectionStrategy_nativeDestroyForQuery(
-    JNIEnv* env, jobject thiz, jlong handle
+        JNIEnv *env, jclass thiz, jlong handle
 ) {
     if (handle == 0) {
         return;
@@ -415,7 +415,7 @@ Java_cn_alittlecookie_lut2photo_lut2photo_core_ProcessorSelectionStrategy_native
  */
 JNIEXPORT jint JNICALL
 Java_cn_alittlecookie_lut2photo_lut2photo_core_ProcessorSelectionStrategy_nativeGetMaxTextureSize(
-    JNIEnv* env, jobject thiz, jlong handle
+        JNIEnv *env, jclass thiz, jlong handle
 ) {
     if (handle == 0) {
         return 4096;

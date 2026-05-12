@@ -1561,9 +1561,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 应用自定义主题
         val themeResId = if (isDarkMode) {
-            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Dark
+            R.style.Theme_ColorPickerDialog_Dark
         } else {
-            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
+            R.style.Theme_ColorPickerDialog_Light
         }
         dialog.setStyle(STYLE_NORMAL, themeResId)
         dialog.show(parentFragmentManager, "textColorPicker")
@@ -1595,9 +1595,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
 
         // 应用自定义主题
         val themeResId = if (isDarkMode) {
-            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Dark
+            R.style.Theme_ColorPickerDialog_Dark
         } else {
-            cn.alittlecookie.lut2photo.lut2photo.R.style.Theme_ColorPickerDialog_Light
+            R.style.Theme_ColorPickerDialog_Light
         }
         dialog.setStyle(STYLE_NORMAL, themeResId)
         dialog.show(parentFragmentManager, "borderColorPicker")

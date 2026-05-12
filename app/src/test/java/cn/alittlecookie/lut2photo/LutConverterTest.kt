@@ -1,8 +1,11 @@
 package cn.alittlecookie.lut2photo
 
 import cn.alittlecookie.lut2photo.lut2photo.utils.LutConverter
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.Assert.*
 import java.io.ByteArrayInputStream
 
 /**
@@ -105,12 +108,12 @@ class LutConverterTest {
     
     @Test
     fun testValidateLutFile() {
-        val validContent = """
+        """
             LUT_3D_SIZE 33
             0.0 0.0 0.0
         """.trimIndent()
-        
-        val invalidContent = """
+
+        """
             Some random content
             without LUT_3D_SIZE
         """.trimIndent()

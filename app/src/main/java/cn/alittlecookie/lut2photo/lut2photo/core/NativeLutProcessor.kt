@@ -5,8 +5,6 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 /**
  * Native LUT处理器
@@ -101,9 +99,7 @@ class NativeLutProcessor : ILutProcessor {
                 )
 
                 // 调用Native方法加载LUT
-                val result = nativeLoadLut(nativeHandle, lutData.toFloatArray(), lutSize)
-
-                when (result) {
+                when (val result = nativeLoadLut(nativeHandle, lutData.toFloatArray(), lutSize)) {
                     SUCCESS -> {
                         Log.i(TAG, "LUT加载成功")
                         true
