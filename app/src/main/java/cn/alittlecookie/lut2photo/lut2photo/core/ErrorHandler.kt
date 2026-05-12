@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import cn.alittlecookie.lut2photo.lut2photo.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -107,13 +108,13 @@ class ErrorHandler(private val context: Context) {
         when (severity) {
             ErrorSeverity.LOW -> {
                 if (showUserMessage) {
-                    showToast("操作完成，但遇到了一些小问题")
+                    showToast(context.getString(R.string.operation_completed_issues))
                 }
             }
 
             ErrorSeverity.MEDIUM -> {
                 if (showUserMessage) {
-                    showToast("操作遇到问题: $message")
+                    showToast(context.getString(R.string.operation_issue, message))
                 }
                 // 尝试自动恢复
                 attemptAutoRecovery(errorType)
@@ -372,12 +373,12 @@ class ErrorHandler(private val context: Context) {
             val builder = AlertDialog.Builder(context)
                 .setTitle(title)
                 .setMessage(message)
-                .setPositiveButton("确定") { dialog, _ ->
+                .setPositiveButton(context.getString(R.string.confirm)) { dialog, _ ->
                     dialog.dismiss()
                 }
 
             if (showRestartOption) {
-                builder.setNegativeButton("重启应用") { _, _ ->
+                builder.setNegativeButton(context.getString(R.string.restart_app)) { _, _ ->
                     // 重启应用逻辑
                     restartApplication()
                 }

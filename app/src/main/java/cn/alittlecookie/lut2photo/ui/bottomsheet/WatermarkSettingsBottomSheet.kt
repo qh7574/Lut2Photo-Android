@@ -1050,7 +1050,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                 arrayOf("font/ttf", "font/otf", "application/x-font-ttf", "application/x-font-otf")
             )
         }
-        fontPickerLauncher.launch(Intent.createChooser(intent, "选择字体文件"))
+        fontPickerLauncher.launch(Intent.createChooser(intent, getString(R.string.select_font_file)))
     }
 
     private fun resetToDefaultFont() {
@@ -1073,9 +1073,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             selectedFontPath = null
             updateFontPathDisplay()
 
-            Toast.makeText(context, "已恢复默认字体", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.font_reset_success), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "恢复默认字体失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.font_reset_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1109,7 +1109,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             type = "application/zip"
             addCategory(Intent.CATEGORY_OPENABLE)
         }
-        importLauncher.launch(Intent.createChooser(intent, "选择配置文件"))
+        importLauncher.launch(Intent.createChooser(intent, getString(R.string.select_config_file)))
     }
 
     private fun handleFontSelection(uri: Uri) {
@@ -1124,9 +1124,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             selectedFontPath = fontFile.absolutePath
             updateFontPathDisplay()
 
-            Toast.makeText(context, "字体文件已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.font_saved), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "保存字体文件失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.font_save_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1142,9 +1142,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             selectedImagePath = imageFile.absolutePath
             updateImagePathDisplay()
 
-            Toast.makeText(context, "水印图片已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.watermark_image_saved), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "保存水印图片失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.watermark_image_save_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1170,12 +1170,12 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                         extractColorsFromBitmap(bitmap)
                     }
 
-                    Toast.makeText(context, "预览背景图片已设置", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.preview_bg_set), Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "无法加载图片", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.cannot_load_image), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "设置背景图片失败: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, getString(R.string.set_bg_failed, e.message), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -1250,9 +1250,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         try {
             val currentConfig = getCurrentConfigFromUI()
             watermarkConfigManager.exportConfig(currentConfig, uri)
-            Toast.makeText(context, "配置导出成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.config_export_success), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "导出配置失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.config_export_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1260,9 +1260,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
         try {
             val importedConfig = watermarkConfigManager.importConfig(uri)
             applyImportedConfig(importedConfig)
-            Toast.makeText(context, "配置导入成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.config_import_success), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "导入配置失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.config_import_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1522,13 +1522,13 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
     private fun updateFontPathDisplay() {
         binding.textFontPath.text = selectedFontPath?.let { path ->
             File(path).name
-        } ?: "未选择字体文件，使用默认字体"
+        } ?: getString(R.string.no_font_selected)
     }
 
     private fun updateImagePathDisplay() {
         binding.textImagePath.text = selectedImagePath?.let { path ->
             File(path).name
-        } ?: "未选择水印图片"
+        } ?: getString(R.string.no_watermark_image_selected)
     }
 
     // 颜色选择器相关方法
@@ -1839,9 +1839,9 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             // 更新预览
             updatePreview()
             
-            Toast.makeText(context, "已恢复默认设置", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.default_restored), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "恢复默认设置失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.restore_default_failed, e.message), Toast.LENGTH_LONG).show()
             Log.e("WatermarkSettings", "恢复默认设置失败", e)
         }
     }
@@ -1989,11 +1989,11 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             requireContext().sendBroadcast(intent)
             Log.d("WatermarkSettings", "发送配置变化广播（显式广播），forFolderMonitor=$forFolderMonitor")
 
-            Toast.makeText(context, "水印设置已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.watermark_settings_saved), Toast.LENGTH_SHORT).show()
             dismiss()
 
         } catch (e: Exception) {
-            Toast.makeText(context, "保存设置失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.save_settings_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -2011,7 +2011,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             type = "image/*"
             addCategory(Intent.CATEGORY_OPENABLE)
         }
-        paletteImagePickerLauncher.launch(Intent.createChooser(intent, "选择图片提取颜色"))
+        paletteImagePickerLauncher.launch(Intent.createChooser(intent, getString(R.string.select_image_extract_color)))
     }
 
     /**
@@ -2031,16 +2031,16 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                     extractColorsFromBitmap(bitmap)
                 } else {
                     println("无法解码背景图片")
-                    Toast.makeText(context, "无法读取背景图片", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.cannot_read_bg_image), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 println("提取颜色异常: ${e.message}")
-                Toast.makeText(context, "提取颜色失败: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, getString(R.string.extract_color_failed, e.message), Toast.LENGTH_LONG).show()
                 e.printStackTrace()
             }
         } ?: run {
             println("selectedBackgroundImagePath 为空")
-            Toast.makeText(context, "请先选择背景图片", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.select_bg_image_first), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -2053,10 +2053,10 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             if (bitmap != null) {
                 extractColorsFromBitmap(bitmap)
             } else {
-                Toast.makeText(context, "无法加载图片", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.cannot_load_image), Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(context, "处理图片失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(R.string.process_image_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -2108,7 +2108,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
-                    Toast.makeText(context, "无法从图片中提取颜色", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.cannot_extract_color), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -2184,7 +2184,7 @@ class WatermarkSettingsBottomSheet : BottomSheetDialogFragment() {
             binding.buttonPaletteColor6
         )
 
-        val labels = listOf("炽烈", "清曜", "棠梨", "尘霭", "霜月", "侘寂")
+        val labels = listOf(getString(R.string.palette_style_fierce), getString(R.string.palette_style_clear), getString(R.string.palette_style_tangli), getString(R.string.palette_style_dust), getString(R.string.palette_style_frost), getString(R.string.palette_style_wabi))
 
         println("更新调色板按钮，颜色数量: ${paletteColors.size}")
 

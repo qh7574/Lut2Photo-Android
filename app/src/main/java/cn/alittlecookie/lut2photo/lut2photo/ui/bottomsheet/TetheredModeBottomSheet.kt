@@ -101,7 +101,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     // 如果正在导入，提示传输已取消
                     if (isImporting) {
                         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
-                            Toast.makeText(requireContext(), "相机断开，传输已取消", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), getString(R.string.camera_disconnected_transfer_cancelled), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -178,7 +178,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
             tryInitialLoad()
         } catch (e: Exception) {
             Log.e(TAG, "onViewCreated 异常", e)
-            Toast.makeText(requireContext(), "初始化失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), getString(R.string.init_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
     
@@ -244,7 +244,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         
         // 如果正在导入，提示传输已取消
         if (isImporting) {
-            Toast.makeText(requireContext(), "页面退出，传输已取消", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.page_exit_transfer_cancelled), Toast.LENGTH_SHORT).show()
             // 恢复事件监听
             tetheredService?.resumeEventMonitoring()
         }
@@ -518,7 +518,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 if (!isBindingAvailable) return@launch
                 binding.textConnectionStatus.text = "加载失败"
                 context?.let {
-                    Toast.makeText(it, "加载照片失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(it, getString(R.string.load_photos_failed, e.message), Toast.LENGTH_SHORT).show()
                 }
             } finally {
                 if (isBindingAvailable) {
@@ -748,7 +748,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 toggleConfig(config)
             }
             else -> {
-                Toast.makeText(requireContext(), "不支持的配置类型", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.unsupported_config_type), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -763,7 +763,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 val selectedValue = choices[which]
                 setConfig(config.name, selectedValue)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(getString(R.string.Cancel), null)
             .show()
     }
 
@@ -777,11 +777,11 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         android.app.AlertDialog.Builder(ctx)
             .setTitle(config.label)
             .setView(input)
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton(getString(R.string.confirm)) { _, _ ->
                 val value = input.text.toString()
                 setConfig(config.name, value)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(getString(R.string.Cancel), null)
             .show()
     }
 
@@ -819,10 +819,10 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                         }
                         // 重新显示配置项（不需要重新从相机获取）
                         displayCameraSettings(configItems)
-                        Toast.makeText(requireContext(), "设置成功", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.settings_success), Toast.LENGTH_SHORT).show()
                     } else if (result == -1) {
                         // JNI 层异常
-                        Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.setting_not_supported), Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(
                             requireContext(),
@@ -832,7 +832,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "更新UI失败", e)
-                    Toast.makeText(requireContext(), "参数不支持修改", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.setting_not_supported), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -849,13 +849,13 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
     private fun importSelectedPhotos() {
         val selectedPhotos = photoAdapter.getSelectedPhotos()
         if (selectedPhotos.isEmpty()) {
-            Toast.makeText(requireContext(), "请选择要导入的照片", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.no_photos_selected), Toast.LENGTH_SHORT).show()
             return
         }
 
         val inputFolderUri = preferencesManager.homeInputFolder
         if (inputFolderUri.isEmpty()) {
-            Toast.makeText(requireContext(), "输入文件夹未设置", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.input_folder_not_set), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -884,7 +884,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 
                 if (destFolder == null || !destFolder.canWrite()) {
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "无法写入目标文件夹", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, getString(R.string.cannot_write_target_folder), Toast.LENGTH_SHORT).show()
                     }
                     return@launch
                 }
@@ -980,7 +980,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 Log.e(TAG, "导入照片失败", e)
                 withContext(Dispatchers.Main) {
                     context?.let { ctx ->
-                        Toast.makeText(ctx, "导入失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(ctx, getString(R.string.import_failed_msg, e.message), Toast.LENGTH_SHORT).show()
                     }
                 }
             } finally {
@@ -1042,9 +1042,9 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         
         // 创建对话框
         val dialog = android.app.AlertDialog.Builder(ctx)
-            .setTitle("其他参数")
-            .setMessage("加载中...")
-            .setNegativeButton("关闭", null)
+            .setTitle(getString(R.string.other_params))
+            .setMessage(getString(R.string.loading))
+            .setNegativeButton(getString(R.string.close), null)
             .create()
         
         dialog.show()
@@ -1096,7 +1096,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 withContext(Dispatchers.Main) {
                     if (dialog.isShowing) {
                         if (filteredSettings.isEmpty()) {
-                            dialog.setMessage("没有被过滤的参数")
+                            dialog.setMessage(getString(R.string.no_filtered_params))
                         } else {
                             // 构建参数列表文本
                             val message = buildString {
@@ -1122,7 +1122,7 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
                 Log.e(TAG, "加载其他参数失败", e)
                 withContext(Dispatchers.Main) {
                     if (dialog.isShowing) {
-                        dialog.setMessage("加载失败: ${e.message}")
+                        dialog.setMessage(getString(R.string.loading_failed) + ": ${e.message}")
                     }
                 }
             }
@@ -1225,10 +1225,10 @@ class TetheredModeBottomSheet : BottomSheetDialogFragment() {
         
         val channel = android.app.NotificationChannel(
             IMPORT_CHANNEL_ID,
-            "照片导入进度",
+            getString(R.string.import_notification_channel_name),
             android.app.NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "显示照片导入进度"
+            description = getString(R.string.import_notification_channel_desc)
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)

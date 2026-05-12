@@ -70,7 +70,7 @@
                     android:id="@+id/text_monitoring_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="监控未启动"
+                    android:text="@string/monitoring_not_started"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium.Emphasized"
                     android:layout_marginBottom="8dp" />
                     
@@ -92,7 +92,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
-                            android:contentDescription="文件夹图标"
+                            android:contentDescription="@string/folder_icon_desc"
                             android:src="@drawable/ic_folder_24" />
 
                         <com.google.android.material.textview.MaterialTextView
@@ -121,14 +121,14 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_marginEnd="8dp"
-                        android:contentDescription="文件夹图标"
+                        android:contentDescription="@string/folder_icon_desc"
                         android:src="@drawable/outline_add_photo_alternate_24" />
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="仅处理新增文件"
+                        android:text="@string/process_new_files_only"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge.Emphasized" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
@@ -155,7 +155,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="未设置文件夹"
+                            android:text="@string/folder_not_set"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:layout_marginStart="2dp"
                             android:layout_marginEnd="16dp" />
@@ -184,7 +184,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="未设置文件夹"
+                            android:text="@string/folder_not_set"
                             android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                             android:layout_marginStart="2dp"
                             android:layout_marginEnd="16dp" />
@@ -277,7 +277,7 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:layout_marginEnd="8dp"
-                                android:contentDescription="相机图标"
+                                android:contentDescription="@string/camera_icon_desc"
                                 android:src="@drawable/ic_camera_24" />
 
                             <com.google.android.material.textview.MaterialTextView
@@ -339,7 +339,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="参数设置"
+                        android:text="@string/parameter_settings"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                     <ImageView
@@ -376,7 +376,7 @@
                         android:layout_marginStart="4dp"
                         android:layout_marginEnd="4dp"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:hint="LUT 1">
+                        android:hint="@string/lut_1">
 
                         <AutoCompleteTextView
                             android:id="@+id/dropdown_lut"
@@ -392,7 +392,7 @@
                         android:layout_height="wrap_content"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_marginBottom="16dp"
-                        android:hint="LUT 2">
+                        android:hint="@string/lut_2">
 
                         <AutoCompleteTextView
                             android:id="@+id/dropdown_lut2"
@@ -409,7 +409,7 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="LUT1 效果强度"
+                        android:text="@string/lut1_effect_strength"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="0dp" />
 
@@ -449,7 +449,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="0dp"
-                        android:text="LUT2 效果强度"
+                        android:text="@string/lut2_effect_strength"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                     <LinearLayout
@@ -465,7 +465,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="16dp"
                             android:layout_weight="1"
-                            android:contentDescription="第二个LUT效果强度滑块"
+                            android:contentDescription="@string/lut2_strength_slider_desc"
                             android:stepSize="1"
                             android:value="100"
                             android:valueFrom="0"
@@ -523,7 +523,7 @@
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="抖动类型"
+                        android:text="@string/dither_type"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                         android:layout_marginBottom="0dp" />
 
@@ -541,14 +541,14 @@
                             android:layout_height="wrap_content"
                             android:layout_width="0dp"
                             android:layout_weight="1"
-                            android:text="Floyd" />
+                            android:text="@string/dither_floyd" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_dither_random"
                             style="@style/Widget.Lut2Photo.Button.OutlinedButton.ToggleButton"
                             android:layout_height="wrap_content"
                             android:layout_width="0dp"
-                            android:text="Random"
+                            android:text="@string/dither_random"
                             android:layout_weight="1" />
 
                         <com.google.android.material.button.MaterialButton
@@ -557,7 +557,7 @@
                             android:layout_height="wrap_content"
                             android:layout_width="0dp"
                             android:layout_weight="1"
-                            android:text="None" />
+                            android:text="@string/dither_none" />
 
                     </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -580,7 +580,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="20dp"
-                            android:text="启用水印"
+                            android:text="@string/enable_watermark"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <LinearLayout
@@ -603,7 +603,7 @@
                                 style="@style/Widget.Material3.Button.OutlinedButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="水印设置"
+                                android:text="@string/watermark_settings"
                                 android:textSize="14sp" />
 
                         </LinearLayout>

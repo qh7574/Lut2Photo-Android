@@ -62,7 +62,7 @@ class FullscreenImageActivity : AppCompatActivity() {
 
         // 只有非处理后的图片才显示预览提示
         if (!isProcessedImage) {
-            Toast.makeText(this, "非全尺寸预览图，效果仅供参考", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.non_fullsize_preview), Toast.LENGTH_SHORT).show()
         }
 
         // 检查是否从 Drawable 资源加载
@@ -75,7 +75,7 @@ class FullscreenImageActivity : AppCompatActivity() {
             if (imageUriString != null) {
                 loadImage(imageUriString, isProcessedImage)
             } else {
-                Toast.makeText(this, "无法加载图片", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.cannot_load_image), Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
@@ -113,7 +113,7 @@ class FullscreenImageActivity : AppCompatActivity() {
             }
 
         } catch (e: Exception) {
-            Toast.makeText(this, "加载图片失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.load_image_failed, e.message), Toast.LENGTH_SHORT).show()
             finish()
         }
     }
@@ -131,12 +131,12 @@ class FullscreenImageActivity : AppCompatActivity() {
                 }
             } else {
                 hideLoadingIndicator()
-                Toast.makeText(this, "无法加载图片资源", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.cannot_load_image_resource), Toast.LENGTH_SHORT).show()
                 finish()
             }
         } catch (e: Exception) {
             hideLoadingIndicator()
-            Toast.makeText(this, "加载图片失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.load_image_failed, e.message), Toast.LENGTH_SHORT).show()
             finish()
         }
     }
@@ -162,9 +162,9 @@ class FullscreenImageActivity : AppCompatActivity() {
             if (error != null) {
                 hideLoadingIndicator()
                 if (isMissingFileException(error)) {
-                    Toast.makeText(this@FullscreenImageActivity, "文件已被删除或移动", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@FullscreenImageActivity, getString(R.string.file_deleted_or_moved), Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this@FullscreenImageActivity, "加载图片失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@FullscreenImageActivity, getString(R.string.loading_failed), Toast.LENGTH_SHORT).show()
                 }
                 finish()
                 return@launch
@@ -172,13 +172,13 @@ class FullscreenImageActivity : AppCompatActivity() {
             val bitmap = result.bitmap
             if (bitmap != null) {
                 if (result.downsampled) {
-                    Toast.makeText(this@FullscreenImageActivity, "图片过大，已降采样显示", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@FullscreenImageActivity, getString(R.string.image_downsampled), Toast.LENGTH_SHORT).show()
                 }
                 binding.zoomImageView.setImageBitmap(bitmap)
                 hideLoadingIndicator()
             } else {
                 hideLoadingIndicator()
-                Toast.makeText(this@FullscreenImageActivity, "无法解码图片", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@FullscreenImageActivity, getString(R.string.cannot_decode_image), Toast.LENGTH_SHORT).show()
                 finish()
             }
         }

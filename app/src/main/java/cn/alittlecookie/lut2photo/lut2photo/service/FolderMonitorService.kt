@@ -324,7 +324,7 @@ class FolderMonitorService : Service() {
             getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_LOW // 改为LOW以减少用户干扰
         ).apply {
-            description = "文件夹监控服务通知"
+            description = getString(R.string.folder_monitor_channel_desc)
             setShowBadge(false)
             enableLights(false)
             enableVibration(false)

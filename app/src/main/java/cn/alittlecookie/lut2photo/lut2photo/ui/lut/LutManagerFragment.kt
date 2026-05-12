@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import cn.alittlecookie.lut2photo.lut2photo.R
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.Fragment
@@ -185,12 +186,12 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
                 val ignoredCount = uris.size - supportedUris.size
 
                 if (supportedUris.isEmpty()) {
-                    Toast.makeText(requireContext(), "未找到支持的文件，仅支持 .cube 和 .vlt", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.unsupported_files_found), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
                 if (ignoredCount > 0) {
-                    Toast.makeText(requireContext(), "已忽略 $ignoredCount 个不支持的文件", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.ignored_files_count, ignoredCount), Toast.LENGTH_SHORT).show()
                 }
 
                 binding.buttonImportLut.isEnabled = false
@@ -230,7 +231,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
                     loadLutFiles()
                 }
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "批量导入错误: ${e.message}", Toast.LENGTH_SHORT)
+                Toast.makeText(requireContext(), getString(R.string.batch_import_error, e.message), Toast.LENGTH_SHORT)
                     .show()
                 e.printStackTrace()
             } finally {
@@ -243,7 +244,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
     @SuppressLint("SetTextI18n")
     private fun importLutFile(uri: Uri) {
         if (!isUriSupported(uri)) {
-            Toast.makeText(requireContext(), "不支持的文件格式，仅支持 .cube 和 .vlt", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.unsupported_file_format), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -257,13 +258,13 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
                 }
 
                 if (success) {
-                    Toast.makeText(requireContext(), "LUT文件导入成功（已自动转换为33位）", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.lut_import_success), Toast.LENGTH_SHORT).show()
                     loadLutFiles()
                 } else {
-                    Toast.makeText(requireContext(), "LUT文件导入失败，请检查文件格式", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.lut_import_failed), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "导入错误: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.import_error, e.message), Toast.LENGTH_SHORT).show()
                 e.printStackTrace()
             } finally {
                 binding.buttonImportLut.isEnabled = true
@@ -275,7 +276,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
     private fun showExportDialog() {
         val selectedLuts = lutAdapter.getSelectedLuts()
         if (selectedLuts.isEmpty()) {
-            Toast.makeText(requireContext(), "请先选择要导出的LUT文件", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.select_lut_to_export), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -287,7 +288,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
         }
 
         MaterialAlertDialogBuilder(requireActivity())
-            .setTitle("选择导出格式")
+            .setTitle(getString(R.string.select_export_format))
             .setItems(options.toTypedArray()) { _, which ->
                 when (which) {
                     0 -> {
@@ -303,24 +304,24 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
                     }
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(getString(R.string.Cancel), null)
             .show()
     }
 
     private fun showDeleteConfirmationDialog() {
         val selectedLuts = lutAdapter.getSelectedLuts()
         if (selectedLuts.isEmpty()) {
-            Toast.makeText(requireContext(), "请先选择要删除的LUT文件", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.select_lut_to_delete), Toast.LENGTH_SHORT).show()
             return
         }
 
         MaterialAlertDialogBuilder(requireActivity())
-            .setTitle("确认删除")
-            .setMessage("确定要删除选中的 ${selectedLuts.size} 个LUT文件吗？此操作不可撤销。")
-            .setPositiveButton("删除") { _, _ ->
+            .setTitle(getString(R.string.confirm_delete))
+            .setMessage(getString(R.string.confirm_delete_luts, selectedLuts.size))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 deleteSelectedLuts(selectedLuts)
             }
-            .setNegativeButton("返回", null)
+            .setNegativeButton(getString(R.string.Return), null)
             .show()
     }
 
@@ -363,18 +364,18 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
             try {
                 val selectedLuts = lutAdapter.getSelectedLuts()
                 if (selectedLuts.isEmpty()) {
-                    Toast.makeText(requireContext(), "请选择要导出的LUT文件", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.select_lut_for_export), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
                 val success = lutManager.exportLuts(selectedLuts, targetUri)
                 if (success) {
-                    Toast.makeText(requireContext(), "CUBE文件导出成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.cube_export_success), Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(requireContext(), "CUBE文件导出失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.cube_export_failed), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "导出错误: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.export_error, e.message), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -384,13 +385,13 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
             try {
                 val selectedLuts = lutAdapter.getSelectedLuts()
                 if (selectedLuts.isEmpty()) {
-                    Toast.makeText(requireContext(), "请选择要导出的 LUT", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.select_lut_to_export_vlt), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
                 val exportableLuts = selectedLuts.filter { it.vltFileName != null && it.uploadName != null }
                 if (exportableLuts.isEmpty()) {
-                    Toast.makeText(requireContext(), "选中的 LUT 没有 VLT 格式文件", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.no_vlt_file), Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
@@ -434,7 +435,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
                 Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
 
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "导出错误: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.export_error, e.message), Toast.LENGTH_SHORT).show()
                 android.util.Log.e("LutManagerFragment", "导出错误", e)
             }
         }
@@ -481,7 +482,7 @@ class LutManagerFragment : Fragment(), LutAdapter.SelectionCallback {
                 loadLutFiles()
             } catch (e: Exception) {
                 android.util.Log.e("LutManagerFragment", "切换LUT启用状态失败", e)
-                Toast.makeText(requireContext(), "切换状态失败: ${e.message}", Toast.LENGTH_SHORT)
+                Toast.makeText(requireContext(), getString(R.string.toggle_failed, e.message), Toast.LENGTH_SHORT)
                     .show()
             }
         }

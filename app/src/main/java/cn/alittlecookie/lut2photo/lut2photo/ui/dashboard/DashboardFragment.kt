@@ -1090,7 +1090,7 @@ class DashboardFragment : Fragment() {
         val outputFolderUri = preferencesManager.dashboardOutputFolder
 
         if (outputFolderUri.isEmpty()) {
-            Toast.makeText(requireContext(), "请选择输出文件夹", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.select_output_folder_first), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -1259,7 +1259,7 @@ class DashboardFragment : Fragment() {
             startActivity(intent)
         } catch (e: Exception) {
             Log.e("DashboardFragment", "打开帮助链接失败: $url", e)
-            Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.cannot_open_browser), Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -1284,10 +1284,10 @@ class DashboardFragment : Fragment() {
                 // 清理旧文件
                 cn.alittlecookie.lut2photo.lut2photo.utils.ImageShareUtils.cleanOldTempFiles(requireContext())
             } else {
-                Toast.makeText(requireContext(), "无法保存预览图", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.cannot_save_preview), Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(requireContext(), "请先生成预览图", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.generate_preview_first), Toast.LENGTH_SHORT).show()
         }
     }
 }

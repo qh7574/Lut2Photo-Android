@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import cn.alittlecookie.lut2photo.lut2photo.R
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
@@ -189,14 +190,14 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
             startActivity(intent)
         } catch (e: Exception) {
             Log.e("ProcessingHistoryFragment", "打开图片预览失败", e)
-            Toast.makeText(requireContext(), "无法打开图片预览", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.cannot_open_preview), Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun shareSelectedImages() {
         val selectedRecords = historyAdapter.getSelectedRecords()
         if (selectedRecords.isEmpty()) {
-            Toast.makeText(requireContext(), "请先选择要分享的图片", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.select_share_images), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -211,7 +212,7 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
             }
 
             if (uris.isEmpty()) {
-                Toast.makeText(requireContext(), "无法获取图片文件", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.cannot_get_image_file), Toast.LENGTH_SHORT).show()
                 return
             }
 
@@ -229,7 +230,7 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
 
         } catch (e: Exception) {
             Log.e("ProcessingHistoryFragment", "分享图片失败", e)
-            Toast.makeText(requireContext(), "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.share_failed, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -402,7 +403,7 @@ class ProcessingHistoryFragment : Fragment(), ProcessingHistoryAdapter.Selection
         historyAdapter.submitList(emptyList())
         binding.textHistoryCount.text = "共 0 条记录"
 
-        Toast.makeText(requireContext(), "历史记录和缓存已清空", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.history_cleared), Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroyView() {

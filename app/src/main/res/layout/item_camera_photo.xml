@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:scaleType="centerCrop"
-            android:contentDescription="照片缩略图" />
+            android:contentDescription="@string/photo_thumbnail" />
 
         <!-- 选中指示器 -->
         <com.google.android.material.checkbox.MaterialCheckBox

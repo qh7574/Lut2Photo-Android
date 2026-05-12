@@ -199,13 +199,13 @@ class WatermarkPreviewView @JvmOverloads constructor(
             binding.layoutPreviewContent.visibility = GONE
             // 旋转到180度表示收缩
             binding.buttonTogglePreview.animate().rotation(180f).setDuration(200).start()
-            binding.textPreviewTitle.text = "水印预览（右侧展开）"
+            binding.textPreviewTitle.text = context.getString(R.string.watermark_preview_expanded)
         } else {
             // 展开状态：显示完整预览
             binding.layoutPreviewContent.visibility = VISIBLE
             // 旋转到0度表示展开
             binding.buttonTogglePreview.animate().rotation(0f).setDuration(200).start()
-            binding.textPreviewTitle.text = "水印预览"
+            binding.textPreviewTitle.text = context.getString(R.string.watermark_preview)
 
             // 展开时显示示例图片
             if (binding.imagePreview.drawable == null) {
@@ -240,9 +240,9 @@ class WatermarkPreviewView @JvmOverloads constructor(
 
         // 更新按钮文字
         val sizeText = when (newSize) {
-            (200 * resources.displayMetrics.density).toInt() -> "小"
-            (300 * resources.displayMetrics.density).toInt() -> "中"
-            else -> "大"
+            (200 * resources.displayMetrics.density).toInt() -> context.getString(R.string.preview_size_small)
+            (300 * resources.displayMetrics.density).toInt() -> context.getString(R.string.preview_size_medium)
+            else -> context.getString(R.string.preview_size_large)
         }
         binding.buttonPreviewSize.text = sizeText
     }
@@ -488,8 +488,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
                 "ISO" to "100",
                 "APERTURE" to "2.8",
                 "SHUTTER" to "1/60",
-                "CAMERA_MODEL" to "示例相机",
-                "LENS_MODEL" to "示例镜头",
+                "CAMERA_MODEL" to context.getString(R.string.sample_camera_model),
+                "LENS_MODEL" to context.getString(R.string.sample_lens_model),
                 "DATE" to "2024-01-01",
                 "TIME" to "12:00:00",
                 "FOCAL_LENGTH" to "50mm",
@@ -1263,8 +1263,8 @@ class WatermarkPreviewView @JvmOverloads constructor(
         }
 
         // 替换LUT变量
-        result = result.replace("{LUT1}", lut1Name ?: "无")
-        result = result.replace("{LUT2}", lut2Name ?: "无")
+        result = result.replace("{LUT1}", lut1Name ?: context.getString(R.string.none_label))
+        result = result.replace("{LUT2}", lut2Name ?: context.getString(R.string.none_label))
         result = result.replace(
             "{LUT1_STRENGTH}",
             lut1Strength?.let {

@@ -13,6 +13,7 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.core.graphics.createBitmap
 import androidx.palette.graphics.Palette
+import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.model.BorderColorMode
 import cn.alittlecookie.lut2photo.lut2photo.model.TextFollowDirection
 import cn.alittlecookie.lut2photo.lut2photo.model.WatermarkConfig
@@ -197,7 +198,7 @@ class WatermarkProcessor(private val context: Context) {
                     // 检查是否启用了保持原始分辨率
                     if (preferencesManager.keepOriginalResolution) {
                         android.util.Log.w(TAG, "保持原始分辨率已启用，返回无边框图片")
-                        showToast("内存不足，已返回无边框图片")
+                        showToast(context.getString(R.string.memory_insufficient_no_border))
                         return@withContext processedBitmap
                     } else {
                         // 未启用保持原始分辨率，尝试缩放后添加边框
@@ -211,7 +212,7 @@ class WatermarkProcessor(private val context: Context) {
                 // 请求内存分配
                 if (!memoryManager.requestAllocation(requiredMemoryBytes)) {
                     android.util.Log.w(TAG, "内存分配请求被拒绝，返回处理后的图片")
-                    showToast("内存分配被拒绝，已返回无边框图片")
+                    showToast(context.getString(R.string.memory_alloc_rejected_no_border))
                     return@withContext processedBitmap
             }
 
@@ -311,7 +312,7 @@ class WatermarkProcessor(private val context: Context) {
         // 如果缩放比例太小，直接返回原图
         if (finalScale < 0.1f) {
             android.util.Log.w(TAG, "缩放比例太小($finalScale)，返回原图")
-            showToast("内存严重不足，已返回无边框图片")
+            showToast(context.getString(R.string.memory_critical_no_border))
             return@withContext bitmap
         }
         
@@ -321,7 +322,7 @@ class WatermarkProcessor(private val context: Context) {
         
         if (scaledWidth <= 0 || scaledHeight <= 0) {
             android.util.Log.w(TAG, "缩放后尺寸无效，返回原图")
-            showToast("内存不足，已返回无边框图片")
+            showToast(context.getString(R.string.memory_insufficient_no_border))
             return@withContext bitmap
         }
         
@@ -343,7 +344,7 @@ class WatermarkProcessor(private val context: Context) {
         // 检查缩放后是否能分配内存
         if (!memoryManager.canAllocate(requiredMemoryBytes)) {
             android.util.Log.w(TAG, "缩放后仍无法分配内存，返回缩放后的图片（无边框）")
-            showToast("内存不足，已返回缩放后的无边框图片")
+            showToast(context.getString(R.string.memory_insufficient_scaled_no_border))
             return@withContext scaledBitmap
         }
         
@@ -351,7 +352,7 @@ class WatermarkProcessor(private val context: Context) {
             // 请求内存分配
             if (!memoryManager.requestAllocation(requiredMemoryBytes)) {
                 android.util.Log.w(TAG, "内存分配请求被拒绝")
-                showToast("内存分配被拒绝")
+                showToast(context.getString(R.string.memory_alloc_rejected))
                 return@withContext scaledBitmap
             }
             
@@ -382,12 +383,12 @@ class WatermarkProcessor(private val context: Context) {
             }
             
             android.util.Log.i(TAG, "缩放并添加边框成功: ${newWidth}x${newHeight}")
-            showToast("已缩放图片并添加边框")
+            showToast(context.getString(R.string.image_scaled_border_added))
             return@withContext resultBitmap
             
         } catch (e: OutOfMemoryError) {
             android.util.Log.e(TAG, "缩放后添加边框仍OOM", e)
-            showToast("内存不足，已返回缩放后的无边框图片")
+            showToast(context.getString(R.string.memory_insufficient_scaled_no_border))
             return@withContext scaledBitmap
         } catch (e: Exception) {
             android.util.Log.e(TAG, "缩放并添加边框失败", e)

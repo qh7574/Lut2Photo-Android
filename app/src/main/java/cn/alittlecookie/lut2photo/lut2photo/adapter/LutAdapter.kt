@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ItemLutBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.LutItem
 import java.text.SimpleDateFormat
@@ -117,7 +118,7 @@ class LutAdapter(
                     textVltStatus.text = "VLT：${lutItem.uploadName}"
                     textVltStatus.setTextColor(root.context.getColor(android.R.color.holo_green_dark))
                 } else {
-                    textVltStatus.text = "无 VLT"
+                    textVltStatus.text = root.context.getString(R.string.no_vlt)
                     textVltStatus.setTextColor(root.context.getColor(android.R.color.darker_gray))
                 }
 
@@ -130,7 +131,7 @@ class LutAdapter(
                     }
 
                 // 启用/禁用按钮设置
-                buttonToggleEnabled.text = if (lutItem.isEnabled) "禁用" else "启用"
+                buttonToggleEnabled.text = if (lutItem.isEnabled) root.context.getString(R.string.disable) else root.context.getString(R.string.enable)
                 buttonToggleEnabled.setOnClickListener {
                     selectionCallback?.onLutEnabledStateChanged(lutItem, !lutItem.isEnabled)
                 }

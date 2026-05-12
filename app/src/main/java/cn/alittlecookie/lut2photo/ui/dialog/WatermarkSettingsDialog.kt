@@ -302,9 +302,9 @@ class WatermarkSettingsDialog : DialogFragment() {
             selectedFontPath = fontFile.absolutePath
             updateFontPathDisplay()
 
-            Toast.makeText(context, "字体文件已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.font_saved), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "保存字体文件失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.font_save_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -320,9 +320,9 @@ class WatermarkSettingsDialog : DialogFragment() {
             selectedImagePath = imageFile.absolutePath
             updateImagePathDisplay()
 
-            Toast.makeText(context, "水印图片已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.watermark_image_saved), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "保存水印图片失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.watermark_image_save_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -406,11 +406,11 @@ class WatermarkSettingsDialog : DialogFragment() {
             preferencesManager.saveWatermarkConfig(config)
             onConfigSaved?.invoke(config)
 
-            Toast.makeText(context, "水印设置已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.watermark_settings_saved), Toast.LENGTH_SHORT).show()
             dismiss()
 
         } catch (e: Exception) {
-            Toast.makeText(context, "保存设置失败: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.save_settings_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -548,7 +548,7 @@ class WatermarkSettingsDialog : DialogFragment() {
             val bitmap = MediaStore.Images.Media.getBitmap(requireContext().contentResolver, uri)
             extractColorsFromBitmap(bitmap)
         } catch (e: Exception) {
-            Toast.makeText(context, "无法加载图片: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(cn.alittlecookie.lut2photo.lut2photo.R.string.load_image_failed, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 

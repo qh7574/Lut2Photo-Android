@@ -133,10 +133,10 @@ class MemoryMonitorService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "内存监控",
+                getString(R.string.memory_monitor_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "监控应用内存使用情况"
+                description = getString(R.string.memory_monitor_channel_desc)
                 setShowBadge(false)
             }
 

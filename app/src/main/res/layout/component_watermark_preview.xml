@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="16dp"
             android:layout_weight="1"
-            android:text="水印预览"
+            android:text="@string/watermark_preview"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -35,7 +35,7 @@
             android:insetBottom="0dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:text="中"
+            android:text="@string/preview_size_medium"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="13sp" />
 
@@ -106,7 +106,7 @@
                     android:layout_gravity="center"
                     android:adjustViewBounds="true"
                     android:background="?attr/colorSurface"
-                    android:contentDescription="水印预览"
+                    android:contentDescription="@string/watermark_preview"
                     android:scaleType="fitCenter" />
 
                 <!-- 加载指示器 -->

@@ -16,7 +16,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             android:gravity="center"
-            android:text="水印设置"
+            android:text="@string/watermark_settings"
             android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall" />
 
         <!-- 水印类型选择 -->
@@ -24,7 +24,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="水印类型（可多选）"
+            android:text="@string/watermark_type_label"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
         <LinearLayout
@@ -39,13 +39,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="16dp"
-                android:text="文字水印" />
+                android:text="@string/text_watermark" />
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/checkbox_image_watermark"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="图片水印" />
+                android:text="@string/image_watermark" />
         </LinearLayout>
 
         <!-- 位置设置 -->
@@ -53,7 +53,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="位置设置"
+            android:text="@string/position_settings"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
         <!-- X位置 -->
@@ -61,7 +61,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
-            android:text="水平位置 (%)"
+            android:text="@string/horizontal_position"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
         <LinearLayout
@@ -97,7 +97,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
-            android:text="垂直位置 (%)"
+            android:text="@string/vertical_position"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
         <LinearLayout
@@ -133,7 +133,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="4dp"
-            android:text="透明度 (%)"
+            android:text="@string/opacity_percentage"
             android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
         <LinearLayout
@@ -183,14 +183,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="文字水印设置"
+                    android:text="@string/text_watermark_settings"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                 <com.google.android.material.textview.MaterialTextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="可用变量：{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}"
+                    android:text="@string/watermark_variables_hint"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
 
                 <!-- 文字内容 -->
@@ -207,7 +207,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="textMultiLine"
                         android:maxLines="3"
-                        android:text="拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}"
+                        android:text="@string/default_watermark_text"
                         android:textSize="14dp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -223,7 +223,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="文字颜色"
+                        android:text="@string/text_color"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <com.google.android.material.button.MaterialButton
@@ -248,7 +248,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="字体文件"
+                        android:text="@string/font_file"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <com.google.android.material.button.MaterialButton
@@ -256,7 +256,7 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="选择字体" />
+                        android:text="@string/select_font_file" />
                 </LinearLayout>
 
                 <!-- 文字大小设置 -->
@@ -264,7 +264,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="文字大小宽度百分比 (%)"
+                    android:text="@string/text_size_label"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                 <LinearLayout
@@ -299,7 +299,7 @@
                     android:id="@+id/text_font_path"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="未选择字体文件，使用默认字体"
+                    android:text="@string/no_font_selected"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
@@ -324,7 +324,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="图片水印设置"
+                    android:text="@string/image_watermark_settings"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                 <!-- 图片选择 -->
@@ -339,7 +339,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="水印图片"
+                        android:text="@string/watermark_image"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <com.google.android.material.button.MaterialButton
@@ -347,7 +347,7 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="选择图片" />
+                        android:text="@string/select_images_from_gallery" />
                 </LinearLayout>
 
                 <com.google.android.material.textview.MaterialTextView
@@ -355,7 +355,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="未选择水印图片"
+                    android:text="@string/no_watermark_image_selected"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -364,7 +364,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="图片大小宽度百分比 (%)"
+                    android:text="@string/image_size_percentage"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                 <LinearLayout
@@ -400,7 +400,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="文字图片间距高度百分比 (%)"
+                    android:text="@string/text_image_spacing"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                 <LinearLayout
@@ -450,7 +450,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:text="边框设置"
+                    android:text="@string/border_settings"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
 
                 <!-- 边框宽度 -->
@@ -458,7 +458,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:text="边框宽度短边百分比 (%)"
+                    android:text="@string/border_width_short_side"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                 <LinearLayout
@@ -494,7 +494,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="边框颜色模式"
+                    android:text="@string/border_color_mode"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                 <com.google.android.material.button.MaterialButtonToggleGroup
@@ -511,7 +511,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="手动" />
+                        android:text="@string/border_color_manual" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/button_auto_color"
@@ -519,7 +519,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="自动" />
+                        android:text="@string/auto_mode" />
                 </com.google.android.material.button.MaterialButtonToggleGroup>
 
                 <!-- 手动选色区域 -->
@@ -536,7 +536,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="边框颜色"
+                        android:text="@string/border_color"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <com.google.android.material.button.MaterialButton
@@ -562,7 +562,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="从图片中选择颜色"
+                        android:text="@string/select_color_from_image"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
                     <com.google.android.material.button.MaterialButton
@@ -571,7 +571,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="选择图片提取颜色"
+                        android:text="@string/select_image_extract_color"
                         app:icon="@drawable/outline_photo_24"
                         app:iconGravity="start" />
 
@@ -591,7 +591,7 @@
                             android:layout_height="48dp"
                             android:layout_columnWeight="1"
                             android:layout_margin="4dp"
-                            android:text="主色" />
+                            android:text="@string/palette_primary" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_palette_color_2"
@@ -600,7 +600,7 @@
                             android:layout_height="48dp"
                             android:layout_columnWeight="1"
                             android:layout_margin="4dp"
-                            android:text="鲜艳" />
+                            android:text="@string/palette_vibrant" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_palette_color_3"
@@ -609,7 +609,7 @@
                             android:layout_height="48dp"
                             android:layout_columnWeight="1"
                             android:layout_margin="4dp"
-                            android:text="柔和" />
+                            android:text="@string/palette_muted" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_palette_color_4"
@@ -618,7 +618,7 @@
                             android:layout_height="48dp"
                             android:layout_columnWeight="1"
                             android:layout_margin="4dp"
-                            android:text="深色" />
+                            android:text="@string/palette_dark" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_palette_color_5"
@@ -627,7 +627,7 @@
                             android:layout_height="48dp"
                             android:layout_columnWeight="1"
                             android:layout_margin="4dp"
-                            android:text="浅色" />
+                            android:text="@string/palette_light" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/button_palette_color_6"
@@ -636,7 +636,7 @@
                             android:layout_height="48dp"
                             android:layout_columnWeight="1"
                             android:layout_margin="4dp"
-                            android:text="侘寂" />
+                            android:text="@string/palette_wabi_sabi" />
                     </GridLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -655,13 +655,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
-                android:text="取消" />
+                android:text="@string/cancel" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_confirm"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="确定" />
+                android:text="@string/confirm" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

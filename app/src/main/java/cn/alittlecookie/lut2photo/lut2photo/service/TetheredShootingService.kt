@@ -643,20 +643,20 @@ class TetheredShootingService : Service() {
         // 服务状态通知渠道
         val serviceChannel = NotificationChannel(
             CHANNEL_ID,
-            "联机拍摄服务",
+            getString(R.string.tethered_service_channel_name),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "显示相机连接状态"
+            description = getString(R.string.tethered_service_channel_desc)
         }
         notificationManager.createNotificationChannel(serviceChannel)
         
         // 文件传输通知渠道
         val transferChannel = NotificationChannel(
             TRANSFER_CHANNEL_ID,
-            "文件传输进度",
+            getString(R.string.file_transfer_channel_name),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "显示照片下载进度"
+            description = getString(R.string.file_transfer_channel_desc)
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(transferChannel)
@@ -673,7 +673,7 @@ class TetheredShootingService : Service() {
         )
         
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("联机拍摄")
+            .setContentTitle(getString(R.string.tethered_shooting))
             .setContentText(content)
             .setSmallIcon(R.drawable.outline_photo_camera_24)
             .setContentIntent(pendingIntent)

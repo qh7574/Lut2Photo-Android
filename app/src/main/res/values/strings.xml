@@ -161,4 +161,277 @@
     <string name="ProcessingProgress">已处理: 0 / 0</string>
     <string name="lut_1">LUT 1</string>
     <string name="lut_2">LUT 2</string>
+
+    <!-- ==================== 通用UI ==================== -->
+    <string name="preview">预览</string>
+    <string name="confirm">确定</string>
+    <string name="close">关闭</string>
+    <string name="select">选择</string>
+    <string name="selected">已选中</string>
+    <string name="reset">重置</string>
+    <string name="copy">复制</string>
+    <string name="delete">删除</string>
+    <string name="done">完成</string>
+    <string name="loading">加载中…</string>
+    <string name="loading_failed">加载失败</string>
+    <string name="no_data">暂无数据</string>
+    <string name="version_label">版本: %s</string>
+    <string name="percent_format">%d%%</string>
+    <string name="percent_float_format">%.1f%%</string>
+
+    <!-- ==================== 预览组件 ==================== -->
+    <string name="preview_icon_desc">预览图标</string>
+    <string name="refresh_preview_desc">刷新预览</string>
+    <string name="preview_placeholder">等待状态更新</string>
+    <string name="preview_error">预览生成失败</string>
+    <string name="image_placeholder_desc">图片占位符</string>
+    <string name="error_icon_desc">错误图标</string>
+    <string name="folder_icon_desc">文件夹图标</string>
+    <string name="camera_icon_desc">相机图标</string>
+    <string name="lut2_strength_slider_desc">第二个LUT效果强度滑块</string>
+
+    <!-- ==================== 监控页面 ==================== -->
+    <string name="monitoring_not_started">监控未启动</string>
+    <string name="process_new_files_only">仅处理新增文件</string>
+    <string name="lut1_effect_strength">LUT1 效果强度</string>
+    <string name="lut2_effect_strength">LUT2 效果强度</string>
+    <string name="enable_watermark">启用水印</string>
+    <string name="watermark_settings">水印设置</string>
+    <string name="dither_floyd">Floyd</string>
+    <string name="dither_random">Random</string>
+    <string name="dither_none">None</string>
+
+    <!-- ==================== 水印设置 ==================== -->
+    <string name="watermark_type_label">水印类型（可多选）</string>
+    <string name="image_watermark">图片水印</string>
+    <string name="text_watermark">文字水印</string>
+    <string name="image_watermark_settings">图片水印设置</string>
+    <string name="watermark_image">水印图片</string>
+    <string name="no_watermark_image_selected">未选择水印图片</string>
+    <string name="image_size_percentage">图片长边/背景短边百分比 (%)</string>
+    <string name="landscape_compensation">横向图片补偿系数</string>
+    <string name="position_reference">定位参考系</string>
+    <string name="horizontal_position">水平位置 (%)</string>
+    <string name="vertical_position">垂直位置 (%)</string>
+    <string name="image_opacity">图片透明度 (%)</string>
+    <string name="text_watermark_settings">文字水印设置</string>
+    <string name="watermark_variables_hint">可用变量（长按复制，↩︎换行）：\n{ISO}{APERTURE}{SHUTTER}{CAMERA_MODEL}{LENS_MODEL}{DATE}{TIME}{FOCAL_LENGTH}{EXPOSURE_COMPENSATION}{WHITE_BALANCE}{FLASH}{LUT1}{LUT2}{LUT1_STRENGTH}{LUT2_STRENGTH}</string>
+    <string name="default_watermark_text">拍摄参数：ISO {ISO} 光圈 f/{APERTURE} 快门 {SHUTTER}</string>
+    <string name="text_color">文字颜色</string>
+    <string name="font_file">字体文件</string>
+    <string name="no_font_selected">未选择字体文件，使用默认字体</string>
+    <string name="text_size_label">文字大小 (最宽行占图片宽度百分比)</string>
+    <string name="letter_spacing_label">字间距 (单个文字宽度百分比)</string>
+    <string name="line_spacing_label">行间距 (单个文字高度百分比)</string>
+    <string name="text_alignment">文本对齐方式</string>
+    <string name="align_left">左对齐</string>
+    <string name="align_center">居中</string>
+    <string name="align_right">右对齐</string>
+    <string name="text_follow_mode">文字跟随模式</string>
+    <string name="text_follow_direction">文字跟随方向</string>
+    <string name="direction_top">上方</string>
+    <string name="direction_bottom">下方</string>
+    <string name="direction_left">左侧</string>
+    <string name="direction_right">右侧</string>
+    <string name="text_image_spacing">图片文字间距 (画布高/宽度百分比)</string>
+    <string name="text_opacity">文字透明度 (%)</string>
+    <string name="border_settings">边框设置（图片短边百分比）</string>
+    <string name="border_top_width">上边框宽度 (%)</string>
+    <string name="border_bottom_width">下边框宽度 (%)</string>
+    <string name="border_left_width">左边框宽度 (%)</string>
+    <string name="border_right_width">右边框宽度 (%)</string>
+    <string name="border_color_mode">边框颜色模式</string>
+    <string name="border_color_manual">手动</string>
+    <string name="border_color_palette">Palette</string>
+    <string name="border_color_material">Material</string>
+    <string name="border_color">边框颜色</string>
+    <string name="palette_primary">主色</string>
+    <string name="palette_vibrant">鲜艳</string>
+    <string name="palette_muted">柔和</string>
+    <string name="palette_dark">深色</string>
+    <string name="palette_light">浅色</string>
+    <string name="palette_wabi_sabi">侘寂</string>
+    <string name="material_preset_colors">Material预设颜色</string>
+    <string name="color_red">红色</string>
+    <string name="color_pink">粉色</string>
+    <string name="color_purple">紫色</string>
+    <string name="color_deep_purple">深紫</string>
+    <string name="color_indigo">靛蓝</string>
+    <string name="color_blue">蓝色</string>
+    <string name="color_light_blue">浅蓝</string>
+    <string name="color_cyan">青色</string>
+    <string name="color_teal">蓝绿</string>
+    <string name="color_green">绿色</string>
+    <string name="color_orange">橙色</string>
+    <string name="color_brown">棕色</string>
+    <string name="watermark_preview_expanded">水印预览（右侧展开）</string>
+    <string name="watermark_preview">水印预览</string>
+    <string name="preview_size_small">小</string>
+    <string name="preview_size_medium">中</string>
+    <string name="preview_size_large">大</string>
+    <string name="sample_camera_model">示例相机</string>
+    <string name="sample_lens_model">示例镜头</string>
+    <string name="none_label">无</string>
+    <string name="select_font_file">选择字体文件</string>
+    <string name="font_reset_success">已恢复默认字体</string>
+    <string name="font_reset_failed">恢复默认字体失败: %s</string>
+    <string name="font_saved">字体文件已保存</string>
+    <string name="font_save_failed">保存字体文件失败: %s</string>
+    <string name="watermark_image_saved">水印图片已保存</string>
+    <string name="watermark_image_save_failed">保存水印图片失败: %s</string>
+    <string name="preview_bg_set">预览背景图片已设置</string>
+    <string name="cannot_load_image">无法加载图片</string>
+    <string name="set_bg_failed">设置背景图片失败: %s</string>
+    <string name="config_export_success">配置导出成功</string>
+    <string name="config_export_failed">导出配置失败: %s</string>
+    <string name="config_import_success">配置导入成功</string>
+    <string name="config_import_failed">导入配置失败: %s</string>
+    <string name="select_config_file">选择配置文件</string>
+    <string name="default_restored">已恢复默认设置</string>
+    <string name="restore_default_failed">恢复默认设置失败: %s</string>
+    <string name="watermark_settings_saved">水印设置已保存</string>
+    <string name="save_settings_failed">保存设置失败: %s</string>
+    <string name="cannot_read_bg_image">无法读取背景图片</string>
+    <string name="extract_color_failed">提取颜色失败: %s</string>
+    <string name="select_bg_image_first">请先选择背景图片</string>
+    <string name="process_image_failed">处理图片失败: %s</string>
+    <string name="cannot_extract_color">无法从图片中提取颜色</string>
+    <string name="select_image_extract_color">选择图片提取颜色</string>
+    <string name="palette_style_fierce">炽烈</string>
+    <string name="palette_style_clear">清曜</string>
+    <string name="palette_style_tangli">棠梨</string>
+    <string name="palette_style_dust">尘霭</string>
+    <string name="palette_style_frost">霜月</string>
+    <string name="palette_style_wabi">侘寂</string>
+    <string name="no_watermark_image">未选择水印图片</string>
+
+    <!-- ==================== 通用内容描述 ==================== -->
+    <string name="photo_thumbnail">照片缩略图</string>
+    <string name="disable">禁用</string>
+    <string name="enable">启用</string>
+    <string name="no_vlt">无 VLT</string>
+
+    <!-- ==================== LUT管理 ==================== -->
+    <string name="lut_manager">LUT管理</string>
+    <string name="lut_count_format">共 %d 个LUT文件</string>
+    <string name="lut_count_zero">共 0 个LUT文件</string>
+    <string name="select_export_format">选择导出格式</string>
+    <string name="confirm_delete">确认删除</string>
+    <string name="confirm_delete_luts">确定要删除选中的 %d 个LUT文件吗？此操作不可撤销。</string>
+    <string name="unsupported_file_format">不支持的文件格式，仅支持 .cube 和 .vlt</string>
+    <string name="unsupported_files_found">未找到支持的文件，仅支持 .cube 和 .vlt</string>
+    <string name="ignored_files_count">已忽略 %d 个不支持的文件</string>
+    <string name="batch_import_error">批量导入错误: %s</string>
+    <string name="lut_import_success">LUT文件导入成功（已自动转换为33位）</string>
+    <string name="lut_import_failed">LUT文件导入失败，请检查文件格式</string>
+    <string name="import_error">导入错误: %s</string>
+    <string name="select_lut_to_export">请先选择要导出的LUT文件</string>
+    <string name="select_lut_to_delete">请先选择要删除的LUT文件</string>
+    <string name="select_lut_for_export">请选择要导出的LUT文件</string>
+    <string name="cube_export_success">CUBE文件导出成功</string>
+    <string name="cube_export_failed">CUBE文件导出失败</string>
+    <string name="export_error">导出错误: %s</string>
+    <string name="select_lut_to_export_vlt">请选择要导出的 LUT</string>
+    <string name="no_vlt_file">选中的 LUT 没有 VLT 格式文件</string>
+    <string name="toggle_failed">切换状态失败: %s</string>
+
+    <!-- ==================== 设置页面 ==================== -->
+    <string name="theme_settings">主题设置</string>
+    <string name="select_theme">选择主题</string>
+    <string name="permission_management">权限管理</string>
+    <string name="permission_status_checking">权限状态: 检查中…</string>
+    <string name="app_settings">应用设置</string>
+    <string name="logcat_capture">Logcat 捕获</string>
+    <string name="logcat_description">开启后将实时记录应用日志，便于问题排查和反馈，关闭开关后将会删除所有日志文件，logcat仅包含应用日志无敏感信息。</string>
+    <string name="enable_logcat_capture">启用 Logcat 捕获</string>
+    <string name="share_log_file">分享日志文件</string>
+    <string name="app_info">应用信息</string>
+    <string name="project_url">项目地址</string>
+    <string name="donate_author">捐赠作者（点击放大）</string>
+    <string name="logcat_started">Logcat 捕获已启动</string>
+    <string name="logcat_stopped">Logcat 捕获已停止，日志文件已删除</string>
+    <string name="cannot_open_browser">无法打开浏览器</string>
+    <string name="cannot_open_image">无法打开图片</string>
+    <string name="no_log_file">没有可分享的日志文件</string>
+    <string name="share_failed">分享失败: %s</string>
+
+    <!-- ==================== 联机模式 ==================== -->
+    <string name="back">返回</string>
+
+    <!-- ==================== 处理历史 ==================== -->
+    <string name="history_manual">手动处理</string>
+    <string name="history_realtime">实时处理</string>
+    <string name="history_folder_monitor">文件夹监控</string>
+    <string name="output_label">输出: %s</string>
+
+    <!-- ==================== 列表占位符 ==================== -->
+    <string name="placeholder_filename">文件名</string>
+    <string name="placeholder_status">状态</string>
+    <string name="placeholder_time">时间</string>
+    <string name="placeholder_path_info">路径信息</string>
+    <string name="cannot_open_preview">无法打开图片预览</string>
+    <string name="select_share_images">请先选择要分享的图片</string>
+    <string name="cannot_get_image_file">无法获取图片文件</string>
+    <string name="history_cleared">历史记录和缓存已清空</string>
+
+    <!-- ==================== 处理相关 ==================== -->
+    <string name="select_output_folder_first">请选择输出文件夹</string>
+    <string name="cannot_save_preview">无法保存预览图</string>
+    <string name="generate_preview_first">请先生成预览图</string>
+    <string name="set_input_output_folders">请设置输入和输出文件夹</string>
+    <string name="caches_cleared">已清除所有缓存，现有文件将被重新处理</string>
+    <string name="memory_insufficient_no_border">内存不足，已返回无边框图片</string>
+    <string name="memory_alloc_rejected_no_border">内存分配被拒绝，已返回无边框图片</string>
+    <string name="memory_critical_no_border">内存严重不足，已返回无边框图片</string>
+    <string name="memory_insufficient_scaled_no_border">内存不足，已返回缩放后的无边框图片</string>
+    <string name="memory_alloc_rejected">内存分配被拒绝</string>
+    <string name="image_scaled_border_added">已缩放图片并添加边框</string>
+    <string name="operation_completed_issues">操作完成，但遇到了一些小问题</string>
+    <string name="operation_issue">操作遇到问题: %s</string>
+
+    <!-- ==================== 全屏图片 ==================== -->
+    <string name="non_fullsize_preview">非全尺寸预览图，效果仅供参考</string>
+    <string name="load_image_failed">加载图片失败: %s</string>
+    <string name="cannot_load_image_resource">无法加载图片资源</string>
+    <string name="file_deleted_or_moved">文件已被删除或移动</string>
+    <string name="image_downsampled">图片过大，已降采样显示</string>
+    <string name="cannot_decode_image">无法解码图片</string>
+
+    <!-- ==================== 通知渠道 ==================== -->
+    <string name="folder_monitor_channel_desc">文件夹监控服务通知</string>
+    <string name="memory_monitor_channel_name">内存监控</string>
+    <string name="memory_monitor_channel_desc">监控应用内存使用情况</string>
+    <string name="tethered_service_channel_name">联机拍摄服务</string>
+    <string name="tethered_service_channel_desc">显示相机连接状态</string>
+    <string name="file_transfer_channel_name">文件传输进度</string>
+    <string name="file_transfer_channel_desc">显示照片下载进度</string>
+    <string name="tethered_shooting">联机拍摄</string>
+    <string name="import_notification_channel_name">照片导入</string>
+    <string name="import_notification_channel_desc">显示照片导入进度</string>
+
+    <!-- ==================== 联机模式BottomSheet ==================== -->
+    <string name="camera_disconnected_status">相机未连接</string>
+    <string name="select_output_folder_hint">输出文件夹</string>
+    <string name="settings_success">设置成功</string>
+    <string name="setting_not_supported">参数不支持修改</string>
+    <string name="unsupported_config_type">不支持的配置类型</string>
+    <string name="other_params">其他参数</string>
+    <string name="no_filtered_params">没有被过滤的参数</string>
+    <string name="camera_disconnected_transfer_cancelled">相机断开，传输已取消</string>
+    <string name="init_failed">初始化失败: %s</string>
+    <string name="page_exit_transfer_cancelled">页面退出，传输已取消</string>
+    <string name="load_photos_failed">加载照片失败: %s</string>
+    <string name="cannot_write_target_folder">无法写入目标文件夹</string>
+    <string name="import_failed_msg">导入失败: %s</string>
+    <string name="input_folder_not_set">输入文件夹未设置</string>
+
+    <!-- ==================== ErrorHandler ==================== -->
+    <string name="restart_app">重启应用</string>
+
+    <!-- ==================== 对话框补充 ==================== -->
+    <string name="position_settings">位置设置</string>
+    <string name="opacity_percentage">透明度 (%)</string>
+    <string name="border_width_short_side">边框宽度短边百分比 (%)</string>
+    <string name="auto_mode">自动</string>
+    <string name="select_color_from_image">从图片中选择颜色</string>
 </resources>

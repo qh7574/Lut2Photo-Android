@@ -271,7 +271,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="0dp"
-                            android:text="LUT1 效果强度"
+                            android:text="@string/lut1_effect_strength"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <LinearLayout
@@ -316,7 +316,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginBottom="0dp"
-                                android:text="LUT2 效果强度"
+                                android:text="@string/lut2_effect_strength"
                                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                             <LinearLayout
@@ -332,7 +332,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_marginEnd="16dp"
                                     android:layout_weight="1"
-                                    android:contentDescription="第二个LUT效果强度滑块"
+                                    android:contentDescription="@string/lut2_strength_slider_desc"
                                     android:stepSize="1"
                                     android:value="100"
                                     android:valueFrom="0"
@@ -353,7 +353,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginBottom="0dp"
-                                android:text="输出质量"
+                                android:text="@string/output_quality"
                                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                             <!-- 在质量滑块后添加显示值的TextView -->
@@ -409,7 +409,7 @@
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
-                                    android:text="Floyd" />
+                                    android:text="@string/dither_floyd" />
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/button_dither_random"
@@ -417,7 +417,7 @@
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
-                                    android:text="Random" />
+                                    android:text="@string/dither_random" />
 
                                 <com.google.android.material.button.MaterialButton
                                     android:id="@+id/button_dither_none"
@@ -425,7 +425,7 @@
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
-                                    android:text="None" />
+                                    android:text="@string/dither_none" />
 
                             </com.google.android.material.button.MaterialButtonToggleGroup>
 
@@ -449,7 +449,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginEnd="20dp"
-                                    android:text="启用水印"
+                                     android:text="@string/enable_watermark"
                                     android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                                 <LinearLayout
@@ -472,7 +472,7 @@
                                         style="@style/Widget.Material3.Button.OutlinedButton"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="水印设置"
+                                        android:text="@string/watermark_settings"
                                         android:textSize="14sp" />
 
                                 </LinearLayout>

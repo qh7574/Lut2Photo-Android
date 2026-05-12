@@ -31,7 +31,7 @@
                 android:layout_height="36dp"
                 android:layout_marginLeft="4dp"
                 app:icon="@drawable/ic_arrow_back_24"
-                android:contentDescription="返回" />
+                android:contentDescription="@string/back" />
 
             <!-- 连接状态 -->
             <com.google.android.material.textview.MaterialTextView
@@ -40,7 +40,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="相机未连接"
+                android:text="@string/camera_disconnected_status"
                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                 android:textStyle="bold" />
 
@@ -52,7 +52,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginRight="2dp"
                 android:layout_marginLeft="8dp"
-                android:text="导入"
+                android:text="@string/import_text"
                 android:enabled="false" />
 
             <!-- 更多选项按钮 -->
@@ -62,7 +62,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 app:icon="@drawable/ic_more_vert_24"
-                android:contentDescription="更多选项" />
+                android:contentDescription="@string/more_options" />
 
         </LinearLayout>
 
@@ -139,7 +139,7 @@
                     android:layout_width="120dp"
                     android:layout_height="120dp"
                     android:alpha="0.3"
-                    android:contentDescription="无照片"
+                    android:contentDescription="@string/no_photos_in_camera"
                     android:src="@drawable/outline_photo_camera_24" />
 
                 <com.google.android.material.textview.MaterialTextView
@@ -150,7 +150,7 @@
                     android:layout_marginTop="16dp"
                     android:layout_marginEnd="32dp"
                     android:alpha="0.6"
-                    android:text="相机中没有照片"
+                    android:text="@string/no_photos_in_camera"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
@@ -162,7 +162,7 @@
                     android:layout_marginTop="8dp"
                     android:layout_marginEnd="32dp"
                     android:alpha="0.4"
-                    android:text="拍摄一张照片后列表将自动刷新"
+                    android:text="@string/photo_list_auto_refresh"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                     android:visibility="gone" />
@@ -217,7 +217,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="相机设置"
+                    android:text="@string/camera_settings"
                     android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                     android:textStyle="bold" />
 
@@ -228,7 +228,7 @@
                     android:layout_height="24dp"
                     android:layout_gravity="center_vertical"
                     app:srcCompat="@drawable/ic_expand_more"
-                    android:contentDescription="展开/收缩" />
+                    android:contentDescription="@string/toggle_section" />
 
             </LinearLayout>
 
@@ -261,7 +261,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="无可用设置"
+                android:text="@string/no_settings_available"
                 android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                 android:alpha="0.6"
                 android:visibility="gone" />

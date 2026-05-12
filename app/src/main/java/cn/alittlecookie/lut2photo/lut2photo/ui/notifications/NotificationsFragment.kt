@@ -281,10 +281,10 @@ class NotificationsFragment : Fragment() {
             val logcatManager = MyApplication.getLogcatManager()
             if (isChecked) {
                 logcatManager?.startCapture()
-                Toast.makeText(requireContext(), "Logcat 捕获已启动", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.logcat_started), Toast.LENGTH_SHORT).show()
             } else {
                 logcatManager?.stopCaptureAndClean()
-                Toast.makeText(requireContext(), "Logcat 捕获已停止，日志文件已删除", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.logcat_stopped), Toast.LENGTH_SHORT).show()
             }
         }
         
@@ -304,7 +304,7 @@ class NotificationsFragment : Fragment() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.cannot_open_browser), Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -318,7 +318,7 @@ class NotificationsFragment : Fragment() {
             intent.putExtra(FullscreenImageActivity.EXTRA_IS_PROCESSED_IMAGE, true)
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "无法打开图片", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.cannot_open_image), Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -330,7 +330,7 @@ class NotificationsFragment : Fragment() {
         val logFile = logcatManager?.getLatestLogFile()
         
         if (logFile == null || !logFile.exists()) {
-            Toast.makeText(requireContext(), "没有可分享的日志文件", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.no_log_file), Toast.LENGTH_SHORT).show()
             return
         }
         
@@ -351,7 +351,7 @@ class NotificationsFragment : Fragment() {
             
             startActivity(Intent.createChooser(shareIntent, "分享日志文件"))
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.share_failed, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 

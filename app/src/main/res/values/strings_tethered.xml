@@ -18,6 +18,7 @@
     <string name="import_failed">导入失败: %s</string>
     <string name="no_photos_selected">请选择要导入的照片</string>
     <string name="no_photos_in_camera">相机中没有照片</string>
+    <string name="photo_list_auto_refresh">拍摄一张照片后列表将自动刷新</string>
     <string name="loading_photos">正在加载照片…</string>
     
     <!-- 相机设置 -->

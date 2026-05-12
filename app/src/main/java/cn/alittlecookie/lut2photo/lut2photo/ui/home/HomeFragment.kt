@@ -134,7 +134,7 @@ class HomeFragment : Fragment() {
             
             when (intent?.action) {
                 FolderMonitorService.ACTION_MONITORING_STATUS_UPDATE -> {
-                    val statusMessage = intent.getStringExtra(FolderMonitorService.EXTRA_STATUS_MESSAGE) ?: "未知状态"
+                    val statusMessage = intent.getStringExtra(FolderMonitorService.EXTRA_STATUS_MESSAGE) ?: getString(R.string.unknown)
                     val isMonitoring = intent.getBooleanExtra(FolderMonitorService.EXTRA_IS_MONITORING, false)
                     
                     Log.d("HomeFragment", "收到监控状态更新广播")
@@ -340,7 +340,7 @@ class HomeFragment : Fragment() {
                 requireContext().sendBroadcast(updateIntent)
                 
                 Log.d("HomeFragment", "========== 缓存和记录清除完成 ==========")
-                showToast("已清除所有缓存，现有文件将被重新处理")
+                showToast(getString(R.string.caches_cleared))
             }
         }
     
@@ -393,7 +393,7 @@ class HomeFragment : Fragment() {
                     startMonitoring()
                 } else {
                     Log.w("HomeFragment", "条件不满足，重置开关状态")
-                    showToast("请设置输入和输出文件夹")
+                    showToast(getString(R.string.set_input_output_folders))
 
                     // 临时移除监听器，重置状态，然后恢复监听器
                     binding.switchMonitoring.setOnCheckedChangeListener(null)
@@ -1933,7 +1933,7 @@ class HomeFragment : Fragment() {
             startActivity(intent)
         } catch (e: Exception) {
             Log.e("HomeFragment", "打开帮助链接失败: $url", e)
-            Toast.makeText(requireContext(), "无法打开浏览器", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.cannot_open_browser), Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -1958,10 +1958,10 @@ class HomeFragment : Fragment() {
                 // 清理旧文件
                 cn.alittlecookie.lut2photo.lut2photo.utils.ImageShareUtils.cleanOldTempFiles(requireContext())
             } else {
-                Toast.makeText(requireContext(), "无法保存预览图", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.cannot_save_preview), Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(requireContext(), "请先生成预览图", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.generate_preview_first), Toast.LENGTH_SHORT).show()
         }
     }
     

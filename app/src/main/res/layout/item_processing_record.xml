@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:alpha="1"
-            android:contentDescription="输出图片预览"
+            android:contentDescription="@string/preview_image"
             android:scaleType="centerCrop"
             android:visibility="gone" />
 
@@ -56,7 +56,7 @@
                     android:shadowDx="0"
                     android:shadowDy="0"
                     android:shadowRadius="10"
-                    android:text="文件名"
+                    android:text="@string/placeholder_filename"
                     android:textColor="#ffffffff"
                     android:textSize="14sp"
                     android:maxLines="1"
@@ -69,7 +69,7 @@
                     android:background="@drawable/status_background"
                     android:padding="4dp"
                     android:layout_marginTop="2dp"
-                    android:text="状态"
+                    android:text="@string/placeholder_status"
                     android:textColor="#ffffffff"
                     android:textSize="12sp" />
 
@@ -79,7 +79,7 @@
             android:id="@+id/text_timestamp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="时间"
+                    android:text="@string/placeholder_time"
             android:textSize="10sp"
             android:shadowColor="#ff000000"
             android:shadowDx="0"
@@ -92,7 +92,7 @@
             android:id="@+id/text_paths"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="路径信息"
+                    android:text="@string/placeholder_path_info"
             android:textSize="10sp"
             android:shadowColor="#ff000000"
             android:shadowDx="0"
@@ -111,7 +111,7 @@
             android:layout_gravity="bottom|end"
             android:layout_margin="12dp"
             android:src="@drawable/ic_check_circle_24"
-            android:contentDescription="已选中"
+            android:contentDescription="@string/selected"
             android:shadowColor="#ff000000"
             android:shadowDx="0"
             android:shadowDy="2"

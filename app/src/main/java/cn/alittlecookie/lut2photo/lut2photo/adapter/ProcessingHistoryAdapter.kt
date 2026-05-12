@@ -8,6 +8,7 @@ import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import cn.alittlecookie.lut2photo.lut2photo.R
 import cn.alittlecookie.lut2photo.lut2photo.databinding.ItemProcessingRecordBinding
 import cn.alittlecookie.lut2photo.lut2photo.model.ProcessingRecord
 import cn.alittlecookie.lut2photo.lut2photo.utils.ThumbnailManager
@@ -118,9 +119,10 @@ class ProcessingHistoryAdapter(
                 textFileName.text = getFileNameFromPath(record.fileName)
 
                 // 修改状态显示逻辑
+                val ctx = root.context
                 val displayStatus = when {
-                    record.status.contains("成功") -> "手动处理"
-                    record.status.contains("处理完成") -> "实时处理"
+                    record.status.contains("成功") -> ctx.getString(R.string.history_manual)
+                    record.status.contains("处理完成") -> ctx.getString(R.string.history_realtime)
                     record.status.contains("失败") -> record.status
                     else -> record.status
                 }
@@ -128,7 +130,7 @@ class ProcessingHistoryAdapter(
 
                 // 统一设置状态颜色
                 when {
-                    displayStatus == "手动处理" || displayStatus == "文件夹监控" -> {
+                    displayStatus == ctx.getString(R.string.history_manual) || displayStatus == ctx.getString(R.string.history_folder_monitor) -> {
                         textStatus.setTextColor(ContextCompat.getColor(root.context, android.R.color.holo_green_dark))
                     }
                     record.status.contains("失败") -> {
@@ -146,7 +148,7 @@ class ProcessingHistoryAdapter(
                 val lutInfo = buildLutInfo(record)
                 getSimplifiedPath(record.inputPath)
                 val outputDisplayPath = getSimplifiedPath(record.outputPath)
-                textPaths.text = "$lutInfo\n输出: $outputDisplayPath"
+                textPaths.text = "$lutInfo\n${ctx.getString(R.string.output_label, outputDisplayPath)}"
 
                 // 选中状态指示器
                 imageSelectionIndicator.visibility = if (isSelectionMode && selectedPositions.contains(position)) {
@@ -176,7 +178,7 @@ class ProcessingHistoryAdapter(
 
         private fun buildLutInfo(record: ProcessingRecord): String {
             return if (record.strength > 0f || record.quality > 0 || record.ditherType.isNotEmpty() || record.lut2FileName.isNotEmpty()) {
-                val lutName = record.lutFileName.ifEmpty { "未知" }
+                val lutName = record.lutFileName.ifEmpty { binding.root.context.getString(R.string.unknown) }
                 val lut2Name = if (record.lut2FileName.isNotEmpty()) record.lut2FileName else null
                 val strengthText = "${(record.strength * 100).toInt()}%"
                 val lut2StrengthText = if (record.lut2Strength > 0f) "${(record.lut2Strength * 100).toInt()}%" else null
@@ -195,7 +197,7 @@ class ProcessingHistoryAdapter(
                     append("\n$qualityText | $ditherText")
                 }
             } else {
-                val lutName = record.lutFileName.ifEmpty { "未知" }
+                val lutName = record.lutFileName.ifEmpty { binding.root.context.getString(R.string.unknown) }
                 val lut2Name = if (record.lut2FileName.isNotEmpty()) record.lut2FileName else null
                 if (lut2Name != null) {
                     "LUT: $lutName + $lut2Name"

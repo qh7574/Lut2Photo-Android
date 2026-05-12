@@ -28,14 +28,14 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_marginEnd="8dp"
-                android:contentDescription="预览图标"
+                android:contentDescription="@string/preview_icon_desc"
                 android:src="@drawable/outline_preview_24" />
 
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="预览"
+                android:text="@string/preview"
                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
             <!-- 刷新按钮 -->
@@ -44,7 +44,7 @@
                 style="@style/Widget.Material3.Button.IconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
-                android:contentDescription="刷新预览"
+                android:contentDescription="@string/refresh_preview_desc"
                 android:paddingHorizontal="8dp"
                 app:icon="@drawable/outline_refresh_24"
                 app:iconSize="18dp" />
@@ -83,7 +83,7 @@
                     android:layout_height="48dp"
                     android:layout_marginBottom="8dp"
                     android:alpha="0.6"
-                    android:contentDescription="图片占位符"
+                    android:contentDescription="@string/image_placeholder_desc"
                     android:src="@drawable/outline_image_24" />
 
                 <com.google.android.material.textview.MaterialTextView
@@ -91,7 +91,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:alpha="0.6"
-                    android:text="等待状态更新"
+                    android:text="@string/preview_placeholder"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
             </LinearLayout>
@@ -102,7 +102,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:adjustViewBounds="true"
-                android:contentDescription="预览图片"
+                android:contentDescription="@string/preview_image"
                 android:scaleType="fitCenter"
                 android:visibility="gone" />
 
@@ -137,7 +137,7 @@
                     android:layout_height="48dp"
                     android:layout_marginBottom="8dp"
                     android:alpha="0.6"
-                    android:contentDescription="错误图标"
+                    android:contentDescription="@string/error_icon_desc"
                     android:src="@drawable/outline_error_24" />
 
                 <com.google.android.material.textview.MaterialTextView
@@ -145,7 +145,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:alpha="0.6"
-                    android:text="预览生成失败"
+                    android:text="@string/preview_error"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
 
             </LinearLayout>
