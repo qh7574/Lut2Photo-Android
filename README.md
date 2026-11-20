@@ -1,3 +1,8 @@
+# **⚠️ 注意：本项目已停止维护，项目相关功能重写至 [https://github.com/qh7574/Lutista](https://github.com/qh7574/Lutista)**
+
+> 本仓库仅作历史归档保留，不再接受新功能、问题修复或 PR。 [Lutista App](https://github.com/qh7574/Lutista) 仍在快速迭代阶段，您可以继续使用Lut2Photo，同时建议在 Lutista 发布 release 版本后进行迁移。
+
+
 # Lut2Photo Android应用版本
 
 一个功能强大的Android LUT图片处理应用，支持批量处理、实时文件夹监控、GPU加速和丰富的水印功能。
